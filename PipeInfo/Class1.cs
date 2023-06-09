@@ -18,7 +18,7 @@ namespace PipeInfo
     public class Class1
     {
 
-        [CommandMethod("fence")]
+        [CommandMethod("fence_new")]
         public void selectFence()
         {
             
