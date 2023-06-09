@@ -61,13 +61,8 @@ C:\Users\Dinno\Documents\PipeInfo\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCom
 C:\Users\Dinno\Documents\PipeInfo\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
 C:\Users\Dinno\Documents\PipeInfo\PipeInfo\obj\x64\Debug\PipeInfo4_5.dll
 C:\Users\Dinno\Documents\PipeInfo\PipeInfo\obj\x64\Debug\PipeInfo4_5.pdb
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo7.dll
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_8.dll
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_9.dll
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\sqlite3.dll
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_10.dll.config
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_10.dll
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_10.pdb
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_1.dll
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\EntityFramework.dll
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\EntityFramework.SqlServer.dll
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\System.Data.SQLite.dll
@@ -81,5 +76,8 @@ C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.DB_Path_Wi
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.GenerateResource.cache
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
 C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_10.dll
-C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_10.pdb
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_3.dll.config
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_3.dll
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_3.pdb
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_3.dll
+C:\Users\Dinno\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_3.pdb

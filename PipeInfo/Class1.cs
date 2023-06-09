@@ -31,19 +31,22 @@ namespace PipeInfo
             Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
             ObjectId id;
             PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
+            SelectionSet ss = prSelRes.Value;
+            ObjectId[] obIds = ss.GetObjectIds();
+            
             string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
 
+            if (strConn != null)
+            {
             using (SQLiteConnection conn = new SQLiteConnection(strConn))
             {
                 conn.Open();
-                string sql = "SELECT * FROM ";
+                string sql = "SELECT * FROM TB_PIPEINSTANCES";
                 SQLiteCommand cmd = new SQLiteCommand(sql, conn);
                 cmd.ExecuteNonQuery();
-
-                cmd.CommandText = "DELETE FROM member WHERE Id=1";
-                cmd.ExecuteNonQuery();
-                ed.WriteMessage("DB연결");
             }
+            }
+
             foreach (Point3d point in pointCollection)
             {
                 final_Point.Add(point);
@@ -51,18 +54,8 @@ namespace PipeInfo
 
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
-                //SelectionSet ss = prSelRes.Value;
                 ObjectId[] oId = new ObjectId[1];
-                //if (ss != null)
-                //    ed.WriteMessage("\nThe SS is good and has {0} entities.", ss.GetObjectIds());
-                //else
-                //    ed.WriteMessage("\nThe SS is bad!");
-                //foreach (SelectedObject s in ss)
-                //{
-                //ed.WriteMessage(s.ObjectId.ToString());
-                //oId.Append(s.ObjectId);
-                //ed.WriteMessage(s.ObjectId.ToString());
-                //}
+                
                 BlockTable acBlk;
                 acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord acBlkRec;
@@ -74,8 +67,15 @@ namespace PipeInfo
                  - - + : 오른쪽 하단 
                  + - + : 왼쪽 하단 */
 
-                Vector3d vec = final_Point[1] - final_Point[0];
-                ed.WriteMessage(vec.GetNormal().ToString());
+                foreach (var obid in obIds)
+                {
+                    var obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                    ed.WriteMessage($"시작좌표 : {obj.StartPoint}");
+                    Vector3d vec = obj.EndPoint.GetVectorTo(obj.StartPoint);
+                    ed.WriteMessage($"\n벡터 : {vec.GetNormal()}");
+
+                }
+               
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -93,30 +93,8 @@ namespace PipeInfo
                     id = acBlkRec.AppendEntity(acText);
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                 }
-
                 acTrans.Commit();
-
-
             }
-
-            //Commit후에 Text수정했을때도 안됨.
-            //using(Transaction acTrans = db.TransactionManager.StartTransaction())
-            //{
-
-            //    BlockTable acBlk;
-            //    acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-            //    BlockTableRecord acBlkRec;
-            //    acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-            //    ObjectId[] ids = new ObjectId[] { id }; //한개를 선택하기 위해 배열에 값 하나 집어넣음
-            //    var d = Autodesk.AutoCAD.Internal.Utils.SelectObjects(ids);
-            //    DBText acEnt = acTrans.GetObject(id, OpenMode.ForWrite) as DBText;
-            //    ed.SetImpliedSelection(ids);
-
-            //    acTrans.Commit();
-            //}
-
-
         }
 
         [CommandMethod("win")]
@@ -139,8 +117,7 @@ namespace PipeInfo
             {
                 AllowNone = true
             };
-
-            // Get the start point
+            // Active Document에서 Fence시작 포인트를 가져온다. 
             PromptPointResult pointResult = Active.Editor.GetPoint(pointOptions);
 
             while (pointResult.Status == PromptStatus.OK)
@@ -158,7 +135,7 @@ namespace PipeInfo
                     Active.Editor.DrawVector(
                       pointCollection[pointCollection.Count - 1], // start point
                       pointResult.Value,          // end point
-                      2,
+                      4,
                       true);                     // highlighted?
                 }
             }

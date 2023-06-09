@@ -1,8 +1,9 @@
 
 
-INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at B7F36E36h
 
-05/23/2023 at 13:02:30.000  Drawing: D:\프로젝트_제작도면\도면\5D DXF,CAD 제작도 SAMPLE\DTT3703\DTT3703_SPOOL.DWG
+06/09/2023 at 15:46:48.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
 -------------
+-------
 _SPOOL.DWG
 -------------
