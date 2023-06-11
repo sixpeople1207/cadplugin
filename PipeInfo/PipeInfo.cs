@@ -47,19 +47,23 @@ namespace PipeInfo
 
 
 
-                // string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
+                //string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
                 //string strConn = @"Data Source=C:\Users\sixpe\Downloads\DKG3705\DInno.HU3D.db";
 
-                //if (strConn != null)
-                //{
-                //using (SQLiteConnection conn = new SQLiteConnection(strConn))
-                //{
-                //    conn.Open();
-                //    string sql = "SELECT * FROM TB_PIPEINSTANCES";
-                //    SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                //    cmd.ExecuteNonQuery();
-                //}
-                //}
+                if (db_path != null)
+                {
+                    string connstr = "Data Source=" + db_path;
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        string sql = "SELECT * FROM TB_PIPEINSTANCES";
+                        SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = cmd.ExecuteReader();
+                        while(rdr.Read()) {
+                            ed.WriteMessage("{0}",rdr["POSX"]);
+                        }
+                    }
+                }
 
                 foreach (Point3d point in pointCollection)
                 {
@@ -87,7 +91,6 @@ namespace PipeInfo
                         ed.WriteMessage($"시작좌표 : {obj.StartPoint}");
                         Vector3d vec = obj.EndPoint.GetVectorTo(obj.StartPoint);
                         ed.WriteMessage($"\n벡터 : {vec.GetNormal()}");
-
                     }
                     for (int i = 0; i < 3; i++)
                     {
