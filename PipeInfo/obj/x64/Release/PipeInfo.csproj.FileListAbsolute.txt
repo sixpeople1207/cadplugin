@@ -1,0 +1,4 @@
+C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.AssemblyReference.cache
+C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.DB_Path_Winform.resources
+C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.GenerateResource.cache
+C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.CoreCompileInputs.cache
