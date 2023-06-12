@@ -45,14 +45,9 @@ namespace PipeInfo
                 SelectionSet ss = prSelRes.Value;
                 ObjectId[] obIds = ss.GetObjectIds();
 
-
-
-                //string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
-                //string strConn = @"Data Source=C:\Users\sixpe\Downloads\DKG3705\DInno.HU3D.db";
-
                 if (db_path != null)
                 {
-                    string connstr = "Data Source=" + db_path;
+                    string connstr = @"Data Source=" + db_path;
                     using (SQLiteConnection conn = new SQLiteConnection(connstr))
                     {
                         conn.Open();
