@@ -21,6 +21,8 @@ namespace PipeInfo
     public class PipeInfo
     {
         string db_path="";
+        string db_TB_PIPEINSTANCES = "TB_PIPEINSTANCES";
+        string db_TB_POCINSTANCES = "TB_POCINSTANCES";
 
         [CommandMethod("fence")]
         public void selectFence()
@@ -40,20 +42,17 @@ namespace PipeInfo
 
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
-                ObjectId id;
                 PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
-                SelectionSet ss = prSelRes.Value;
-                ObjectId[] obIds = ss.GetObjectIds();
-
-                //string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
-                //string strConn = @"Data Source=C:\Users\sixpe\Downloads\DKG3705\DInno.HU3D.db";
-
-                foreach (Point3d point in pointCollection)
+                //선택한 객체가 존재할때만 명령 실행.
+                if (prSelRes.Status == PromptStatus.OK)
                 {
-                    final_Point.Add(point);
-                }
-
-                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                    SelectionSet ss = prSelRes.Value;
+                    ObjectId[] obIds = ss.GetObjectIds();
+                    foreach (Point3d point in pointCollection)
+                    {
+                        final_Point.Add(point);
+                    }
+                    using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     ObjectId[] oId = new ObjectId[1];
 
@@ -74,29 +73,69 @@ namespace PipeInfo
                         using (SQLiteConnection conn = new SQLiteConnection(connstr))
                         {
                             conn.Open();
-                          
                             //오브젝트 ID를 이용해서 객체의 정보를 가져온다.
                             //파이프의 백터 필요.
                             foreach (var obid in obIds)
                             {
-                                var obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
-                                ed.WriteMessage($"시작좌표 : {obj.StartPoint}");
-                                Vector3d vec = obj.EndPoint.GetVectorTo(obj.StartPoint);
-                                ed.WriteMessage($"\n벡터 : {vec.GetNormal()}");
-
-                                string sql = String.Format("SELECT * FROM TB_PIPEINSTANCES WHERE POSX = {0} AND POSZ = {1}", Math.Round(obj.StartPoint.X,2),Math.Round(obj.StartPoint.Z,2));
+                                //PolyLine3d 로 형변환. 
+                                    Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                                //Line의 Vec방향.
+                                    Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
+                                //DB Select문에 사용할 Line Vector에 따른 Obj방향설정.
+                                    (string[] db_column_name , double[] line_trans) = getPipeVector(vec , obj);
+                                //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
+                                string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
+                                                Math.Round(line_trans[0], 2),
+                                                Math.Round(line_trans[1], 2), 
+                                                obj.Length, db_column_name[0], 
+                                                db_column_name[1],
+                                                db_TB_PIPEINSTANCES);
                                 SQLiteCommand cmd = new SQLiteCommand(sql, conn);
                                 SQLiteDataReader rdr = cmd.ExecuteReader();
-
-                                while (rdr.Read())
+                                
+                                    if (rdr.HasRows)
                                 {
-                                    ed.WriteMessage("{0}", rdr["INSTANCE_ID"]);
+                                        //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
+                                        rdr.Read(); 
+                                        //BitConverter에 '-'하이픈 Replace로 제거. 
+                                        ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-",""));
+                                        string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
+                                        SQLiteCommand cmd_instance = new SQLiteCommand(sql, conn);
+                                        SQLiteDataReader rdr_instance_id = cmd_instance.ExecuteReader();
+                                        if (rdr_instance_id.HasRows)
+                                        {
+                                            rdr_instance_id.Read();
+                                            ed.WriteMessage("찾은 인스턴스 ID : {0}\n", BitConverter.ToString((byte[])rdr_instance_id["INSTANCE_ID"]).Replace("-", ""));
+                                            if (rdr["INSTANCE_ID"] == rdr_instance_id["INSTANCE_ID"])
+                                            {
+                                                ed.WriteMessage("같음");
+                                            }
+                                            rdr_instance_id.Close();
+                                            }
+                                        else
+                                        {
+                                            MessageBox.Show("데이터가 없습니다.");
+                                        }
+                                rdr.Close();
                                 }
+                                else
+                                {
+                                    MessageBox.Show("데이터가 없습니다.");
+                                }
+
                             }
                         }
                     }
                     acTrans.Commit();
                 }
+                }
+                else
+                {
+                    ed.WriteMessage("라인을 선택하세요");
+                }
+
+              
+
             }
         }
 
@@ -106,6 +145,39 @@ namespace PipeInfo
             db_path = data;
         }
 
+        //파이프의 벡터 방향을 가져온다.
+        public (string[],double[]) getPipeVector(Vector3d vector, Polyline3d obj)
+        {
+            /*Pipe 진행방향(Line)은 삽입값이나 Elbow값이 포함되어 있음. 그래서 DB에서 정확한 비교가 어렵다. 그래서 진행방향이 아닌 나머지 두 축으로 비교.
+             *0,90,180,270,360도만 적용(직각이 아닌 라인들은 다시 지정)
+              X축 이면 Y축과 Z축
+              Y축 이면 X축과 Z축
+              Z축 이면 X축과 Z축*/
+            string[] db_column_name = {"",""};
+            double[] line_trans = {0.0,0.0};
+            if(vector.GetNormal().X == 1 || vector.GetNormal().X == -1)
+            {
+                db_column_name[0] = "POSY";
+                db_column_name[1] = "POSZ";
+                line_trans[0] = obj.StartPoint.Y;
+                line_trans[1] = obj.StartPoint.Z;
+            }
+            if (vector.GetNormal().Y == 1 || vector.GetNormal().Y == -1)
+            {
+                db_column_name[0] = "POSX";
+                db_column_name[1] = "POSZ";
+                line_trans[0] = obj.StartPoint.X;
+                line_trans[1] = obj.StartPoint.Z;
+            }
+            if (vector.GetNormal().Z == 1 || vector.GetNormal().Z == -1)
+            {
+                db_column_name[0] = "POSX";
+                db_column_name[1] = "POSY";
+                line_trans[0] = obj.StartPoint.X;
+                line_trans[1] = obj.StartPoint.Y;
+            }
+            return (db_column_name , line_trans);
+        }
     }
  
     public class InteractivePolyLine
@@ -117,7 +189,7 @@ namespace PipeInfo
             Document Active = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
             Point3dCollection pointCollection = new Point3dCollection();
             Color color = Active.Database.Cecolor;
-            PromptPointOptions pointOptions = new PromptPointOptions("\n첫 번째 점: ")
+            PromptPointOptions pointOptions = new PromptPointOptions("\n 첫 번째 점: ")
             {
                 AllowNone = true
             };
