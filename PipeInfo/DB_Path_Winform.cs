@@ -34,10 +34,7 @@ namespace PipeInfo
             DataSendEvent(db_path);
             this.Close();
         }
-        public string sendValue
-        {
-            get { return this.db_path; }
-        }
+  
  
         public string showFileDialog()
         {

@@ -45,25 +45,8 @@ namespace PipeInfo
                 SelectionSet ss = prSelRes.Value;
                 ObjectId[] obIds = ss.GetObjectIds();
 
-
-
                 //string strConn = @"Data Source=D:\프로젝트_제작도면\도면\DINNO 요청 DB (1)\DKG3705\DInno.HU3D.db";
                 //string strConn = @"Data Source=C:\Users\sixpe\Downloads\DKG3705\DInno.HU3D.db";
-
-                if (db_path != null)
-                {
-                    string connstr = "Data Source=" + db_path;
-                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
-                    {
-                        conn.Open();
-                        string sql = "SELECT * FROM TB_PIPEINSTANCES";
-                        SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                        SQLiteDataReader rdr = cmd.ExecuteReader();
-                        while(rdr.Read()) {
-                            ed.WriteMessage("{0}",rdr["POSX"]);
-                        }
-                    }
-                }
 
                 foreach (Point3d point in pointCollection)
                 {
@@ -84,52 +67,45 @@ namespace PipeInfo
                      - + + : 왼쪽 상단 
                      - - + : 오른쪽 하단 
                      + - + : 왼쪽 하단 */
+               
+                    if (db_path != null)
+                    {
+                        string connstr = "Data Source=" + db_path;
+                        using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                        {
+                            conn.Open();
+                          
+                            //오브젝트 ID를 이용해서 객체의 정보를 가져온다.
+                            //파이프의 백터 필요.
+                            foreach (var obid in obIds)
+                            {
+                                var obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                                ed.WriteMessage($"시작좌표 : {obj.StartPoint}");
+                                Vector3d vec = obj.EndPoint.GetVectorTo(obj.StartPoint);
+                                ed.WriteMessage($"\n벡터 : {vec.GetNormal()}");
 
-                    foreach (var obid in obIds)
-                    {
-                        var obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
-                        ed.WriteMessage($"시작좌표 : {obj.StartPoint}");
-                        Vector3d vec = obj.EndPoint.GetVectorTo(obj.StartPoint);
-                        ed.WriteMessage($"\n벡터 : {vec.GetNormal()}");
-                    }
-                    for (int i = 0; i < 3; i++)
-                    {
-                        DBText acText = new DBText();
-                        //acText.SetDatabaseDefaults();
-                        acText.Normal = Vector3d.ZAxis;
-                        //acText.Position = Point3d.Origin;
-                        acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
-                        acText.TextString = "13A_PN2_T3703_CA05_002";
-                        //AlignmentPoint로 수정하니 됨.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
-                        acText.AlignmentPoint = new Point3d(final_Point[1].X + (-4 * i), final_Point[1].Y + (2.5 * i), final_Point[1].Z);
-                        acText.Rotation = Math.PI / 180 * 30;
-                        acText.Oblique = Math.PI / 180 * 330;
-                        //acText.AlignmentPoint = new Point3d(final_Point);
-                        id = acBlkRec.AppendEntity(acText);
-                        acTrans.AddNewlyCreatedDBObject(acText, true);
+                                string sql = String.Format("SELECT * FROM TB_PIPEINSTANCES WHERE POSX = {0} AND POSZ = {1}", Math.Round(obj.StartPoint.X,2),Math.Round(obj.StartPoint.Z,2));
+                                SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                SQLiteDataReader rdr = cmd.ExecuteReader();
+
+                                while (rdr.Read())
+                                {
+                                    ed.WriteMessage("{0}", rdr["INSTANCE_ID"]);
+                                }
+                            }
+                        }
                     }
                     acTrans.Commit();
                 }
             }
         }
+
+        //델리게이트로 이벤트 연결
         public void DataGet(string data)
         {
-            Editor ed = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
-            Document acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-            Database db = acDoc.Database;
             db_path = data;
-            ed.WriteMessage(db_path);
         }
 
-        [CommandMethod("dd")]
-        public void dd()
-        {
-            Editor ed = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument.Editor;
-            Document acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-            Database db = acDoc.Database;
-            ed.WriteMessage(db_path);
-
-        }
     }
  
     public class InteractivePolyLine
@@ -179,9 +155,32 @@ namespace PipeInfo
     }
     public class DrawHuText
     {
-        public DrawHuText(int textDisBetween, int textSize)
+        public DrawHuText(Transaction acTrans, BlockTableRecord acBlkRec, Point3d final_Point,int textDisBetween, int textSize, int oblique, int Rotate)
         {
+            /* acTrans : 
+               acBlkRec : 
+               final_Point : 
+               textDisBetween : 
+               textSize : 작업자 설정 필요
+               oblique : 배관 그룹의 Vector에 때라 조정 필요
+               Rotate : 배관 그룹의 Vector에 때라 조정 필요 */
 
+            for (int i = 0; i < 3; i++)
+            {
+                DBText acText = new DBText();
+                //acText.SetDatabaseDefaults();
+                acText.Normal = Vector3d.ZAxis;
+                //acText.Position = Point3d.Origin;
+                acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
+                acText.TextString = "13A_PN2_T3703_CA05_002";
+                //AlignmentPoint로 수정하니 됨.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
+                acText.AlignmentPoint = final_Point;
+                acText.Rotation = Math.PI / 180 * Rotate;
+                acText.Oblique = Math.PI / 180 * oblique;
+                //acText.AlignmentPoint = new Point3d(final_Point);
+                var id = acBlkRec.AppendEntity(acText);
+                acTrans.AddNewlyCreatedDBObject(acText, true);
+            }
         }
         public bool TextForLayerName(SelectionSet ss, Vector3d vec)
         {
