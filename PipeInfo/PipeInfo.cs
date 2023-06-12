@@ -37,18 +37,19 @@ namespace PipeInfo
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
                 PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
                
-                var db_pipeInfo = new Database_Get_PipeInfo(ed, db);
-                var pipe_instanceIDs = db_pipeInfo.get_selection_To_PipeInstacesId(db_path, prSelRes, pointCollection);
+                var pipeInfo_cls = new Database_Get_PipeInfo(ed, db);
+                var pipe_instance_IDs = pipeInfo_cls.db_Get_Production_SpoolInfo(db_path, prSelRes, pointCollection);
+
+                //acDrawText 함수 구현. Pipe방향 Text순서 전 다음 객체 정보 필요. 
             }
             else
             {
                 DB_Path_Winform win = new DB_Path_Winform();
-                win.DataSendEvent += new DataGetEventHandler(this.DataGet);
+                win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
                 win.Show();
             }
         }
-
-        //델리게이트로 이벤트 연결
+        //델리게이트함수 DataGetEventHandler로 DataGet함수 주소를 보내고 콜백함수 등록.
         public void DataGet(string data)
         {
             db_path = data;
@@ -183,7 +184,7 @@ namespace PipeInfo
             this.db_ed = ed;
             this.db_acDB = db;
         }
-        public string[] get_selection_To_PipeInstacesId(string db_path, PromptSelectionResult prSelRes, Point3dCollection pointCollection)
+        public string[] db_Get_Production_SpoolInfo(string db_path, PromptSelectionResult prSelRes, Point3dCollection pointCollection)
         {
             Pipe pi = new Pipe();
             string[] ids = {};
@@ -200,7 +201,7 @@ namespace PipeInfo
                 {
                     final_Point.Add(point);
                 }
-
+         
                 using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
                 {
                     ObjectId[] oId = { };
@@ -221,41 +222,47 @@ namespace PipeInfo
                             conn.Open();
                             //오브젝트 ID를 이용해서 객체의 정보를 가져온다. 배관의 순서를 위해 배관이 놓인 순서필요.
                             //파이프의 백터 필요.
+                         
                             foreach (var obid in obIds)
                             {
                                 //PolyLine3d 로 형변환. 
-                                Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
-                                //Line의 Vec방향.
-                                Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
-
-                                //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
-                                (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, obj);
-
-                                //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
-                                //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
-                                string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
-                                                Math.Round(line_trans[0], 2),//CAD소숫점은 2자리정도로 비교
-                                                Math.Round(line_trans[1], 2),
-                                                obj.Length, db_column_name[0],
-                                                db_column_name[1],
-                                                db_TB_PIPEINSTANCES);
-                                SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                                SQLiteDataReader rdr = cmd.ExecuteReader();
-
-                                if (rdr.HasRows)
+                                var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
+                                if(objd.ObjectId.ObjectClass.GetRuntimeType() == typeof(Polyline3d))
                                 {
-                                    //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
-                                    rdr.Read();
-                                    //BitConverter에 '-'하이픈 Replace로 제거. 
-                                    db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", ""));
-                                    string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
-                                    rdr.Close();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("데이터가 없습니다.");
-                                }
+                                    db_ed.WriteMessage("라인객체"+objd.ObjectId.ObjectClass.ToString());
+                                    Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                                    //Line의 Vec방향.
+                                    Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
 
+                                    //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
+                                    (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, obj);
+
+                                    //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
+                                    //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
+                                    string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
+                                                    Math.Round(line_trans[0], 2),//CAD소숫점은 2자리정도로 비교
+                                                    Math.Round(line_trans[1], 2),
+                                                    obj.Length, db_column_name[0],
+                                                    db_column_name[1],
+                                                    db_TB_PIPEINSTANCES);
+                                    SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                    SQLiteDataReader rdr = cmd.ExecuteReader();
+
+                                    if (rdr.HasRows)
+                                    {
+                                        //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
+                                        rdr.Read();
+                                        //BitConverter에 '-'하이픈 Replace로 제거. 
+                                        db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", ""));
+                                        string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
+                                        rdr.Close();
+                                    }
+                                    else
+                                    {
+                                        MessageBox.Show("데이터가 없습니다.");
+                                    }
+
+                                }
                             }
                         }
                     }
@@ -268,6 +275,6 @@ namespace PipeInfo
             }
             return ids;
         }
- 
+        
     }
 }
