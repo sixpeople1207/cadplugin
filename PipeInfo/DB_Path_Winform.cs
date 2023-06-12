@@ -29,21 +29,16 @@ namespace PipeInfo
 
         private void button_db_path_ok_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(db_path);
             this.DialogResult = DialogResult.OK;
             DataSendEvent(db_path);
             this.Close();
         }
-        public string sendValue
-        {
-            get { return this.db_path; }
-        }
+  
  
         public string showFileDialog()
         {
             var ofd = new System.Windows.Forms.OpenFileDialog();
             ofd.Filter = "DDWorks DatabaseFile(*.db)|*.db";
-            ofd.ShowDialog();
             if (ofd.ShowDialog().ToString() == "OK")
             {
                 textBox_db.Text = ofd.FileName;
