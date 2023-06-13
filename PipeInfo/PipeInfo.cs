@@ -20,6 +20,10 @@ using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using System.Data.Entity.ModelConfiguration.Configuration;
 using System.Runtime.CompilerServices;
+using System.IO.Pipes;
+using System.Security.Cryptography;
+using static System.Windows.Forms.LinkLabel;
+using Autodesk.AutoCAD.Internal;
 
 namespace PipeInfo
 {
@@ -38,14 +42,28 @@ namespace PipeInfo
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
                 PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
-               
-               /*-----------------------------------------DataBase Scope--------------------------------------------------
-                * 1. DB객체 생성
-                * 2. OBJ IDs (Fence to Selection return objIds)
-                * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용)
-                * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성)
-                * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation).
-                ----------------------------------------------------------------------------------------------------------*/
+                using(Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
+                    foreach(var point in pointCollection)
+                    {
+                        ed.WriteMessage(point.ToString());
+                    }
+                    //TOP View에서 보면 XY값을 빼고 고저를 준다면 어느정도 가능성이 있따. 하지만 Fence의 정확한 Intersection값이 안되는데 어쩌지? 
+                    blkRec.AppendEntity(line);
+                    acTrans.AddNewlyCreatedDBObject(line, true);
+                    acTrans.Commit();
+                }
+
+                /*-----------------------------------------DataBase Scope--------------------------------------------------
+                 * 1. DB객체 생성 [O]
+                 * 2. OBJ IDs (Fence to Selection return objIds) [O]
+                 * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용) [O]
+                 * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
+                 * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
+                 ----------------------------------------------------------------------------------------------------------*/
                 var pipeInfo_cls = new Database_Get_PipeInfo(ed, db, db_path);
                 List<string> pipe_instance_IDs = pipeInfo_cls.db_Get_Pipes_InstanceIDs(prSelRes, pointCollection);
                 List<Tuple<string,string>> pipe_Information_li = pipeInfo_cls.db_Get_Pipes_Production_Infomation(pipe_instance_IDs);
@@ -56,7 +74,7 @@ namespace PipeInfo
                  * 2. End Pipe 객체를 넣을 건지 옵션. []
                  * 3. Valve 객체를 찾아서 길이를 줄이기. []
                  * 4. Text를 그리는 기능(라인 포함) []
-                 * 5. 배관 Group의 Vector를 파악.  []
+                 * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
                  * 6. ICON 과 버튼 적용.  []
                  * 7. SetUp 파일.  []
                  * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
@@ -71,9 +89,9 @@ namespace PipeInfo
                 }
 
                 var draw_Text = new DrawText(ed, db);
-                //var pipe = new Pipe();
+                var pipe = new Pipe(ed,db);
                 //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
-                //var pipe_Group_Vector = pipe.get_pipe_Group_Vector(pipe_instance_IDs);
+                var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
                 draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12, 0, 270);
             }
             else
@@ -93,14 +111,25 @@ namespace PipeInfo
     }
     public class Pipe
     {
+        Editor ed;
+        Database db;
+        private Vector3d vec;
+
+        public Pipe(Editor acEd, Database acDB)
+        {
+            ed = acEd;
+            db = acDB;
+        }
+
         //파이프의 벡터 방향을 가져온다.
         public (string[], double[]) getPipeVector(Vector3d vector, Polyline3d obj)
         {
-            /*Pipe 진행방향(Line)은 삽입값이나 Elbow값이 포함되어 있음. 그래서 DB에서 정확한 비교가 어렵다. 그래서 진행방향이 아닌 나머지 두 축으로 비교.
-             *0,90,180,270,360도만 적용(직각이 아닌 라인들은 다시 지정)
-              X축 이면 Y축과 Z축
-              Y축 이면 X축과 Z축
-              Z축 이면 X축과 Z축*/
+            /* Pipe 진행방향(Line)은 삽입값이나 Elbow값이 포함되어 있음. 그래서 DB에서 정확한 비교가 어렵다. 그래서 진행방향이 아닌 나머지 두 축으로 비교.
+             * 0,90,180,270,360도만 적용(직각이 아닌 라인들은 다시 지정)
+               X축 이면 Y축과 Z축
+               Y축 이면 X축과 Z축
+               Z축 이면 X축과 Z축 */
+
             string[] db_column_name = { "", "" };
             double[] line_trans = { 0.0, 0.0 };
             if (vector.GetNormal().X == 1 || vector.GetNormal().X == -1)
@@ -126,6 +155,45 @@ namespace PipeInfo
             }
             return (db_column_name, line_trans);
         }
+        public Vector3d get_Pipe_Group_Vector(PromptSelectionResult prSelRes)
+        {
+            using(Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                SelectionSet ss = prSelRes.Value;
+                ObjectId[] obIds = ss.GetObjectIds();
+                BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord acBlkRec;
+                List<Vector3d> lines_Vec = new List<Vector3d>();
+                List<Point3d> lines_Point = new List<Point3d>();
+
+                acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                
+                foreach(var obid in obIds)
+                {
+                    //객체 타입 확인
+                    var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
+                    if (objd.ObjectId.ObjectClass.GetRuntimeType() == typeof(Polyline3d))
+                    {
+                        //객체 타입이 Polyline이면 형변환해서 좌표 사용.
+                        Polyline3d li = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                        Vector3d vec = li.StartPoint.GetVectorTo(li.EndPoint).GetNormal();
+                        lines_Point.Add(li.StartPoint);
+                        lines_Vec.Add(vec);
+                    }
+                    else
+                    {
+                    }
+                }
+                
+                foreach(var line_vec in lines_Vec)
+                {
+                    ed.WriteMessage(line_vec.ToString());
+                }
+                
+                acTrans.Commit();
+            }
+            return vec;
+        }
     }
     public class InteractivePolyLine
     {
@@ -133,17 +201,17 @@ namespace PipeInfo
         /// <returns>Point3dCollection</returns>
         public static Point3dCollection CollectPointsInteractive()
         {
-            Document Active = Application.DocumentManager.MdiActiveDocument;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Point3dCollection pointCollection = new Point3dCollection();
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            Color color = Active.Database.Cecolor;
+            Color color = acDoc.Database.Cecolor;
             PromptPointOptions pointOptions = new PromptPointOptions("\n 첫 번째 점: ")
             {
                 AllowNone = true
             };
 
-            // Active Document에서 Fence시작 포인트를 가져온다. 
-            PromptPointResult pointResult = Active.Editor.GetPoint(pointOptions);
+            // acDoc Document에서 Fence시작 포인트를 가져온다. 
+            PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
 
             while (pointResult.Status == PromptStatus.OK)
             {
@@ -156,18 +224,18 @@ namespace PipeInfo
                 // Select subsequent points
                 pointOptions.UseBasePoint = true;
                 pointOptions.BasePoint = pointResult.Value;
-                pointResult = Active.Editor.GetPoint(pointOptions);
-
+                pointResult = acDoc.Editor.GetPoint(pointOptions);
                 
                 if (pointResult.Status == PromptStatus.OK)
                 {
                     // Draw a temporary segment
-                    Active.Editor.DrawVector(
+                      acDoc.Editor.DrawVector(
                       pointCollection[pointCollection.Count - 1], // start point
                       pointResult.Value,          // end point
                       4,
                       true);                     // highlighted?
-                }
+                                    
+                  }
             }
             if (pointResult.Status == PromptStatus.None)
             {
@@ -195,7 +263,6 @@ namespace PipeInfo
             ed = aced;
             db = acdb;
         }
-
         public void ed_Draw_Text(List<Tuple<string, string>> pipe_Information_li, List<Point3d> final_Points, int textDisBetween, int textSize, int oblique, int Rotate)
         {
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
@@ -208,9 +275,11 @@ namespace PipeInfo
                     DBText acText = new DBText();
                     //acText.SetDatabaseDefaults();
                     acText.Normal = Vector3d.ZAxis;
+
                     //acText.Position = Point3d.Origin;
                     acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
                     acText.TextString = pipe_Information_li[idx].Item2;
+
                     //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
                     var final_Point = new Point3d(final_Points[0].X, final_Points[0].Y, final_Points[0].Z-(textDisBetween * idx));
                     acText.AlignmentPoint = final_Point;
@@ -225,9 +294,7 @@ namespace PipeInfo
                 acTrans.Commit(); 
             }
         }
-    
     }
-
     public class Database_Get_PipeInfo
     {
         private string db_path = "";
@@ -242,10 +309,9 @@ namespace PipeInfo
             db_acDB = db;
             db_path = acDB_path;
         }
-
         public List<string> db_Get_Pipes_InstanceIDs(PromptSelectionResult prSelRes, Point3dCollection pointCollection)
         {
-            Pipe pi = new Pipe();
+            Pipe pi = new Pipe(db_ed,db_acDB);
             List<string> ids = new List<string>();
             //선택한 객체가 존재할때만 명령 실행.
             if (prSelRes.Status == PromptStatus.OK)
@@ -329,12 +395,9 @@ namespace PipeInfo
             }
             return ids;
         }
-
         public List<Tuple<string, string>> db_Get_Pipes_Production_Infomation(List<string> pipe_InstanceIDS)
         {
-
             List<Tuple<string,string>> production_Info = new List<Tuple<string, string>>();
-            
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
             {
                 string db_COL_Production_Group_NM = "PRODUCTION_DRAWING_GROUP_NM";
