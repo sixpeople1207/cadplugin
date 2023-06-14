@@ -42,6 +42,9 @@ namespace PipeInfo
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
                 PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
+                
+                if(prSelRes.Status == PromptStatus.OK)
+                {
                 using(Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -51,7 +54,6 @@ namespace PipeInfo
                     {
                         ed.WriteMessage(point.ToString());
                     }
-                    //TOP View에서 보면 XY값을 빼고 고저를 준다면 어느정도 가능성이 있따. 하지만 Fence의 정확한 Intersection값이 안되는데 어쩌지? 
                     blkRec.AppendEntity(line);
                     acTrans.AddNewlyCreatedDBObject(line, true);
                     acTrans.Commit();
@@ -92,7 +94,12 @@ namespace PipeInfo
                 var pipe = new Pipe(ed,db);
                 //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
                 var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
-                draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12, 0, 270);
+                draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12);
+            }
+                else
+                {
+                    ed.WriteMessage("선택된 객체가 없습니다.");
+                }
             }
             else
             {
@@ -113,7 +120,6 @@ namespace PipeInfo
     {
         Editor ed;
         Database db;
-        private Vector3d vec;
 
         public Pipe(Editor acEd, Database acDB)
         {
@@ -211,7 +217,7 @@ namespace PipeInfo
             };
 
             // acDoc Document에서 Fence시작 포인트를 가져온다. 
-            PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
+                PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
 
             while (pointResult.Status == PromptStatus.OK)
             {
@@ -263,35 +269,107 @@ namespace PipeInfo
             ed = aced;
             db = acdb;
         }
-        public void ed_Draw_Text(List<Tuple<string, string>> pipe_Information_li, List<Point3d> final_Points, int textDisBetween, int textSize, int oblique, int Rotate)
+        public void ed_Draw_Text(List<Tuple<string, string>> pipe_Information_li, List<Point3d> final_Points, int textDisBetween, int textSize)
         {
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
                 BlockTable edBLK = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
                 BlockTableRecord edBLKrec = acTrans.GetObject(edBLK[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                
+                var final_Point = new Point3d();
+                // View Port 방향에 따라서 Isometric에 따라 Text 3D Angle각도,Rotate값 변경.
+                string view_Name = "";
+
+                using (var view = ed.GetCurrentView())
+                {
+                    view_Name = GetViewName(view.ViewDirection);
+                }
+
                 for (int idx = 0; idx < pipe_Information_li.Count; idx++)
                 {
                     DBText acText = new DBText();
-                    //acText.SetDatabaseDefaults();
-                    acText.Normal = Vector3d.ZAxis;
-
-                    //acText.Position = Point3d.Origin;
+                 
+                    //Text Init
                     acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
                     acText.TextString = pipe_Information_li[idx].Item2;
+                    Vector3d final_Points_Vec = (final_Points[final_Points.Count - 1] - final_Points[0]).GetNormal();
+                    int text_3d_Angle = 0;
+                    int text_oblique = 0;
+                    int text_Rotate = 0;
 
-                    //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
-                    var final_Point = new Point3d(final_Points[0].X, final_Points[0].Y, final_Points[0].Z-(textDisBetween * idx));
-                    acText.AlignmentPoint = final_Point;
+                    //Text Set Rotate
+                    if(view_Name == "NW Isometric")
+                    {
+                        text_3d_Angle = -90;
+                        text_oblique = 0;
+                        text_Rotate = 270;
+                    }
+                    else if (view_Name == "NE Isometric")
+                    {
+                        text_3d_Angle = 90;
+                        text_oblique = 0;
+                        text_Rotate = 360;
+                    }
+                    else if(view_Name == "SW Isometric")
+                    {
+
+                    }
+                    else if (view_Name == "SE Isometric")
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
                     acText.Height = textSize;
-                    acText.Rotation = Math.PI / 180 * Rotate;
-                    acText.Oblique = Math.PI / 180 * oblique;
+                    acText.Rotation = Math.PI / 180 * text_Rotate;
+                    acText.Oblique = Math.PI / 180 * text_oblique;
 
-                    //acText.AlignmentPoint = new Point3d(final_Point);
+                    //텍스트 지시선 벡터의 마지막 포인트에 따라 Pipe Spool 정보를 배치한다. -> 추후 두개의 스풀 정보를 넣는 왼쪽 오른쪽 알고리즘이 필요.
+                    if (final_Points_Vec.Z == 1 || final_Points_Vec.Z == -1)
+                    {
+                        acText.Normal = Vector3d.ZAxis;
+                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Angle, Vector3d.YAxis, Point3d.Origin));
+                        acText.Justify = AttachmentPoint.BaseLeft;
+                        //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
+                        final_Point = new Point3d(final_Points[final_Points.Count-1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z-(textDisBetween * idx));
+                    }
+                    else if ((final_Points_Vec.X == 1 || final_Points_Vec.X == -1) || (final_Points_Vec.X == 1 || final_Points_Vec.X == -1))
+                    {
+                        acText.Normal = Vector3d.YAxis;
+                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 4, Vector3d.ZAxis, Point3d.Origin));
+                        //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
+                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z - (textDisBetween * idx));
+                    }
+                    else
+                    {
+                        ed.WriteMessage("기준 라인을 다시 그려주시길 바랍니다.");
+                    }
+
+                    acText.AlignmentPoint = final_Point; 
                     edBLKrec.AppendEntity(acText);
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                 }
                 acTrans.Commit(); 
+            }
+        }
+        public string GetViewName(Vector3d viewDirection)
+        {
+            //Vector 값 가져오는 알고리즘 참고. sqprt033.. 
+            double sqrt033 = Math.Sqrt(1.0 / 3.0);
+            switch (viewDirection.GetNormal())
+            {
+                case Vector3d v when v.IsEqualTo(Vector3d.ZAxis): return "Top";
+                case Vector3d v when v.IsEqualTo(Vector3d.ZAxis.Negate()): return "Bottom";
+                case Vector3d v when v.IsEqualTo(Vector3d.XAxis): return "Right";
+                case Vector3d v when v.IsEqualTo(Vector3d.XAxis.Negate()): return "Left";
+                case Vector3d v when v.IsEqualTo(Vector3d.YAxis): return "Back";
+                case Vector3d v when v.IsEqualTo(Vector3d.YAxis.Negate()): return "Front";
+                case Vector3d v when v.IsEqualTo(new Vector3d(sqrt033, sqrt033, sqrt033)): return "NE Isometric";
+                case Vector3d v when v.IsEqualTo(new Vector3d(-sqrt033, sqrt033, sqrt033)): return "NW Isometric";
+                case Vector3d v when v.IsEqualTo(new Vector3d(-sqrt033, -sqrt033, sqrt033)): return "SW Isometric";
+                case Vector3d v when v.IsEqualTo(new Vector3d(sqrt033, -sqrt033, sqrt033)): return "SE Isometric";
+                default: return $"Custom View";
             }
         }
     }
