@@ -288,8 +288,10 @@ namespace PipeInfo
                 for (int idx = 0; idx < pipe_Information_li.Count; idx++)
                 {
                     DBText acText = new DBText();
-                 
-                    //Text Init
+
+                    /* Text Init
+                     * Text 사용자 편의에 따라 3D Rotation이 필요. 지시선 방향이 Ver, Hor 에 따라 각도가 다름.
+                     * */
                     acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
                     acText.TextString = pipe_Information_li[idx].Item2;
                     Vector3d final_Points_Vec = (final_Points[final_Points.Count - 1] - final_Points[0]).GetNormal();
@@ -299,9 +301,12 @@ namespace PipeInfo
                     int text_oblique = 0;
                     int text_Rotate = 0;
 
-                    //Text Set Rotate
-                    if(view_Name == "NW Isometric")
+                    /* Text Init END  */
+
+                    /* Text Set Rotate (CurrentView) */
+                    if (view_Name == "NW Isometric")
                     {
+                        //Text 기본 각도는 한개로 적용해도 됨.
                         text_3d_Ver_Angle = -90;
                         text_3d_Hor_Angle = 90;
                         text_oblique = 0;
@@ -312,7 +317,7 @@ namespace PipeInfo
                         text_3d_Ver_Angle = 90;
                         text_3d_Hor_Angle = -90;
                         text_oblique = 0;
-                        text_Rotate = 360;
+                        text_Rotate = 0;
                     }
                     else if(view_Name == "SW Isometric")
                     {
@@ -331,26 +336,35 @@ namespace PipeInfo
                     acText.Rotation = Math.PI / 180 * text_Rotate;
                     acText.Oblique = Math.PI / 180 * text_oblique;
 
-                    //텍스트 지시선 벡터의 마지막 포인트에 따라 Pipe Spool 정보를 배치한다. -> 추후 두개의 스풀 정보를 넣는 왼쪽 오른쪽 알고리즘이 필요.
+                    /* set Rotate 적용 끝 */
+
+                    /*
+                     * 지시선에 따른 Text 값 적용
+                     * 텍스트 지시선 벡터의 마지막 포인트에 따라 Pipe Spool 정보를 배치한다. -> 추후 두개의 스풀 정보를 넣는 왼쪽 오른쪽 알고리즘이 필요.
+                     */
                     if (final_Points_Vec.Z == 1 || final_Points_Vec.Z == -1)
                     {
+                        //지시선 VEC에 따라 TEXT 기준 AXIS가 다르게 적용.(ROTATE 기준)
                         acText.Normal = Vector3d.ZAxis;
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Ver_Angle, Vector3d.YAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
+                        //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
                         final_Point = new Point3d(final_Points[final_Points.Count-1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z+(textDisBetween * idx* final_Points_Vec.Z));
                     }
                     else if ((final_Points_Vec.X == 1 || final_Points_Vec.X == -1) || (final_Points_Vec.X == 1 || final_Points_Vec.X == -1))
                     {
+                        //지시선 VEC에 따라 TEXT 기준 AXIS가 다르게 적용.(ROTATE 기준)
                         acText.Normal = Vector3d.XAxis;
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Hor_Angle, Vector3d.ZAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
+                        //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
                         final_Point = new Point3d(final_Points[final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), final_Points[final_Points.Count - 1].Y , final_Points[final_Points.Count - 1].Z);
                     }
                     else
                     {
                         ed.WriteMessage("기준 라인을 다시 그려주시길 바랍니다.");
                     }
-
+                    //TEXT 위치는 ALIGNMENT로 적용했다가 계속해서 에러 발생. 다시 POSITION으로 적용하니 문제 없음.
                     acText.Position = final_Point; 
                     edBLKrec.AppendEntity(acText);
                     acTrans.AddNewlyCreatedDBObject(acText, true);
@@ -358,9 +372,11 @@ namespace PipeInfo
                 acTrans.Commit(); 
             }
         }
+
+
+        //Vector 값 가져오는 알고리즘 참고. sqprt033.. 
         public string GetViewName(Vector3d viewDirection)
         {
-            //Vector 값 가져오는 알고리즘 참고. sqprt033.. 
             double sqrt033 = Math.Sqrt(1.0 / 3.0);
             switch (viewDirection.GetNormal())
             {
