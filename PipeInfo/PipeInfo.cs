@@ -293,20 +293,24 @@ namespace PipeInfo
                     acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
                     acText.TextString = pipe_Information_li[idx].Item2;
                     Vector3d final_Points_Vec = (final_Points[final_Points.Count - 1] - final_Points[0]).GetNormal();
-                    int text_3d_Angle = 0;
+
+                    int text_3d_Ver_Angle = 0;
+                    int text_3d_Hor_Angle = 0;
                     int text_oblique = 0;
                     int text_Rotate = 0;
 
                     //Text Set Rotate
                     if(view_Name == "NW Isometric")
                     {
-                        text_3d_Angle = -90;
+                        text_3d_Ver_Angle = -90;
+                        text_3d_Hor_Angle = 90;
                         text_oblique = 0;
                         text_Rotate = 270;
                     }
                     else if (view_Name == "NE Isometric")
                     {
-                        text_3d_Angle = 90;
+                        text_3d_Ver_Angle = 90;
+                        text_3d_Hor_Angle = -90;
                         text_oblique = 0;
                         text_Rotate = 360;
                     }
@@ -331,24 +335,23 @@ namespace PipeInfo
                     if (final_Points_Vec.Z == 1 || final_Points_Vec.Z == -1)
                     {
                         acText.Normal = Vector3d.ZAxis;
-                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Angle, Vector3d.YAxis, Point3d.Origin));
+                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Ver_Angle, Vector3d.YAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
-                        //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
-                        final_Point = new Point3d(final_Points[final_Points.Count-1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z-(textDisBetween * idx));
+                        final_Point = new Point3d(final_Points[final_Points.Count-1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z+(textDisBetween * idx* final_Points_Vec.Z));
                     }
                     else if ((final_Points_Vec.X == 1 || final_Points_Vec.X == -1) || (final_Points_Vec.X == 1 || final_Points_Vec.X == -1))
                     {
-                        acText.Normal = Vector3d.YAxis;
-                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 4, Vector3d.ZAxis, Point3d.Origin));
-                        //AlignmentPoint로 수정.(Text 기준을 오른쪽으로 맞추면 원점으로 이동하는 현상발생함)
-                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z - (textDisBetween * idx));
+                        acText.Normal = Vector3d.XAxis;
+                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Hor_Angle, Vector3d.ZAxis, Point3d.Origin));
+                        acText.Justify = AttachmentPoint.BaseLeft;
+                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), final_Points[final_Points.Count - 1].Y , final_Points[final_Points.Count - 1].Z);
                     }
                     else
                     {
                         ed.WriteMessage("기준 라인을 다시 그려주시길 바랍니다.");
                     }
 
-                    acText.AlignmentPoint = final_Point; 
+                    acText.Position = final_Point; 
                     edBLKrec.AppendEntity(acText);
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                 }
