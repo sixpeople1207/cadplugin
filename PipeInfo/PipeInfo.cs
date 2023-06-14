@@ -120,6 +120,7 @@ namespace PipeInfo
     {
         Editor ed;
         Database db;
+        private Vector3d vec;
 
         public Pipe(Editor acEd, Database acDB)
         {
@@ -321,6 +322,7 @@ namespace PipeInfo
                     {
 
                     }
+                    //acText.SetDatabaseDefaults();
                     acText.Height = textSize;
                     acText.Rotation = Math.PI / 180 * text_Rotate;
                     acText.Oblique = Math.PI / 180 * text_oblique;
