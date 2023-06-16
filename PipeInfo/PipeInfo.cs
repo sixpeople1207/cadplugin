@@ -29,8 +29,8 @@ namespace PipeInfo
 {
     public class PipeInfo
     {
-        public string db_path ="";
-        [CommandMethod("fence")] 
+        public string db_path = "";
+        [CommandMethod("ff")]
         public void selectFence()
         {
             if (db_path != "")
@@ -42,60 +42,61 @@ namespace PipeInfo
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
                 PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
-                
-                if(prSelRes.Status == PromptStatus.OK)
+
+                if (prSelRes.Status == PromptStatus.OK)
                 {
-                using(Transaction acTrans = db.TransactionManager.StartTransaction())
-                {
-                    BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                    BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                    Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
-                    foreach(var point in pointCollection)
+                    using (Transaction acTrans = db.TransactionManager.StartTransaction())
                     {
-                        ed.WriteMessage(point.ToString());
+                        BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                        BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                        Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
+                        foreach (var point in pointCollection)
+                        {
+                            ed.WriteMessage(point.ToString());
+                        }
+                        blkRec.AppendEntity(line);
+                        acTrans.AddNewlyCreatedDBObject(line, true);
+                        acTrans.Commit();
                     }
-                    blkRec.AppendEntity(line);
-                    acTrans.AddNewlyCreatedDBObject(line, true);
-                    acTrans.Commit();
+
+                    /*-----------------------------------------DataBase Scope--------------------------------------------------
+                     * 1. DB객체 생성 [O]
+                     * 2. OBJ IDs (Fence to Selection return objIds) [O]
+                     * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용) [O]
+                     * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
+                     * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
+                     ----------------------------------------------------------------------------------------------------------*/
+                    var pipeInfo_cls = new Database_Get_PipeInfo(ed, db, db_path);
+                    List<string> pipe_instance_IDs = pipeInfo_cls.db_Get_Pipes_InstanceIDs(prSelRes, pointCollection);
+                    List<Tuple<string, string>> pipe_Information_li = pipeInfo_cls.db_Get_Pipes_Production_Infomation(pipe_instance_IDs);
+                    pipeInfo_cls.db_Get_Final_POC_Instance_IDS(pipe_instance_IDs);
+                    ed.WriteMessage(pipe_Information_li[0].Item1);
+
+                    /*-------------------------------------------Editor Scope----------------------------------------------------
+                     * 1. Prev 객체를 넣을건지 Next객체를 표현할지 입력. []
+                     * 2. End Pipe 객체를 넣을 건지 옵션. []
+                     * 3. Valve 객체를 찾아서 길이를 줄이기. []
+                     * 4. Text를 그리는 기능(라인 포함) []
+                     * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
+                     * 6. ICON 과 버튼 적용.  []
+                     * 7. SetUp 파일.  []
+                     * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
+                     * 9. Text내용을 Excel로 Export하기. []
+                     ----------------------------------------------------------------------------------------------------------*/
+
+                    List<Point3d> final_Point = new List<Point3d>();
+                    //Fence Select 의 마지막 Point를 기준으로 Text
+                    foreach (Point3d point in pointCollection)
+                    {
+                        final_Point.Add(point);
+                    }
+
+                    var draw_Text = new DrawText(ed, db);
+                    var pipe = new Pipe(ed, db);
+                    //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
+                    var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
+                    draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12);
                 }
-
-                /*-----------------------------------------DataBase Scope--------------------------------------------------
-                 * 1. DB객체 생성 [O]
-                 * 2. OBJ IDs (Fence to Selection return objIds) [O]
-                 * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용) [O]
-                 * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
-                 * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
-                 ----------------------------------------------------------------------------------------------------------*/
-                var pipeInfo_cls = new Database_Get_PipeInfo(ed, db, db_path);
-                List<string> pipe_instance_IDs = pipeInfo_cls.db_Get_Pipes_InstanceIDs(prSelRes, pointCollection);
-                List<Tuple<string,string>> pipe_Information_li = pipeInfo_cls.db_Get_Pipes_Production_Infomation(pipe_instance_IDs);
-                ed.WriteMessage(pipe_Information_li[0].Item1);
-
-                /*-------------------------------------------Editor Scope----------------------------------------------------
-                 * 1. Prev 객체를 넣을건지 Next객체를 표현할지 입력. []
-                 * 2. End Pipe 객체를 넣을 건지 옵션. []
-                 * 3. Valve 객체를 찾아서 길이를 줄이기. []
-                 * 4. Text를 그리는 기능(라인 포함) []
-                 * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
-                 * 6. ICON 과 버튼 적용.  []
-                 * 7. SetUp 파일.  []
-                 * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
-                 * 9. Text내용을 Excel로 Export하기. []
-                 ----------------------------------------------------------------------------------------------------------*/
-
-                List<Point3d> final_Point = new List<Point3d>();
-                //Fence Select 의 마지막 Point를 기준으로 Text
-                foreach (Point3d point in pointCollection)
-                {
-                    final_Point.Add(point);
-                }
-
-                var draw_Text = new DrawText(ed, db);
-                var pipe = new Pipe(ed,db);
-                //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
-                var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
-                draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12);
-            }
                 else
                 {
                     ed.WriteMessage("선택된 객체가 없습니다.");
@@ -114,7 +115,24 @@ namespace PipeInfo
             db_path = data;
         }
 
+        [CommandMethod("bb")]
+        public void selectFence_Block()
+        {
+            if (db_path != "")
+            {
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database db = acDoc.Database;
 
+                PromptSelectionResult res = ed.GetSelection();
+            }
+            else
+            {
+                DB_Path_Winform win = new DB_Path_Winform();
+                win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
+                win.Show();
+            }
+        }
     }
     public class Pipe
     {
@@ -164,7 +182,7 @@ namespace PipeInfo
         }
         public Vector3d get_Pipe_Group_Vector(PromptSelectionResult prSelRes)
         {
-            using(Transaction acTrans = db.TransactionManager.StartTransaction())
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
                 SelectionSet ss = prSelRes.Value;
                 ObjectId[] obIds = ss.GetObjectIds();
@@ -174,8 +192,8 @@ namespace PipeInfo
                 List<Point3d> lines_Point = new List<Point3d>();
 
                 acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                
-                foreach(var obid in obIds)
+
+                foreach (var obid in obIds)
                 {
                     //객체 타입 확인
                     var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
@@ -191,12 +209,12 @@ namespace PipeInfo
                     {
                     }
                 }
-                
-                foreach(var line_vec in lines_Vec)
+
+                foreach (var line_vec in lines_Vec)
                 {
                     ed.WriteMessage(line_vec.ToString());
                 }
-                
+
                 acTrans.Commit();
             }
             return vec;
@@ -218,7 +236,7 @@ namespace PipeInfo
             };
 
             // acDoc Document에서 Fence시작 포인트를 가져온다. 
-                PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
+            PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
 
             while (pointResult.Status == PromptStatus.OK)
             {
@@ -232,17 +250,17 @@ namespace PipeInfo
                 pointOptions.UseBasePoint = true;
                 pointOptions.BasePoint = pointResult.Value;
                 pointResult = acDoc.Editor.GetPoint(pointOptions);
-                
+
                 if (pointResult.Status == PromptStatus.OK)
                 {
                     // Draw a temporary segment
-                      acDoc.Editor.DrawVector(
-                      pointCollection[pointCollection.Count - 1], // start point
-                      pointResult.Value,          // end point
-                      4,
-                      true);                     // highlighted?
-                                    
-                  }
+                    acDoc.Editor.DrawVector(
+                    pointCollection[pointCollection.Count - 1], // start point
+                    pointResult.Value,          // end point
+                    4,
+                    true);                     // highlighted?
+
+                }
             }
             if (pointResult.Status == PromptStatus.None)
             {
@@ -319,7 +337,7 @@ namespace PipeInfo
                         text_oblique = 0;
                         text_Rotate = 0;
                     }
-                    else if(view_Name == "SW Isometric")
+                    else if (view_Name == "SW Isometric")
                     {
 
                     }
@@ -349,7 +367,7 @@ namespace PipeInfo
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Ver_Angle, Vector3d.YAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
                         //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
-                        final_Point = new Point3d(final_Points[final_Points.Count-1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z+(textDisBetween * idx* final_Points_Vec.Z));
+                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z + (textDisBetween * idx * final_Points_Vec.Z));
                     }
                     else if ((final_Points_Vec.X == 1 || final_Points_Vec.X == -1) || (final_Points_Vec.X == 1 || final_Points_Vec.X == -1))
                     {
@@ -358,18 +376,18 @@ namespace PipeInfo
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Hor_Angle, Vector3d.ZAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
                         //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
-                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), final_Points[final_Points.Count - 1].Y , final_Points[final_Points.Count - 1].Z);
+                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z);
                     }
                     else
                     {
                         ed.WriteMessage("기준 라인을 다시 그려주시길 바랍니다.");
                     }
                     //TEXT 위치는 ALIGNMENT로 적용했다가 계속해서 에러 발생. 다시 POSITION으로 적용하니 문제 없음.
-                    acText.Position = final_Point; 
+                    acText.Position = final_Point;
                     edBLKrec.AppendEntity(acText);
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                 }
-                acTrans.Commit(); 
+                acTrans.Commit();
             }
         }
 
@@ -410,7 +428,7 @@ namespace PipeInfo
         }
         public List<string> db_Get_Pipes_InstanceIDs(PromptSelectionResult prSelRes, Point3dCollection pointCollection)
         {
-            Pipe pi = new Pipe(db_ed,db_acDB);
+            Pipe pi = new Pipe(db_ed, db_acDB);
             List<string> ids = new List<string>();
             //선택한 객체가 존재할때만 명령 실행.
             if (prSelRes.Status == PromptStatus.OK)
@@ -439,49 +457,49 @@ namespace PipeInfo
                             conn.Open();
                             //오브젝트 ID를 이용해서 객체의 정보를 가져온다. 배관의 순서를 위해 배관이 놓인 순서필요.
                             //파이프의 백터 필요.
-                         if(obIds.Length > 0)
+                            if (obIds.Length > 0)
                             {
-                            foreach (var obid in obIds)
-                            {
-                                //PolyLine3d 로 형변환. 
-                                var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
-                                if(objd.ObjectId.ObjectClass.GetRuntimeType() == typeof(Polyline3d))
+                                foreach (var obid in obIds)
                                 {
-                                    db_ed.WriteMessage("라인객체"+objd.ObjectId.ObjectClass.ToString());
-                                    Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
-                                    //Line의 Vec방향.
-                                    Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
-
-                                    //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
-                                    (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, obj);
-
-                                    //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
-                                    //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
-                                    string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
-                                                    Math.Round(line_trans[0], 2),//CAD소숫점은 2자리정도로 비교
-                                                    Math.Round(line_trans[1], 2),
-                                                    obj.Length, db_column_name[0],
-                                                    db_column_name[1],
-                                                    db_TB_PIPEINSTANCES);
-                                    SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                                    SQLiteDataReader rdr = cmd.ExecuteReader();
-                                    if (rdr.HasRows)
+                                    //PolyLine3d 로 형변환. 
+                                    var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
+                                    if (objd.ObjectId.ObjectClass.GetRuntimeType() == typeof(Polyline3d))
                                     {
-                                        //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
-                                        rdr.Read();
-                                        string bitToStr_Instance_Id = BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", "");
-                                        ids.Add(bitToStr_Instance_Id);
-                                        //BitConverter에 '-'하이픈 Replace로 제거. 
-                                        db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], bitToStr_Instance_Id);
-                                        string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
-                                        rdr.Close();
-                                    }
-                                    else
-                                    {
-                                        MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
+                                        db_ed.WriteMessage("라인객체" + objd.ObjectId.ObjectClass.ToString());
+                                        Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
+                                        //Line의 Vec방향.
+                                        Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
+
+                                        //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
+                                        (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, obj);
+
+                                        //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
+                                        //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
+                                        string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
+                                                        Math.Round(line_trans[0], 2),//CAD소숫점은 2자리정도로 비교
+                                                        Math.Round(line_trans[1], 2),
+                                                        obj.Length, db_column_name[0],
+                                                        db_column_name[1],
+                                                        db_TB_PIPEINSTANCES);
+                                        SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                        SQLiteDataReader rdr = cmd.ExecuteReader();
+                                        if (rdr.HasRows)
+                                        {
+                                            //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
+                                            rdr.Read();
+                                            string bitToStr_Instance_Id = BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", "");
+                                            ids.Add(bitToStr_Instance_Id);
+                                            //BitConverter에 '-'하이픈 Replace로 제거. 
+                                            db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], bitToStr_Instance_Id);
+                                            string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
+                                            rdr.Close();
+                                        }
+                                        else
+                                        {
+                                            MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
+                                        }
                                     }
                                 }
-                            }
                             }
                         }
                     }
@@ -496,7 +514,7 @@ namespace PipeInfo
         }
         public List<Tuple<string, string>> db_Get_Pipes_Production_Infomation(List<string> pipe_InstanceIDS)
         {
-            List<Tuple<string,string>> production_Info = new List<Tuple<string, string>>();
+            List<Tuple<string, string>> production_Info = new List<Tuple<string, string>>();
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
             {
                 string db_COL_Production_Group_NM = "PRODUCTION_DRAWING_GROUP_NM";
@@ -508,42 +526,42 @@ namespace PipeInfo
                 string db_COL_UTILITY_NM = "UTILITY_NM";
                 string db_TB_UTILITIES = "TB_UTILITIES";
 
-                string[] sql_li = {"","","",""};
+                string[] sql_li = { "", "", "", "" };
                 BlockTable acBlk;
                 acBlk = acTrans.GetObject(db_acDB.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord acBlkRec;
                 acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                
+
                 if (db_path != null)
                 {
                     string connstr = "Data Source=" + db_path;
                     using (SQLiteConnection conn = new SQLiteConnection(connstr))
                     {
                         conn.Open();
-                        foreach(var obj in pipe_InstanceIDS)
+                        foreach (var obj in pipe_InstanceIDS)
                         {
                             //스풀이름
-                             sql_li[0] = String.Format("SELECT {0} " +
-                             "FROM {1} " +
-                             "WHERE {2} = " +
-                             "(SELECT {3} " +
-                             "FROM {4} " +
-                             "INNER JOIN {5} " +
-                             "ON " +
-                             "{6}.INSTANCE_ID = " +
-                             "{7}.INSTANCE_ID AND " +
-                             "hex({8}.INSTANCE_ID) = '{9}');",
-                             db_COL_Production_Group_NM,
-                             db_TB_PRODUCTION_GROUP,
-                             db_COL_Production_Group_ID,
-                             db_COL_Production_Group_ID,
-                             db_TB_PIPEINSTANCES,
-                             db_TB_PRODUCTION_DRAWING,
-                             db_TB_PIPEINSTANCES,
-                             db_TB_PRODUCTION_DRAWING,
-                             db_TB_PIPEINSTANCES,
-                             obj.ToString()
-                                );
+                            sql_li[0] = String.Format("SELECT {0} " +
+                            "FROM {1} " +
+                            "WHERE {2} = " +
+                            "(SELECT {3} " +
+                            "FROM {4} " +
+                            "INNER JOIN {5} " +
+                            "ON " +
+                            "{6}.INSTANCE_ID = " +
+                            "{7}.INSTANCE_ID AND " +
+                            "hex({8}.INSTANCE_ID) = '{9}');",
+                            db_COL_Production_Group_NM,
+                            db_TB_PRODUCTION_GROUP,
+                            db_COL_Production_Group_ID,
+                            db_COL_Production_Group_ID,
+                            db_TB_PIPEINSTANCES,
+                            db_TB_PRODUCTION_DRAWING,
+                            db_TB_PIPEINSTANCES,
+                            db_TB_PRODUCTION_DRAWING,
+                            db_TB_PIPEINSTANCES,
+                            obj.ToString()
+                               );
 
                             //유틸이름
                             sql_li[1] = String.Format(
@@ -556,7 +574,7 @@ namespace PipeInfo
                             "{4}.UTILITY_ID " +
                             "AND " +
                             "hex({5}.INSTANCE_ID) = '{6}';",
-                            db_COL_UTILITY_NM,db_TB_UTILITIES,
+                            db_COL_UTILITY_NM, db_TB_UTILITIES,
                             db_TB_PIPEINSTANCES,
                             db_TB_UTILITIES,
                             db_TB_PIPEINSTANCES,
@@ -568,7 +586,7 @@ namespace PipeInfo
                                 "SELECT {0} " +
                                 "FROM {1} " +
                                 "WHERE hex(INSTANCE_ID) = '{2}';",
-                                db_COL_SPOOLNUM,db_TB_PRODUCTION_DRAWING,obj.ToString());
+                                db_COL_SPOOLNUM, db_TB_PRODUCTION_DRAWING, obj.ToString());
 
                             //쿼리문 실행
                             SQLiteCommand comm = new SQLiteCommand(sql_li[0], conn);
@@ -593,15 +611,65 @@ namespace PipeInfo
                             reader = comm.ExecuteReader();
                             while (reader.Read())
                             {
-                                str_pipe_Info += "_"+reader[0].ToString();
+                                str_pipe_Info += "_" + reader[0].ToString();
                             }
-                            production_Info.Add(new Tuple<string,string>(obj, str_pipe_Info));
+                            production_Info.Add(new Tuple<string, string>(obj, str_pipe_Info));
                         }
+                        conn.Close();
                     }
                 }
             }
-        return production_Info;
+            return production_Info;
         }
+        public List<string> db_Get_Final_POC_Instance_IDS(List<string> pipe_InstanceIDS)
+        {
+            List<string> final_objs_ID = new List<string>();
+            List<Point3d> final_objs_Pos = new List<Point3d>();
 
+
+            if (db_path != "")
+            {
+                string connstr = "Data Source=" + db_path;
+                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                {
+                    conn.Open();
+                    List<string> final_Poc_Instance_Ids = new List<string>();
+                    foreach (var id in pipe_InstanceIDS)
+                    {
+                        string final_poc_key = String.Format("SELECT * From TB_POCINSTANCES WHERE HEX(CONNECTED_POC_ID) = '{0}';", "00000000000000000000000000000000");
+
+                        SQLiteCommand comm = new SQLiteCommand(final_poc_key, conn);
+                        SQLiteDataReader rdr = comm.ExecuteReader();
+                        while (rdr.Read())
+                        {
+                            //TB_POCINSTANCE Column Number 0 : "INSTANCE_ID"
+                            //TB_POCINSTANCE Column Number 19 : "CONNECTED_POC_ID"v
+                            //TB_POCINSTANCE Column Number 21 : "CONNECTION_ORDER"
+                            final_Poc_Instance_Ids.Add(BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""));
+                            Point3d fin_pos = new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]);
+                            final_objs_Pos.Add(fin_pos);
+
+                        }
+
+                        rdr.Close();
+                        }
+                        conn.Close();
+                    }
+
+                foreach(var final_obj in final_objs_Pos)
+                {
+                    db_ed.WriteMessage("마지막객체: "+final_obj.ToString()+"\n");
+                }
+                
+            }
+            return final_objs_ID;
+        }
+        
+
+        public List<Point3d> db_Get_POC_Instance_IDS_Position(List<string> final_POC_IDS) {
+            List<Point3d> fianl_obj_pos = new List<Point3d>();
+            return fianl_obj_pos;
+        }
     }
+
 }
