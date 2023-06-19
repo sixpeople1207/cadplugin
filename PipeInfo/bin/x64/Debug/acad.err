@@ -1,10 +1,12 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0008 Exception at B7F3B8A7h
+INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
 
-06/12/2023 at 14:37:58.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
+06/19/2023 at 14:07:10.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
 -------------
-N GAS.dxf
+01_MAIN.dxf
+-------------
+ GAS.dxf
 -------------
 ------
 

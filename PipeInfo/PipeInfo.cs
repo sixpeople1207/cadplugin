@@ -24,6 +24,8 @@ using System.IO.Pipes;
 using System.Security.Cryptography;
 using static System.Windows.Forms.LinkLabel;
 using Autodesk.AutoCAD.Internal;
+using Autodesk.AutoCAD.Windows.Data;
+using System.Configuration;
 
 namespace PipeInfo
 {
@@ -69,8 +71,9 @@ namespace PipeInfo
                     var pipeInfo_cls = new Database_Get_PipeInfo(ed, db, db_path);
                     List<string> pipe_instance_IDs = pipeInfo_cls.db_Get_Pipes_InstanceIDs(prSelRes, pointCollection);
                     List<Tuple<string, string>> pipe_Information_li = pipeInfo_cls.db_Get_Pipes_Production_Infomation(pipe_instance_IDs);
-                    pipeInfo_cls.db_Get_Final_POC_Instance_IDS(pipe_instance_IDs);
-                    ed.WriteMessage(pipe_Information_li[0].Item1);
+                    (var finale_POC_points,  var final_ids) = pipeInfo_cls.db_Get_Final_POC_Instance_IDS();
+                    List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.db_Get_Pipes_Production_Infomation(final_ids);
+                    ed.WriteMessage(pipe_Information_li_2[0].Item1);
 
                     /*-------------------------------------------Editor Scope----------------------------------------------------
                      * 1. Prev 객체를 넣을건지 Next객체를 표현할지 입력. []
@@ -79,7 +82,7 @@ namespace PipeInfo
                      * 4. Text를 그리는 기능(라인 포함) []
                      * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
                      * 6. ICON 과 버튼 적용.  []
-                     * 7. SetUp 파일.  []
+                     * 7. SetUp 파일.  []^
                      * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
                      * 9. Text내용을 Excel로 Export하기. []
                      ----------------------------------------------------------------------------------------------------------*/
@@ -95,7 +98,8 @@ namespace PipeInfo
                     var pipe = new Pipe(ed, db);
                     //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
                     var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
-                    draw_Text.ed_Draw_Text(pipe_Information_li, final_Point, 25, 12);
+                    draw_Text.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
+                    draw_Text.ed_Draw_Text(pipe_Information_li_2, finale_POC_points, 25, 12);
                 }
                 else
                 {
@@ -219,6 +223,10 @@ namespace PipeInfo
             }
             return vec;
         }
+        public void selection_Pipe_Interection()
+        {
+
+        }
     }
     public class InteractivePolyLine
     {
@@ -288,7 +296,7 @@ namespace PipeInfo
             ed = aced;
             db = acdb;
         }
-        public void ed_Draw_Text(List<Tuple<string, string>> pipe_Information_li, List<Point3d> final_Points, int textDisBetween, int textSize)
+        public void ed_Draw_Text_To_Line_Vector(List<Tuple<string, string>> pipe_Information_li, List<Point3d> line_final_Points, int textDisBetween, int textSize)
         {
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
@@ -312,7 +320,7 @@ namespace PipeInfo
                      * */
                     acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
                     acText.TextString = pipe_Information_li[idx].Item2;
-                    Vector3d final_Points_Vec = (final_Points[final_Points.Count - 1] - final_Points[0]).GetNormal();
+                    Vector3d final_Points_Vec = (line_final_Points[line_final_Points.Count - 1] - line_final_Points[0]).GetNormal();
 
                     int text_3d_Ver_Angle = 0;
                     int text_3d_Hor_Angle = 0;
@@ -367,7 +375,7 @@ namespace PipeInfo
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Ver_Angle, Vector3d.YAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
                         //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
-                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X, final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z + (textDisBetween * idx * final_Points_Vec.Z));
+                        final_Point = new Point3d(line_final_Points[line_final_Points.Count - 1].X, line_final_Points[line_final_Points.Count - 1].Y, line_final_Points[line_final_Points.Count - 1].Z + (textDisBetween * idx * final_Points_Vec.Z));
                     }
                     else if ((final_Points_Vec.X == 1 || final_Points_Vec.X == -1) || (final_Points_Vec.X == 1 || final_Points_Vec.X == -1))
                     {
@@ -376,7 +384,7 @@ namespace PipeInfo
                         acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Hor_Angle, Vector3d.ZAxis, Point3d.Origin));
                         acText.Justify = AttachmentPoint.BaseLeft;
                         //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
-                        final_Point = new Point3d(final_Points[final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), final_Points[final_Points.Count - 1].Y, final_Points[final_Points.Count - 1].Z);
+                        final_Point = new Point3d(line_final_Points[line_final_Points.Count - 1].X + (textDisBetween * idx * final_Points_Vec.X), line_final_Points[line_final_Points.Count - 1].Y, line_final_Points[line_final_Points.Count - 1].Z);
                     }
                     else
                     {
@@ -388,10 +396,87 @@ namespace PipeInfo
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                 }
                 acTrans.Commit();
+                acTrans.Clone();
             }
         }
+        public void ed_Draw_Text(List<Tuple<string, string>> pipe_Information_li, List<Point3d> poc_final_Points, int textDisBetween, int textSize)
+        {
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                BlockTable edBLK = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
+                BlockTableRecord edBLKrec = acTrans.GetObject(edBLK[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                var final_Point = new Point3d();
+                // View Port 방향에 따라서 Isometric에 따라 Text 3D Angle각도,Rotate값 변경.
+                string view_Name = "";
 
+                using (var view = ed.GetCurrentView())
+                {
+                    view_Name = GetViewName(view.ViewDirection);
+                }
 
+                for (int idx = 0; idx < poc_final_Points.Count; idx++)
+                {
+                    DBText acText = new DBText();
+
+                    /* Text Init
+                     * Text 사용자 편의에 따라 3D Rotation이 필요. 지시선 방향이 Ver, Hor 에 따라 각도가 다름.
+                     * */
+                    acText.HorizontalMode = (TextHorizontalMode)(int)TextHorizontalMode.TextRight;
+                    acText.TextString = pipe_Information_li[idx].Item2;
+
+                    int text_3d_Ver_Angle = 0;
+                    int text_3d_Hor_Angle = 0;
+                    int text_oblique = 0;
+                    int text_Rotate = 0;
+
+                    /* Text Init END  */
+
+                    /* Text Set Rotate (CurrentView) */
+                    if (view_Name == "NW Isometric")
+                    {
+                        //Text 기본 각도는 한개로 적용해도 됨.
+                        text_3d_Ver_Angle = -90;
+                        text_3d_Hor_Angle = 90;
+                        text_oblique = 0;
+                        text_Rotate = 270;
+                    }
+                    else if (view_Name == "NE Isometric")
+                    {
+                        text_3d_Ver_Angle = 90;
+                        text_3d_Hor_Angle = -90;
+                        text_oblique = 0;
+                        text_Rotate = 0;
+                    }
+
+                    //acText.SetDatabaseDefaults();
+                    acText.Height = textSize;
+                    acText.Rotation = Math.PI / 180 * text_Rotate;
+                    acText.Oblique = Math.PI / 180 * text_oblique;
+
+                    /* set Rotate 적용 끝 */
+
+                    /*
+                     * 지시선에 따른 Text 값 적용
+                     * 텍스트 지시선 벡터의 마지막 포인트에 따라 Pipe Spool 정보를 배치한다. -> 추후 두개의 스풀 정보를 넣는 왼쪽 오른쪽 알고리즘이 필요.
+                     */
+           
+                        //지시선 VEC에 따라 TEXT 기준 AXIS가 다르게 적용.(ROTATE 기준)
+                        acText.Normal = Vector3d.ZAxis;
+                        acText.TransformBy(Matrix3d.Rotation(Math.PI / 180 * text_3d_Ver_Angle, Vector3d.YAxis, Point3d.Origin));
+                        acText.Justify = AttachmentPoint.BaseLeft;
+                        //지시선 Vec방향에 따라 Text가 점점 멀어져야 하기 때문에 진행 방향에 Vec를 곱해서 거리가 점점 멀어지게 해줌.
+                        final_Point = new Point3d(poc_final_Points[idx].X, poc_final_Points[idx].Y, poc_final_Points[idx].Z);
+                    //TEXT 위치는 ALIGNMENT로 적용했다가 계속해서 에러 발생. 다시 POSITION으로 적용하니 문제 없음.
+                    acText.Position = final_Point;
+                    edBLKrec.AppendEntity(acText);
+                    acTrans.AddNewlyCreatedDBObject(acText, true);
+                    }
+                acTrans.Commit();
+                acTrans.Clone();
+
+            }
+        }
+      
         //Vector 값 가져오는 알고리즘 참고. sqprt033.. 
         public string GetViewName(Vector3d viewDirection)
         {
@@ -411,6 +496,8 @@ namespace PipeInfo
                 default: return $"Custom View";
             }
         }
+
+        
     }
     public class Database_Get_PipeInfo
     {
@@ -621,11 +708,11 @@ namespace PipeInfo
             }
             return production_Info;
         }
-        public List<string> db_Get_Final_POC_Instance_IDS(List<string> pipe_InstanceIDS)
+        public (List<Point3d>,List<string>) db_Get_Final_POC_Instance_IDS()
         {
-            List<string> final_objs_ID = new List<string>();
+            // 마지막 찾은 Owner ID에서 객체 타입이 모델이라면 PIPE를 다시 찾는다. 
+            List<string> final_objs_ID = new List<string>(); //db_Get_Pipes_Production_Infomation 와 연동필요
             List<Point3d> final_objs_Pos = new List<Point3d>();
-
 
             if (db_path != "")
             {
@@ -633,26 +720,42 @@ namespace PipeInfo
                 using (SQLiteConnection conn = new SQLiteConnection(connstr))
                 {
                     conn.Open();
+                    string pipe_key = "256";
+                    string component_key = "768";
                     List<string> final_Poc_Instance_Ids = new List<string>();
-                    foreach (var id in pipe_InstanceIDS)
-                    {
-                        string final_poc_key = String.Format("SELECT * From TB_POCINSTANCES WHERE HEX(CONNECTED_POC_ID) = '{0}';", "00000000000000000000000000000000");
+                    
+                        string final_poc_key = String.Format("SELECT * From TB_POCINSTANCES WHERE HEX(CONNECTED_POC_ID) = '{0}';","00000000000000000000000000000000");
 
                         SQLiteCommand comm = new SQLiteCommand(final_poc_key, conn);
                         SQLiteDataReader rdr = comm.ExecuteReader();
                         while (rdr.Read())
                         {
-                            //TB_POCINSTANCE Column Number 0 : "INSTANCE_ID"
-                            //TB_POCINSTANCE Column Number 19 : "CONNECTED_POC_ID"v
-                            //TB_POCINSTANCE Column Number 21 : "CONNECTION_ORDER"
-                            final_Poc_Instance_Ids.Add(BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""));
+                        //TB_POCINSTANCE Column Number 0 : "INSTANCE_ID"
+                        //TB_POCINSTANCE Column Number 19 : "CONNECTED_POC_ID"v
+                        //TB_POCINSTANCE Column Number 21 : "CONNECTION_ORDER"
+                        if (rdr["OWNER_TYPE"].ToString() == pipe_key)
+                        {
+                            final_objs_ID.Add(BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""));
                             Point3d fin_pos = new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]);
                             final_objs_Pos.Add(fin_pos);
-
+                        }
+                        else if (rdr["OWNER_TYPE"].ToString() == component_key)
+                        {
+                            //Connected POC Owner 갯수 구하기.
+                            //각 POC마다 전객체를 봐서 PIPE인것을 골라내서 정보가져옴.
+                            string prev_id = db_POC_prev(connstr,BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""), "INSTANCE_ID");
+                            final_objs_ID.Add(prev_id);
+                            //반환값이 Pipe Key인지 확인필요.
+                            Point3d fin_pos = new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]);
+                            final_objs_Pos.Add(fin_pos);
+                        }
+                        else
+                        {
+                            db_ed.WriteMessage("테이블 값이 다릅니다.");
                         }
 
+                    }
                         rdr.Close();
-                        }
                         conn.Close();
                     }
 
@@ -660,11 +763,41 @@ namespace PipeInfo
                 {
                     db_ed.WriteMessage("마지막객체: "+final_obj.ToString()+"\n");
                 }
-                
             }
-            return final_objs_ID;
+            return (final_objs_Pos, final_objs_ID);
         }
-        
+        public string db_POC_prev(string connstr, string current_POC, string column_name) 
+        {
+            //Owner ID를 입력받아 CONNECTION ODER 값이 0에 연결된 InstanceID(column_name)를 하나 넘겨준다.
+            //ID 0에 해당하는 INSTANCE ID를 찾는다.
+            //option은 rdr[column_name]으로 열을 지정해서 반환값을 정할 수 있다.
+            //
+            string prev_poc_id = "";
+            
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                string sql = String.Format("SELECT * FROM TB_POCINSTANCES WHERE INSTANCE_ID = " +
+                "(SELECT CONNECTED_POC_ID FROM TB_POCINSTANCES WHERE hex(OWNER_INSTANCE_ID) like " +
+                "'{0}' and CONNECTION_ORDER = 0)", current_POC);
+
+                conn.Open();
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                while (rdr.Read())
+                {
+                    db_ed.WriteMessage("오너 아이디"+BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""));
+                    prev_poc_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
+                }
+                conn.Close();
+            }
+                return prev_poc_id;
+        }
+        public string db_POC_next(string current_POC) 
+        {
+            //Owner ID가 1에 연결된 InstanceID를 하나 넘겨준다. 
+            string next_poc_id = "";
+            return next_poc_id;
+        }
 
         public List<Point3d> db_Get_POC_Instance_IDS_Position(List<string> final_POC_IDS) {
             List<Point3d> fianl_obj_pos = new List<Point3d>();
