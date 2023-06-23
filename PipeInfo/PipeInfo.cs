@@ -214,7 +214,7 @@ namespace PipeInfo
                         {
                             ed.WriteMessage(po.ToString());
                         }
-
+                        //맥스값이 바로 나오진 않음 실패..
                         Point3d max = newPoints.Max();
                         ed.WriteMessage(max.ToString());
                         ObjectId[] ids = new ObjectId[count];

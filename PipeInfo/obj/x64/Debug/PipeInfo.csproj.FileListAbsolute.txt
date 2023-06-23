@@ -126,8 +126,9 @@ C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_82.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_83.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_84.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_85.dll
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_86.dll.config
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_86.dll
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_86.pdb
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_86.dll
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_86.pdb
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_87.dll.config
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_87.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_87.pdb
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_87.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_87.pdb
