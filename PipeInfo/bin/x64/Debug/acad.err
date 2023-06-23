@@ -1,12 +1,8 @@
 
 
-INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 28973BE2h
 
-06/19/2023 at 14:07:10.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
+06/23/2023 at 14:52:20.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
 -------------
-01_MAIN.dxf
+F,CAD 제작도 SAMPLE\ELP3713\5D DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
 -------------
- GAS.dxf
--------------
-------
-

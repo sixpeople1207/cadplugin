@@ -26,6 +26,9 @@ using static System.Windows.Forms.LinkLabel;
 using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Windows.Data;
 using System.Configuration;
+using Autodesk.Windows;
+using Autodesk.AutoCAD.GraphicsSystem;
+using System.Threading;
 
 namespace PipeInfo
 {
@@ -40,6 +43,15 @@ namespace PipeInfo
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Document acDoc = Application.DocumentManager.MdiActiveDocument;
                 Database db = acDoc.Database;
+
+                // 메뉴 만들기
+                //Autodesk.Windows.RibbonControl ribbonControl
+                //    = Autodesk.Windows.ComponentManager.Ribbon;
+                //RibbonTab Tab = new RibbonTab();
+
+                //Tab.Title = "Test Ribbon";
+                //Tab.Id = "TESTRIBBON_TAB_ID";
+                //ribbonControl.Tabs.Add(Tab);
 
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
                 Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
@@ -119,6 +131,7 @@ namespace PipeInfo
             db_path = data;
         }
 
+        //도면내 블록 중에 용접포인트 유니온 포인트를 가져온다.
         [CommandMethod("bb")]
         public void selectFence_Block()
         {
@@ -137,6 +150,80 @@ namespace PipeInfo
                 win.Show();
             }
         }
+
+        //
+        [CommandMethod("ss")]
+        public void select_Welding_Point()
+        {
+            //스풀 경계부분의 정보를 가져와 도면상에 보여준다.
+            if (db_path != "")
+            {
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database db = acDoc.Database;
+               
+                using(Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    PromptSelectionOptions pso = new PromptSelectionOptions();
+                    TypedValue[] tvs = { new TypedValue(0, "Polyline") }; //Polyline (Polyline2D, Polyline3D, PolyfaceMesh, and PolygonMesh)
+                    SelectionFilter sf = new SelectionFilter(tvs);
+                    PromptSelectionResult pRes = ed.GetSelection(pso, sf);
+
+
+                    if(pRes.Status == PromptStatus.OK)
+                    {
+                        SelectionSet ss = pRes.Value;
+                        ObjectId[] oIds = ss.GetObjectIds();
+                        var objs = new ObjectIdCollection();
+                        int count = 0;
+
+                        foreach(ObjectId oId in oIds)
+                        {
+                            Entity ent = acTrans.GetObject(oId, OpenMode.ForRead) as Entity;
+                            Entity pF = new PolyFaceMesh() as Entity;
+                            Type type = ent.GetType();
+                            if (type.Name == "PolyFaceMesh")
+                            {
+                                objs.Add(oId);
+                                count++;
+                                ent.Highlight();
+                                
+                                Extents3d et = ent.GeometricExtents;
+                                //실 좌표를 구하기 위해서 폴리라인의 크기를 구한다. 
+                                double x = et.MaxPoint.X - et.MinPoint.X;
+                                double y = et.MaxPoint.Y - et.MinPoint.Y;
+                                double z = et.MaxPoint.Z - et.MinPoint.Z; 
+                                //et min좌표에서 구한 크기를 빼서 더해준다. 원객체는 xy 가 반지름과 같기 때문에 아무 값이나 상관없다. 
+                                double posX = Math.Round(et.MinPoint.X + (x / 2),2);
+                                double posY = Math.Round(et.MinPoint.Y + (y / 2),2);
+                                double posZ = Math.Round(et.MinPoint.Z + (z / 2),2);
+
+                                ed.WriteMessage(posX.ToString()+"__"+posY.ToString()+"__"+ posZ.ToString());
+                            }
+                        }
+
+                        ObjectId[] ids = new ObjectId[count];
+                        objs.CopyTo(ids,0);
+                        ed.SetImpliedSelection(ids);
+
+                    }
+                    else
+                    {
+                        ed.WriteMessage("선택된 객체가 없습니다.");
+                    }
+                }
+
+            }
+            else
+            {
+                DB_Path_Winform win = new DB_Path_Winform();
+                win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
+                win.Show();
+            }
+        }
+
     }
     public class Pipe
     {
@@ -226,6 +313,14 @@ namespace PipeInfo
         public void selection_Pipe_Interection()
         {
 
+        }
+        // 포인트의 폴라 포인트 구하는 법 by Tony Tanzillo
+        public static Point3d PolarPoint(Point3d basepoint, double angle, double distance)
+        {
+            return new Point3d(
+                basepoint.X + (distance * Math.Cos(angle)),
+                basepoint.Y + (distance * Math.Sin(angle)),
+                basepoint.Z);
         }
     }
     public class InteractivePolyLine
@@ -497,6 +592,15 @@ namespace PipeInfo
             }
         }
 
+        public void view_Text_Group()
+        {
+
+        }
+        
+        public void rotate_Text_Group()
+        {
+
+        }
         
     }
     public class Database_Get_PipeInfo
@@ -804,5 +908,4 @@ namespace PipeInfo
             return fianl_obj_pos;
         }
     }
-
 }

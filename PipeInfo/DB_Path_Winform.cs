@@ -29,9 +29,16 @@ namespace PipeInfo
 
         private void button_db_path_ok_Click(object sender, EventArgs e)
         {
+            if(textBox_db.Text != "")
+            {
             this.DialogResult = DialogResult.OK;
             DataSendEvent(db_path);
             this.Close();
+            }
+            else
+            {
+
+            }
         }
   
  
