@@ -171,11 +171,11 @@ namespace PipeInfo
                     SelectionFilter sf = new SelectionFilter(tvs);
                     PromptSelectionResult pRes = ed.GetSelection(pso, sf);
 
-
                     if(pRes.Status == PromptStatus.OK)
                     {
                         SelectionSet ss = pRes.Value;
                         ObjectId[] oIds = ss.GetObjectIds();
+                        List<Point3d> point3Ds = new List<Point3d>();
                         var objs = new ObjectIdCollection();
                         int count = 0;
 
@@ -199,11 +199,24 @@ namespace PipeInfo
                                 double posX = Math.Round(et.MinPoint.X + (x / 2),2);
                                 double posY = Math.Round(et.MinPoint.Y + (y / 2),2);
                                 double posZ = Math.Round(et.MinPoint.Z + (z / 2),2);
+                                point3Ds.Add(new Point3d(posX, posY, posZ));
 
-                                ed.WriteMessage(posX.ToString()+"__"+posY.ToString()+"__"+ posZ.ToString());
+                                //ed.WriteMessage(posX.ToString()+"__"+posY.ToString()+"__"+ posZ.ToString());
+                                //용접 포인트를 DB에서 가져오는 알고리즘 추가. 지금은 PolyLine임.
+                                //다시 말하면 좌표로 파이프 정보를 가져오는 알고리즘.
+                                //좌표로 Area 그룹 
                             }
                         }
+                        
+                        List<Point3d> newPoints =  point3Ds.OrderBy(p => p.Z).ToList();
 
+                        foreach(var po in newPoints)
+                        {
+                            ed.WriteMessage(po.ToString());
+                        }
+
+                        Point3d max = newPoints.Max();
+                        ed.WriteMessage(max.ToString());
                         ObjectId[] ids = new ObjectId[count];
                         objs.CopyTo(ids,0);
                         ed.SetImpliedSelection(ids);
@@ -213,6 +226,8 @@ namespace PipeInfo
                     {
                         ed.WriteMessage("선택된 객체가 없습니다.");
                     }
+
+                    acTrans.Clone();
                 }
 
             }
