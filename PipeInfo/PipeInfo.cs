@@ -178,6 +178,7 @@ namespace PipeInfo
                         List<Point3d> point3Ds = new List<Point3d>();
                         var objs = new ObjectIdCollection();
                         int count = 0;
+                        Point3dCollection dd = new Point3dCollection();
 
                         foreach(ObjectId oId in oIds)
                         {
@@ -195,6 +196,7 @@ namespace PipeInfo
                                 double x = et.MaxPoint.X - et.MinPoint.X;
                                 double y = et.MaxPoint.Y - et.MinPoint.Y;
                                 double z = et.MaxPoint.Z - et.MinPoint.Z; 
+
                                 //et min좌표에서 구한 크기를 빼서 더해준다. 원객체는 xy 가 반지름과 같기 때문에 아무 값이나 상관없다. 
                                 double posX = Math.Round(et.MinPoint.X + (x / 2),2);
                                 double posY = Math.Round(et.MinPoint.Y + (y / 2),2);
@@ -208,15 +210,27 @@ namespace PipeInfo
                             }
                         }
                         
+                        //첫 번째 점부터 모든 점의 거리를 가져온다. -> 수정 필요. 5개를 찾으면 넘어가고 그 다음 점부터 다시 탐색하는 방식.
+                        //그런데 또 가까운 점이 있다면? 
+                        //먼저 첫 번째 점과 거리를 모두 측정한다. 거리마다 비슷한 거리를 그룹화 한다. 모여있는 그룹단위로. 그룹과 그룹은 500정도 거리를 기준으로 나눈다.
                         List<Point3d> newPoints =  point3Ds.OrderBy(p => p.Z).ToList();
-
-                        foreach(var po in newPoints)
+                       if (newPoints.Count > 1)
                         {
-                            ed.WriteMessage(po.ToString());
+                            for (int i=0; i < 1; i++)
+                            {
+                                ed.WriteMessage("스풀 그룹 : {0} \n", i);
+                                for(int j=1; j < newPoints.Count; j++)
+                                {
+                                    var dis = newPoints[i].DistanceTo(newPoints[j]);
+                                    ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
+                                    ed.WriteMessage("거리값 : {0} \n",dis);
+      
+                                }
+
+                            }
+
                         }
                         //맥스값이 바로 나오진 않음 실패..
-                        Point3d max = newPoints.Max();
-                        ed.WriteMessage(max.ToString());
                         ObjectId[] ids = new ObjectId[count];
                         objs.CopyTo(ids,0);
                         ed.SetImpliedSelection(ids);
@@ -918,6 +932,15 @@ namespace PipeInfo
             return next_poc_id;
         }
 
+        public List<string> db_Get_Pipes_Prodection_Information_XYZ(List<Point3d> pipe_points)
+        {
+            List<string> li = new List<string>();
+            //연결된 파이프 정보가 두개가 되어야 한다. 연결되었는지 확인하는 메서드. 23.6.26
+            //파이프 정보를 차례로 반환한다. 두개가 한쌍. 듀플? 딕션너리. 
+            //각 포인트 마다 찾아 256인 객체만 검색. 두 개 일 수 있음. 
+            //파이프 마다 그룹을 지정해야함. 번호별로 하면 될 것 같음. 
+            return li;
+        }
         public List<Point3d> db_Get_POC_Instance_IDS_Position(List<string> final_POC_IDS) {
             List<Point3d> fianl_obj_pos = new List<Point3d>();
             return fianl_obj_pos;
