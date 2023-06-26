@@ -29,6 +29,7 @@ using System.Configuration;
 using Autodesk.Windows;
 using Autodesk.AutoCAD.GraphicsSystem;
 using System.Threading;
+using Autodesk.AutoCAD.GraphicsInterface;
 
 namespace PipeInfo
 {
@@ -214,33 +215,54 @@ namespace PipeInfo
                         //그런데 또 가까운 점이 있다면? 
                         //먼저 첫 번째 점과 거리를 모두 측정한다. 거리마다 비슷한 거리를 그룹화 한다. 모여있는 그룹단위로. 그룹과 그룹은 500정도 거리를 기준으로 나눈다.
                         List<Point3d> newPoints =  point3Ds.OrderBy(p => p.Z).ToList();
-                       if (newPoints.Count > 1)
+                        List<Point3d> point_Group = new List<Point3d>();
+                        int key = 0;
+                        int i = 0;
+                        if (newPoints.Count > 1)
                         {
-                            for (int i=0; i < 1; i++)
-                            {
-                                ed.WriteMessage("스풀 그룹 : {0} \n", i);
-                                for(int j=1; j < newPoints.Count; j++)
+                            
+                                for (int j = 1; j < newPoints.Count; j++)
                                 {
                                     var dis = newPoints[i].DistanceTo(newPoints[j]);
-                                    ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
-                                    ed.WriteMessage("거리값 : {0} \n",dis);
-      
+                                    //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
+                                    //ed.WriteMessage("거리값 : {0} \n",dis);
+                                    if (dis < 500)
+                                    {
+                                        point_Group.Add(newPoints[j]);
+                                        DBText text = new DBText();
+                                        text.TextString = key.ToString();
+                                        text.Position = newPoints[j];
+                                        text.Normal = Vector3d.ZAxis;
+                                        text.Height = 12.0;
+                                        text.Justify = AttachmentPoint.BaseLeft;
+                                        acBlkRec.AppendEntity(text);
+                                        acTrans.AddNewlyCreatedDBObject(text, true);
+                                        //newPoints.RemoveAt(j);
+                                    }
+                                    else
+                                    {
+                                        i = j;
+                                             key++;
                                 }
 
+                                
+                                
                             }
 
-                        }
-                        //맥스값이 바로 나오진 않음 실패..
-                        ObjectId[] ids = new ObjectId[count];
-                        objs.CopyTo(ids,0);
-                        ed.SetImpliedSelection(ids);
+                            }
+                        ed.WriteMessage(newPoints.Count.ToString());
+                        
+                    //맥스값이 바로 나오진 않음 실패..
+                    ObjectId[] ids = new ObjectId[count];
+                    objs.CopyTo(ids, 0);
+                    ed.SetImpliedSelection(ids);
 
-                    }
+                }
                     else
                     {
                         ed.WriteMessage("선택된 객체가 없습니다.");
                     }
-
+                    acTrans.Commit();
                     acTrans.Clone();
                 }
 
@@ -596,7 +618,6 @@ namespace PipeInfo
                     acTrans.AddNewlyCreatedDBObject(acText, true);
                     }
                 acTrans.Commit();
-                acTrans.Clone();
 
             }
         }
@@ -932,13 +953,29 @@ namespace PipeInfo
             return next_poc_id;
         }
 
-        public List<string> db_Get_Pipes_Prodection_Information_XYZ(List<Point3d> pipe_points)
+        public List<string> db_Get_Pipes_Production_Information_Points(List<Point3d> pipe_points)
         {
             List<string> li = new List<string>();
             //연결된 파이프 정보가 두개가 되어야 한다. 연결되었는지 확인하는 메서드. 23.6.26
             //파이프 정보를 차례로 반환한다. 두개가 한쌍. 듀플? 딕션너리. 
             //각 포인트 마다 찾아 256인 객체만 검색. 두 개 일 수 있음. 
             //파이프 마다 그룹을 지정해야함. 번호별로 하면 될 것 같음. 
+            string prev_poc_id = "";
+            string connstr = db_path;
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                conn.Open();
+
+                foreach(var point in pipe_points)
+                {
+                string sql = String.Format("SELECT * FROM TB_POCINSTANCES WHERE POSX = {0} AND POSY = {1} AND POSZ = {2}", point.X, point.Y, point.Z);
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+
+                }
+               
+                conn.Close();
+            }
             return li;
         }
         public List<Point3d> db_Get_POC_Instance_IDS_Position(List<string> final_POC_IDS) {

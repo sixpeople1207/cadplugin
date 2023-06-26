@@ -1,8 +1,8 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 28973BE2h
+FATAL ERROR:  Unhandled Access Violation Reading 0xffffffff Exception at c0b7260h
 
-06/23/2023 at 14:52:20.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
+06/27/2023 at 00:02:04.000  Drawing: C:\Users\sixpe\Downloads\DKG3705_MAIN GAS (2)\DKG3705_MAIN GAS.dxf
 -------------
-F,CAD 제작도 SAMPLE\ELP3713\5D DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
+D DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
 -------------
