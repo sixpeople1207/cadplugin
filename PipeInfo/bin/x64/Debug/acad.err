@@ -1,8 +1,8 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0xffffffff Exception at c0b7260h
+FATAL ERROR:  Unhandled Access Violation Writing 0xca610000 Exception at ca610000h
 
-06/27/2023 at 00:02:04.000  Drawing: C:\Users\sixpe\Downloads\DKG3705_MAIN GAS (2)\DKG3705_MAIN GAS.dxf
+06/27/2023 at 23:06:40.000  Drawing: C:\Users\sixpe\Downloads\DKG3705_MAIN GAS (2)\DKG3705_MAIN GAS.dxf
 -------------
-D DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
+ DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
 -------------

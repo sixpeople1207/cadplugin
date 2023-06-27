@@ -179,7 +179,6 @@ namespace PipeInfo
                         List<Point3d> point3Ds = new List<Point3d>();
                         var objs = new ObjectIdCollection();
                         int count = 0;
-                        Point3dCollection dd = new Point3dCollection();
 
                         foreach(ObjectId oId in oIds)
                         {
@@ -211,51 +210,65 @@ namespace PipeInfo
                             }
                         }
                         
-                        //첫 번째 점부터 모든 점의 거리를 가져온다. -> 수정 필요. 5개를 찾으면 넘어가고 그 다음 점부터 다시 탐색하는 방식.
-                        //그런데 또 가까운 점이 있다면? 
-                        //먼저 첫 번째 점과 거리를 모두 측정한다. 거리마다 비슷한 거리를 그룹화 한다. 모여있는 그룹단위로. 그룹과 그룹은 500정도 거리를 기준으로 나눈다.
-                        List<Point3d> newPoints =  point3Ds.OrderBy(p => p.Z).ToList();
-                        List<Point3d> point_Group = new List<Point3d>();
-                        int key = 0;
-                        int i = 0;
+                        // Spool Area Divied 
+                        // Concept :
+                        // 1. 첫 번째 점부터 마지막 점까지 거리를 모두 구한다. 
+                        // 2. 가까운 객체들의 좌표와 저장하고 인덱스를 쌍으로 저장.
+                        // 3. 다시 배열을 탐색할때는 한 번 찾은 객체는 다시 비교하지 않는다. 
+                        List<Point3d> newPoints =  point3Ds.OrderByDescending(p => p.Z).ToList();
+                        List<Tuple<int,Point3d>> near_Points = new List<Tuple<int, Point3d>>();
+                        List<Point3d> point_Groups = new List<Point3d>();
+                        List<int> key = new List<int>();
+                        int group_index = 0;
                         if (newPoints.Count > 1)
                         {
-                            
-                                for (int j = 1; j < newPoints.Count; j++)
+                            for (int i = 0; i < newPoints.Count; i++)
+                            {
+                                // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
+                                // newPoints를 서로 다른 인덱스로 탐색 i , j
+                                // Group_index : Group Key로 구분
+                                // key 배열 : i와 가까운 포인트의 배열의 인덱스들을 저장. 
+                                // key 배열 : i가 중복 탐색하는 것을 방지.
+                                if (key.Contains(i) == false)
                                 {
-                                    var dis = newPoints[i].DistanceTo(newPoints[j]);
-                                    //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
-                                    //ed.WriteMessage("거리값 : {0} \n",dis);
-                                    if (dis < 500)
+                                    for (int j = 1; j < newPoints.Count; j++)
                                     {
-                                        point_Group.Add(newPoints[j]);
-                                        DBText text = new DBText();
-                                        text.TextString = key.ToString();
-                                        text.Position = newPoints[j];
-                                        text.Normal = Vector3d.ZAxis;
-                                        text.Height = 12.0;
-                                        text.Justify = AttachmentPoint.BaseLeft;
-                                        acBlkRec.AppendEntity(text);
-                                        acTrans.AddNewlyCreatedDBObject(text, true);
-                                        //newPoints.RemoveAt(j);
+                                        if (key.Contains(j) == false)
+                                        {
+                                            var dis = newPoints[i].DistanceTo(newPoints[j]);
+                                            //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
+                                            //ed.WriteMessage("거리값 : {0} \n", dis);
+                                            if (dis < 300)
+                                            {
+                                                key.Add(j);
+                                                ed.WriteMessage(group_index.ToString(), newPoints[j].ToString());
+                                                near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[j]));
+                                            }
+                                        }
                                     }
-                                    else
-                                    {
-                                        i = j;
-                                             key++;
+                                    key.Add(i);
+                                    group_index++;
                                 }
-
-                                
-                                
                             }
 
+                            // 마지막으로 튜플에 저장된 Group키와 좌표대로 Text 모델링.
+                            for (int k = 0; k < near_Points.Count; k++)
+                            {
+                                DBText text = new DBText();
+                                text.TextString = near_Points[k].Item1.ToString();
+                                text.Position = near_Points[k].Item2;
+                                text.Normal = Vector3d.ZAxis;
+                                text.Height = 12.0;
+                                text.Justify = AttachmentPoint.BaseLeft;
+                                acBlkRec.AppendEntity(text);
+                                acTrans.AddNewlyCreatedDBObject(text, true);
                             }
-                        ed.WriteMessage(newPoints.Count.ToString());
+                        }
                         
-                    //맥스값이 바로 나오진 않음 실패..
-                    ObjectId[] ids = new ObjectId[count];
-                    objs.CopyTo(ids, 0);
-                    ed.SetImpliedSelection(ids);
+                        // 
+                        ObjectId[] ids = new ObjectId[count];
+                        objs.CopyTo(ids, 0);
+                        ed.SetImpliedSelection(ids);
 
                 }
                     else
