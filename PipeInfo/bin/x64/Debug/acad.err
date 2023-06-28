@@ -1,8 +1,10 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Writing 0xca610000 Exception at ca610000h
+FATAL ERROR:  Unhandled Access Violation Writing 0x0000 Exception at 0h
 
-06/27/2023 at 23:06:40.000  Drawing: C:\Users\sixpe\Downloads\DKG3705_MAIN GAS (2)\DKG3705_MAIN GAS.dxf
+06/28/2023 at 17:02:38.000  Drawing: D:\CSAIH01_MAIN\STRAIGHT_1\STRAIGHT_1.dxf
+-------------
+KG3705_MAIN GAS.dxf
 -------------
  DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
 -------------

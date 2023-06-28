@@ -172,6 +172,7 @@ namespace PipeInfo
                     SelectionFilter sf = new SelectionFilter(tvs);
                     PromptSelectionResult pRes = ed.GetSelection(pso, sf);
 
+
                     if(pRes.Status == PromptStatus.OK)
                     {
                         SelectionSet ss = pRes.Value;
@@ -263,13 +264,34 @@ namespace PipeInfo
                                 acBlkRec.AppendEntity(text);
                                 acTrans.AddNewlyCreatedDBObject(text, true);
                             }
+
                         }
                         
-                        // 
+                        List<Point3d> li = new List<Point3d>();
+                        foreach(var d in near_Points)
+                        {
+                            if(d.Item1 == 1){
+                                li.Add(d.Item2);
+                            }
+                        }
+                        ed.WriteMessage("\nX 최대값 {0} 최소값 {1}\n Y 최대값 {2} 최소값 {3}\n Z 최대값 {4} 최소값 {5}", 
+                            li.Max(p => p.X).ToString(), li.Min(p => p.X).ToString(), 
+                            li.Max(p => p.Y).ToString(), li.Min(p => p.Y).ToString(),
+                            li.Max(p => p.Z).ToString(), li.Min(p => p.Z).ToString()
+                            );
+
+                        InteractivePolyLine.RectangleInteractive(li);
+                       
                         ObjectId[] ids = new ObjectId[count];
                         objs.CopyTo(ids, 0);
                         ed.SetImpliedSelection(ids);
-
+                        
+                        // 그룹이 선택되면 그룹과 그룹의 거리가 가까우면 머지한다. 
+                        // 그룹이 선택되었으면 배관그룹의 Vector방향과 파이프의 진행방향을 구한다. 이건 포인트별로 배관정보를 가져와 진행  Vector를 구한다. 
+                        // 그 다음객체가 파이프,파이프 or 유니온 or 그랜드 까지 OK tee는 제외 마지막 객체 제외. 용접포인트가 tee에 있는애인지 마지막인지만 판단하면 될 거 같다. 
+                        // 도면의 여러 탭을 사용할때 각 DB를 따로 불러와야하는 불편함도 있음.
+                        // 현재 도면에서 DB를 사용하지 않고 리터치하는 방향. 
+                        // 네모그리기. 회전하기 움직이기 등 네모와 화면상에 배관이 겹치는지 RAYCAST알고리즘 필요. 
                 }
                     else
                     {
@@ -410,10 +432,6 @@ namespace PipeInfo
                 pointCollection.Add(pointResult.Value);
 
                 //6.13 추후 실시간 선택되는것 활성화(블루) 시각화 기능 추가
-                //PromptSelectionResult pSr = ed.SelectImplied();
-                //SelectionSet ss = pSr.Value;
-
-                // Select subsequent points
                 pointOptions.UseBasePoint = true;
                 pointOptions.BasePoint = pointResult.Value;
                 pointResult = acDoc.Editor.GetPoint(pointOptions);
@@ -425,7 +443,8 @@ namespace PipeInfo
                     pointCollection[pointCollection.Count - 1], // start point
                     pointResult.Value,          // end point
                     4,
-                    true);                     // highlighted?
+                    true);
+                    ed.UpdateScreen();
 
                 }
             }
@@ -437,6 +456,27 @@ namespace PipeInfo
             {
                 return new Point3dCollection();
             }
+        }
+        public static void RectangleInteractive(List<Point3d> point_minmax)
+        {
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Point3dCollection pointCollection = new Point3dCollection();
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Database db = acDoc.Database;
+            Color color = acDoc.Database.Cecolor;
+
+
+                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    Line li = new Line(point_minmax[0], point_minmax[1]);
+                li.ColorIndex = 4;
+                acBlkRec.AppendEntity(li);
+                    acTrans.AddNewlyCreatedDBObject(li, true);
+
+                acTrans.Commit();
+                }
         }
     }
     public class DrawText
