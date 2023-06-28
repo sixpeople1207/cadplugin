@@ -1,0 +1,3 @@
+sixpe
+LAPTOP-BNNHNHDA 
+2023년 6월 29일 목요일  오전 12:08:18

@@ -30,6 +30,8 @@ using Autodesk.Windows;
 using Autodesk.AutoCAD.GraphicsSystem;
 using System.Threading;
 using Autodesk.AutoCAD.GraphicsInterface;
+using System.Drawing;
+using System.Drawing.Drawing2D;
 
 namespace PipeInfo
 {
@@ -151,7 +153,101 @@ namespace PipeInfo
                 win.Show();
             }
         }
+        [CommandMethod("rr")]
+        public void draw_rectangle()
+        {
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+            Editor ed = acDoc.Editor;
 
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord acBlkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                Polyline3d poly = new Polyline3d();
+
+                poly.SetDatabaseDefaults();
+                poly.ColorIndex = 5;
+
+                Point3dCollection acP3dCol = new Point3dCollection();
+                acP3dCol.Add(new Point3d(0,0,0));
+                acP3dCol.Add(new Point3d(1, 0, 0));
+                acP3dCol.Add(new Point3d(1, 0, 1));
+                acP3dCol.Add(new Point3d(0, 0, 1));
+                
+                Matrix3d matrix = ed.CurrentUserCoordinateSystem;
+                CoordinateSystem3d curUCS = matrix.CoordinateSystem3d;
+                poly.Closed = true;
+                acBlkRec.AppendEntity(poly);
+                acTrans.AddNewlyCreatedDBObject(poly, true);
+                
+                foreach (Point3d acPoint in acP3dCol)
+                {
+                    PolylineVertex3d acPoly3d = new PolylineVertex3d(acPoint);
+                    poly.AppendVertex(acPoly3d);
+                    acTrans.AddNewlyCreatedDBObject(acPoly3d, true);
+                }
+                    poly.TransformBy(Matrix3d.Rotation(0.5236, curUCS.Zaxis, new Point3d(0, 0, 0)));
+
+                ProgressMeter pm = new ProgressMeter();
+
+                pm.Start("Long process");
+
+                pm.SetLimit(100);
+
+                try
+
+                {
+
+                    //start a long process
+
+                    for (int i = 0; i < 100; i++)
+
+                    {
+
+                        //did user press ESCAPE?
+
+                        if (HostApplicationServices.Current.UserBreak())
+
+                            throw new Autodesk.AutoCAD.Runtime.Exception(
+
+                               Autodesk.AutoCAD.Runtime.ErrorStatus.UserBreak, "ESCAPE pressed");
+
+                        //update progress bar
+
+                        pm.MeterProgress();
+
+                        //delay 10 miliseconds
+
+                        System.Threading.Thread.Sleep(10);
+
+                    }
+
+                }
+
+                catch (System.Exception ex)
+
+                {
+
+                    //some error
+
+                    Application.DocumentManager.MdiActiveDocument.
+
+                        Editor.WriteMessage(ex.Message);
+
+                }
+
+                finally
+
+                {
+
+                    pm.Stop();
+
+                }
+                acTrans.Commit();
+            }
+        }
         //
         [CommandMethod("ss")]
         public void select_Welding_Point()
@@ -418,7 +514,7 @@ namespace PipeInfo
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Point3dCollection pointCollection = new Point3dCollection();
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-            Color color = acDoc.Database.Cecolor;
+            Autodesk.AutoCAD.Colors.Color color = acDoc.Database.Cecolor;
             PromptPointOptions pointOptions = new PromptPointOptions("\n 첫 번째 점: ")
             {
                 AllowNone = true
@@ -463,7 +559,7 @@ namespace PipeInfo
             Point3dCollection pointCollection = new Point3dCollection();
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Database db = acDoc.Database;
-            Color color = acDoc.Database.Cecolor;
+            Autodesk.AutoCAD.Colors.Color color = acDoc.Database.Cecolor;
 
 
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
