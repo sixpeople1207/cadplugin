@@ -383,6 +383,7 @@ namespace PipeInfo
 
                         InteractivePolyLine.RectangleInteractive(li);
 
+                        //Tee가 제외된 IDS반환필요
                         ObjectId[] ids = new ObjectId[count];
                         objs.CopyTo(ids, 0);
                         ed.SetImpliedSelection(ids);
@@ -1145,7 +1146,7 @@ namespace PipeInfo
         {
             List<int> indexes = new List<int>();
             int count = 0;
-
+            db_ed.WriteMessage(weldGroup.Count.ToString());
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
             {
                 List<Point3d> filter_weldGroup = new List<Point3d>();
@@ -1188,7 +1189,7 @@ namespace PipeInfo
                                             {
                                                 if (rdr_1["MODEL_TEMPLATE_NM"].ToString().Contains(filter))
                                                 {
-                                            indexes.Append(count);
+                                                    indexes.Append(count);
                                                     count++;
                                                 }
                                             }
@@ -1202,11 +1203,14 @@ namespace PipeInfo
                             conn.Close();
                         }   
 
-                        foreach(var index in indexes)
+                        foreach(int index in indexes)
                     {
                         weldGroup.RemoveAt(index);
+                        db_ed.WriteMessage(index.ToString());
                     }
                     filter_weldGroup=weldGroup;
+
+                    db_ed.WriteMessage("변경후", weldGroup.Count.ToString());
                     }
                     return filter_weldGroup;
                 }

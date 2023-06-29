@@ -1,9 +1,10 @@
 
 
-<<<<<<< HEAD
-FATAL ERROR:  Unhandled Access Violation Writing 0x45540000 Exception at 45540000h
+FATAL ERROR:  Unhandled Access Violation Writing 0x7ad0002 Exception at 7AD0002h
 
-06/29/2023 at 09:31:34.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
+06/29/2023 at 17:25:35.000  Drawing: D:\CSAIH01_MAIN\CSAIH01_MAIN.dxf
+-------------
+GAS.dxf
 =======
 FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at c480b53h
 
