@@ -10,11 +10,8 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
-<<<<<<< HEAD
     <AssemblyName>PipeInfo_96</AssemblyName>
-=======
     <AssemblyName>PipeInfo_14</AssemblyName>
->>>>>>> 3c9979b3778da84ec0020c4709e3c06336afe552
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
