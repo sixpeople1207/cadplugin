@@ -1206,11 +1206,11 @@ namespace PipeInfo
                         foreach(int index in indexes)
                     {
                         weldGroup.RemoveAt(index);
-                        db_ed.WriteMessage(index.ToString());
+                        db_ed.WriteMessage("인덱스 : \n",index.ToString());
                     }
                     filter_weldGroup=weldGroup;
 
-                    db_ed.WriteMessage("변경후", weldGroup.Count.ToString());
+                    db_ed.WriteMessage("변경후 : \n", weldGroup.Count.ToString());
                     }
                     return filter_weldGroup;
                 }
