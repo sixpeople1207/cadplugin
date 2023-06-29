@@ -1,12 +1,18 @@
 
 
+<<<<<<< HEAD
+FATAL ERROR:  Unhandled Access Violation Writing 0x45540000 Exception at 45540000h
+
+06/29/2023 at 09:31:34.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
+=======
 FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at c480b53h
 
 06/28/2023 at 23:56:50.000  Drawing: Drawing1.dwg
 -------------
 _1.dxf
+>>>>>>> 3c9979b3778da84ec0020c4709e3c06336afe552
 -------------
-KG3705_MAIN GAS.dxf
+N GAS.dxf
 -------------
  DXF\ELP3713_부대설비 GAS & PCW_ISO_SE.dxf
 -------------
