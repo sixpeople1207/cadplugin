@@ -1,37 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.Colors;
+﻿using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.AutoCAD.Customization;
+using System;
+using System.Collections.Generic;
 using System.Data.SQLite;
-using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using System.Windows.Forms;
-using System.Drawing.Text;
-using System.Data.Entity;
-using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
-using System.Data.Entity.ModelConfiguration.Configuration;
-using System.Runtime.CompilerServices;
-using System.IO.Pipes;
-using System.Security.Cryptography;
-using static System.Windows.Forms.LinkLabel;
-using Autodesk.AutoCAD.Internal;
-using Autodesk.AutoCAD.Windows.Data;
-using System.Configuration;
-using Autodesk.Windows;
-using Autodesk.AutoCAD.GraphicsSystem;
-using System.Threading;
-using Autodesk.AutoCAD.GraphicsInterface;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 
 namespace PipeInfo
 {
@@ -83,11 +61,11 @@ namespace PipeInfo
                      * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
                      * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
                      ----------------------------------------------------------------------------------------------------------*/
-                    var pipeInfo_cls = new Database_Get_PipeInfo(ed, db, db_path);
-                    List<string> pipe_instance_IDs = pipeInfo_cls.db_Get_Pipes_InstanceIDs(prSelRes, pointCollection);
-                    List<Tuple<string, string>> pipe_Information_li = pipeInfo_cls.db_Get_Pipes_Production_Infomation(pipe_instance_IDs);
-                    //(var finale_POC_points,  var final_ids) = pipeInfo_cls.db_Get_Final_POC_Instance_IDS(); <- 마지막 POC 단 기능
-                    //List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.db_Get_Pipes_Production_Infomation(final_ids); <- 마지막 POC 단 기능
+                    var pipeInfo_cls = new DDWorks_Database(ed, db, db_path);
+                    List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(prSelRes, pointCollection);
+                    List<Tuple<string, string>> pipe_Information_li = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(pipe_instance_IDs);
+                    //(var finale_POC_points,  var final_ids) = pipeInfo_cls.Get_Final_POC_Instance_Ids(); <- 마지막 POC 단 기능
+                    //List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(final_ids); <- 마지막 POC 단 기능
                     //ed.WriteMessage(pipe_Information_li_2[0].Item1); <- 마지막 POC 단 기능
 
                     /*-------------------------------------------Editor Scope----------------------------------------------------
@@ -171,24 +149,24 @@ namespace PipeInfo
                 poly.ColorIndex = 5;
 
                 Point3dCollection acP3dCol = new Point3dCollection();
-                acP3dCol.Add(new Point3d(0,0,0));
+                acP3dCol.Add(new Point3d(0, 0, 0));
                 acP3dCol.Add(new Point3d(1, 0, 0));
                 acP3dCol.Add(new Point3d(1, 0, 1));
                 acP3dCol.Add(new Point3d(0, 0, 1));
-                
+
                 Matrix3d matrix = ed.CurrentUserCoordinateSystem;
                 CoordinateSystem3d curUCS = matrix.CoordinateSystem3d;
                 poly.Closed = true;
                 acBlkRec.AppendEntity(poly);
                 acTrans.AddNewlyCreatedDBObject(poly, true);
-                
+
                 foreach (Point3d acPoint in acP3dCol)
                 {
                     PolylineVertex3d acPoly3d = new PolylineVertex3d(acPoint);
                     poly.AppendVertex(acPoly3d);
                     acTrans.AddNewlyCreatedDBObject(acPoly3d, true);
                 }
-                    poly.TransformBy(Matrix3d.Rotation(0.5236, curUCS.Zaxis, new Point3d(0, 0, 0)));
+                poly.TransformBy(Matrix3d.Rotation(0.5236, curUCS.Zaxis, new Point3d(0, 0, 0)));
 
                 ProgressMeter pm = new ProgressMeter();
 
@@ -259,7 +237,7 @@ namespace PipeInfo
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Document acDoc = Application.DocumentManager.MdiActiveDocument;
                 Database db = acDoc.Database;
-                var db_control = new Database_Get_PipeInfo(ed, db, db_path);
+                var db_control = new DDWorks_Database(ed, db, db_path);
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -314,80 +292,89 @@ namespace PipeInfo
                         // 2. 가까운 객체들의 좌표와 저장하고 인덱스를 쌍으로 저장.
                         // 3. 다시 배열을 탐색할때는 한 번 찾은 객체는 다시 비교하지 않는다. 
                         List<Point3d> points = point3Ds.OrderByDescending(p => p.Z).ToList();
-                        
-                        // Tee객체를 필터링한다.
-                        List<Point3d> newPoints = db_control.db_FilterWeldGroup_By_ComponentType(points, "Tee");
-                        List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
-                        List<Point3d> point_Groups = new List<Point3d>();
-                        List<int> key = new List<int>();
-                        int group_index = 0;
-                        if (newPoints.Count > 1)
+
+                        // Tee객체를 필터링한다. //끝객체 //Reducer
+                        string[] filter = { "Tee", "Reducer", "Reducing" };
+
+                        List<Point3d> newPoints = db_control.FilterWeldGroup_By_ComponentType(points, filter);
+
+                        if (newPoints.Count > 0)
                         {
-                            for (int i = 0; i < newPoints.Count; i++)
+                            List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
+                            List<Point3d> point_Groups = new List<Point3d>();
+                            List<int> key = new List<int>();
+                            int group_index = 0;
+                            if (newPoints.Count > 1)
                             {
-                                // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
-                                // newPoints를 서로 다른 인덱스로 탐색 i , j
-                                // Group_index : Group Key로 구분
-                                // key 배열 : i와 가까운 포인트의 배열의 인덱스들을 저장. 
-                                // key 배열 : i가 중복 탐색하는 것을 방지.
-                                if (key.Contains(i) == false)
+                                for (int i = 0; i < newPoints.Count; i++)
                                 {
-                                    for (int j = 1; j < newPoints.Count; j++)
+                                    // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
+                                    // newPoints를 서로 다른 인덱스로 탐색 i , j
+                                    // Group_index : Group Key로 구분
+                                    // key 배열 : i와 가까운 포인트의 배열의 인덱스들을 저장. 
+                                    // key 배열 : i가 중복 탐색하는 것을 방지.
+                                    if (key.Contains(i) == false)
                                     {
-                                        if (key.Contains(j) == false)
+                                        for (int j = 1; j < newPoints.Count; j++)
                                         {
-                                            var dis = newPoints[i].DistanceTo(newPoints[j]);
-                                            //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
-                                            //ed.WriteMessage("거리값 : {0} \n", dis);
-                                            if (dis < 300)
+                                            if (key.Contains(j) == false)
                                             {
-                                                key.Add(j);
-                                                ed.WriteMessage(group_index.ToString(), newPoints[j].ToString());
-                                                near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[j]));
+                                                var dis = newPoints[i].DistanceTo(newPoints[j]);
+                                                //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
+                                                //ed.WriteMessage("거리값 : {0} \n", dis);
+                                                if (dis < 300)
+                                                {
+                                                    key.Add(j);
+                                                    ed.WriteMessage(group_index.ToString(), newPoints[j].ToString());
+                                                    near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[j]));
+                                                }
                                             }
                                         }
+                                        key.Add(i);
+                                        group_index++;
                                     }
-                                    key.Add(i);
-                                    group_index++;
+                                }
+
+                                // 마지막으로 튜플에 저장된 Group키와 좌표대로 Text 모델링.
+                                for (int k = 0; k < near_Points.Count; k++)
+                                {
+                                    DBText text = new DBText();
+                                    text.TextString = near_Points[k].Item1.ToString();
+                                    text.Position = near_Points[k].Item2;
+                                    text.Normal = Vector3d.ZAxis;
+                                    text.Height = 12.0;
+                                    text.Justify = AttachmentPoint.BaseLeft;
+                                    acBlkRec.AppendEntity(text);
+                                    acTrans.AddNewlyCreatedDBObject(text, true);
+                                }
+
+                            }
+
+                            List<Point3d> li = new List<Point3d>();
+                            foreach (var d in near_Points)
+                            {
+                                if (d.Item1 == 1)
+                                {
+                                    li.Add(d.Item2);
                                 }
                             }
+                            //ed.WriteMessage("\nX 최대값 {0} 최소값 {1}\n Y 최대값 {2} 최소값 {3}\n Z 최대값 {4} 최소값 {5}",
+                            //    li.Max(p => p.X).ToString(), li.Min(p => p.X).ToString(),
+                            //    li.Max(p => p.Y).ToString(), li.Min(p => p.Y).ToString(),
+                            //    li.Max(p => p.Z).ToString(), li.Min(p => p.Z).ToString()
+                            //    );
 
-                            // 마지막으로 튜플에 저장된 Group키와 좌표대로 Text 모델링.
-                            for (int k = 0; k < near_Points.Count; k++)
-                            {
-                                DBText text = new DBText();
-                                text.TextString = near_Points[k].Item1.ToString();
-                                text.Position = near_Points[k].Item2;
-                                text.Normal = Vector3d.ZAxis;
-                                text.Height = 12.0;
-                                text.Justify = AttachmentPoint.BaseLeft;
-                                acBlkRec.AppendEntity(text);
-                                acTrans.AddNewlyCreatedDBObject(text, true);
-                            }
+                            // InteractivePolyLine.RectangleInteractive(li);
 
+                            //Tee가 제외된 IDS반환필요
+                            ObjectId[] ids = new ObjectId[count];
+                            objs.CopyTo(ids, 0);
+                            ed.SetImpliedSelection(ids);
                         }
-
-                        List<Point3d> li = new List<Point3d>();
-                        foreach (var d in near_Points)
+                        else
                         {
-                            if (d.Item1 == 1)
-                            {
-                                li.Add(d.Item2);
-                            }
+                            ed.WriteMessage("파이프 정보가 없습니다.");
                         }
-                        //ed.WriteMessage("\nX 최대값 {0} 최소값 {1}\n Y 최대값 {2} 최소값 {3}\n Z 최대값 {4} 최소값 {5}",
-                        //    li.Max(p => p.X).ToString(), li.Min(p => p.X).ToString(),
-                        //    li.Max(p => p.Y).ToString(), li.Min(p => p.Y).ToString(),
-                        //    li.Max(p => p.Z).ToString(), li.Min(p => p.Z).ToString()
-                        //    );
-
-                       // InteractivePolyLine.RectangleInteractive(li);
-
-                        //Tee가 제외된 IDS반환필요
-                        ObjectId[] ids = new ObjectId[count];
-                        objs.CopyTo(ids, 0);
-                        ed.SetImpliedSelection(ids);
-
                         // 그룹이 선택되면 그룹과 그룹의 거리가 가까우면 머지한다. 
                         // 그룹이 선택되었으면 배관그룹의 Vector방향과 파이프의 진행방향을 구한다. 이건 포인트별로 배관정보를 가져와 진행  Vector를 구한다. 
                         // 그 다음객체가 파이프,파이프 or 유니온 or 그랜드 까지 OK tee는 제외 마지막 객체 제외. 용접포인트가 tee에 있는애인지 마지막인지만 판단하면 될 거 같다. 
@@ -809,21 +796,58 @@ namespace PipeInfo
         }
 
     }
-    public class Database_Get_PipeInfo
+    public class DDWorks_Database
     {
         private string db_path = "";
         private string db_TB_PIPEINSTANCES = "TB_PIPEINSTANCES";
         //private string db_TB_POCINSTANCES = "TB_POCINSTANCES";
         private Editor db_ed;
         private Database db_acDB;
-
-        public Database_Get_PipeInfo(Editor ed, Database db, string acDB_path)
+        private string ownerType_Component = "768";
+        private string ownerType_Pipe = "256";
+        public DDWorks_Database(Editor ed, Database db, string acDB_path)
         {
             db_ed = ed;
             db_acDB = db;
             db_path = acDB_path;
         }
-        public List<string> db_Get_Pipes_InstanceIDs(PromptSelectionResult prSelRes, Point3dCollection pointCollection)
+
+        //쿼리문 시작
+        public string SqlStr_TB_POCINSTANCES_By_Point(Point3d point)
+        {
+            //DB 테이블 요약 : POC 연결정보 연결 타입 등 
+            string sql = string.Format(
+                             "SELECT * ," +
+                             "abs(POSX - {0})" +
+                             "as disx, abs(POSY - {1})" +
+                             "as disy, abs(POSZ - {2})" +
+                             "as disz FROM TB_POCINSTANCES " +
+                             "WHERE 1 > disx AND 1> disy AND 1 > disz ;", point.X, point.Y, point.Z);
+            return sql;
+        }
+        public string SqlStr_TB_MODELINSTANCES(string owner_id, string ownerType)
+        {
+            //DB 테이블 요약 : 
+            //  1.MODEL_TEMPLATE_NM,DISPLAY_NM 등 Fitting에 대한 정보를 얻을 수 있음.
+            //  2.TB_POCINSTANCES에는 Owner_ID를 대상으로 한 연결 정보가 들어있음. 타입이 768이면 ModelInstances와 연결. 256이면 파이프 
+
+            string sql = "";
+            if (ownerType_Component == ownerType)
+            {
+                sql = string.Format(
+                                "SELECT * " +
+                                "FROM TB_MODELINSTANCES INNER JOIN TB_MODELTEMPLATES " +
+                                "on TB_MODELINSTANCES.MODEL_TEMPLATE_ID = TB_MODELTEMPLATES.MODEL_TEMPLATE_ID " +
+                                "AND hex(TB_MODELINSTANCES.INSTANCE_ID) like '{0}';"
+                                , owner_id);
+            }
+            return sql;
+
+        }
+        //쿼리문 끝 
+
+        //DDWorks Database 함수 시작
+        public List<string> Get_PipeInstanceIDs_By_ObjIDs(PromptSelectionResult prSelRes, Point3dCollection pointCollection)
         {
             Pipe pi = new Pipe(db_ed, db_acDB);
             List<string> ids = new List<string>();
@@ -912,7 +936,7 @@ namespace PipeInfo
             }
             return ids;
         }
-        public List<Tuple<string, string>> db_Get_Pipes_Production_Infomation(List<string> pipe_InstanceIDS)
+        public List<Tuple<string, string>> Get_Spool_Infomation_By_ObjIds(List<string> pipe_InstanceIDS)
         {
             List<Tuple<string, string>> production_Info = new List<Tuple<string, string>>();
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
@@ -1021,10 +1045,11 @@ namespace PipeInfo
             }
             return production_Info;
         }
-        public (List<Point3d>, List<string>) db_Get_Final_POC_Instance_IDS()
+        // 파이프의 마지막 객체의 POC위치를 반환.
+        public (List<Point3d>, List<string>) Get_Final_POC_Instance_Ids()
         {
             // 마지막 찾은 Owner ID에서 객체 타입이 모델이라면 PIPE를 다시 찾는다. 
-            List<string> final_objs_ID = new List<string>(); //db_Get_Pipes_Production_Infomation 와 연동필요
+            List<string> final_objs_ID = new List<string>(); //Get_Spool_Infomation_By_ObjIds 와 연동필요
             List<Point3d> final_objs_Pos = new List<Point3d>();
 
             if (db_path != "")
@@ -1056,7 +1081,7 @@ namespace PipeInfo
                         {
                             //Connected POC Owner 갯수 구하기.
                             //각 POC마다 전객체를 봐서 PIPE인것을 골라내서 정보가져옴.
-                            string prev_id = db_POC_prev(connstr, BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""), "INSTANCE_ID");
+                            string prev_id = POC_prev(connstr, BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""), "INSTANCE_ID");
                             final_objs_ID.Add(prev_id);
                             //반환값이 Pipe Key인지 확인필요.
                             Point3d fin_pos = new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]);
@@ -1079,7 +1104,7 @@ namespace PipeInfo
             }
             return (final_objs_Pos, final_objs_ID);
         }
-        public string db_POC_prev(string connstr, string current_POC, string column_name)
+        public string POC_prev(string connstr, string current_POC, string column_name)
         {
             //Owner ID를 입력받아 CONNECTION ODER 값이 0에 연결된 InstanceID(column_name)를 하나 넘겨준다.
             //ID 0에 해당하는 INSTANCE ID를 찾는다.
@@ -1105,13 +1130,13 @@ namespace PipeInfo
             }
             return prev_poc_id;
         }
-        public string db_POC_next(string current_POC)
+        public string POC_next(string current_POC)
         {
             //Owner ID가 1에 연결된 InstanceID를 하나 넘겨준다. 
             string next_poc_id = "";
             return next_poc_id;
         }
-        public List<string> db_Get_Pipes_Production_Information_Points(List<Point3d> pipe_points)
+        public List<string> Get_Pipes_Spool_Info_By_Points(List<Point3d> pipe_points)
         {
             List<string> li = new List<string>();
             //연결된 파이프 정보가 두개가 되어야 한다. 연결되었는지 확인하는 메서드. 23.6.26
@@ -1136,83 +1161,88 @@ namespace PipeInfo
             }
             return li;
         }
-        public List<Point3d> db_Get_POC_Instance_IDS_Position(List<string> final_POC_IDS)
-        {
-            List<Point3d> fianl_obj_pos = new List<Point3d>();
-            return fianl_obj_pos;
-        }
-        //관련 메소드 : select_Welding_Point 웰딩그룹의 포인트를 넣으면 Tee객체를 찾아 필터링해서 다시 포인트 반환.
-        public List<Point3d> db_FilterWeldGroup_By_ComponentType(List<Point3d> weldGroup, string filter)
+
+        //관련 메소드 : select_Welding_Point 웰딩그룹의 포인트를 넣으면 Spool과 상관없는 (Tee객체 Reducer Reducing)찾아 입력된 좌표를 지우고 다시 리스트를 만들어 반환.
+        public List<Point3d> FilterWeldGroup_By_ComponentType(List<Point3d> weldGroup, string[] filters)
         {
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
             {
-                int count = 0;
                 List<int> indexes = new List<int>();
                 List<Point3d> filter_weldGroup = new List<Point3d>();
-                    if (db_path != "")
+                if (db_path != "" && weldGroup.Count > 0)
+                {
+                    string connstr = "Data Source=" + db_path;
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
                     {
-                        string connstr = "Data Source=" + db_path;
-                        using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                        conn.Open();
+                        for (int i = 0; i < weldGroup.Count; i++)
                         {
-                            conn.Open();
-                            foreach (var points in weldGroup) 
-                            {
-                                string sql_instance_id = string.Format(
-                                    "SELECT OWNER_INSTANCE_ID,OWNER_TYPE, " +
-                                    "abs(POSX - {0})" +
-                                    "as disx, abs(POSY - {1})" +
-                                    "as disy, abs(POSZ - {2})" +
-                                    "as disz FROM TB_POCINSTANCES " +
-                                    "WHERE 1 > disx AND 1> disy AND 1 > disz ;", points.X, points.Y, points.Z);
+                            Point3d point = weldGroup[i];
+                            string sql = SqlStr_TB_POCINSTANCES_By_Point(point);
 
-                                SQLiteCommand command = new SQLiteCommand(sql_instance_id, conn);
-                                SQLiteDataReader rdr = command.ExecuteReader();
-                                string owner_id = "";
+                            SQLiteCommand command = new SQLiteCommand(sql, conn);
+                            SQLiteDataReader rdr = command.ExecuteReader();
+                            string owner_id = "";
+
+                            // 좌표를 찾지 못하는 객체는 스풀정보 포함하지 않음 : Tee+Reducer 용접포인트는 DB에 POC좌표가 나오지 않음. 단관거리를 계산해서 넣어야함. 
+                            // Tee. Reducer. Reducing 객체는 제외한다.
+                            if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+                            {
                                 while (rdr.Read())
                                 {
-                                    if (rdr["OWNER_TYPE"].ToString() == "768")
+                                    if (rdr["OWNER_TYPE"].ToString() == ownerType_Component)
                                     {
                                         owner_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
-                                   
-                                        string sql_model_template_nm = string.Format(
-                                            "SELECT MODEL_TEMPLATE_NM " +
-                                            "FROM TB_MODELINSTANCES INNER JOIN TB_MODELTEMPLATES " +
-                                            "on TB_MODELINSTANCES.MODEL_TEMPLATE_ID = TB_MODELTEMPLATES.MODEL_TEMPLATE_ID " +
-                                            "AND hex(TB_MODELINSTANCES.INSTANCE_ID) like '{0}';"
-                                            , owner_id);
-                                        
-                                            SQLiteCommand command_1 = new SQLiteCommand(sql_model_template_nm, conn);
-                                            SQLiteDataReader rdr_1 = command_1.ExecuteReader();
+                                        string sql_model_template_nm = SqlStr_TB_MODELINSTANCES(owner_id, rdr["OWNER_TYPE"].ToString());
+                                        SQLiteCommand command_1 = new SQLiteCommand(sql_model_template_nm, conn);
+                                        SQLiteDataReader rdr_1 = command_1.ExecuteReader();
 
+                                        if (rdr_1.HasRows) //rdr 반환값이 있을때만 Read
+                                        {
                                             while (rdr_1.Read())
                                             {
-                                                if (rdr_1["MODEL_TEMPLATE_NM"].ToString().Contains(filter))
+                                                // 선택된 weldGroup에서 라이브러리 이름이 Filter이름과 동일하면 Index를 저장한다.
+                                                foreach (string filter in filters)
                                                 {
-                                                    indexes.Add(count);
-                                                    count++;
+                                                    if (rdr_1["MODEL_TEMPLATE_NM"].ToString().Contains(filter))
+                                                    {
+                                                        indexes.Add(i);
+                                                    }
                                                 }
                                             }
-                                    }
-                                    else
-                                    {
+                                        }
                                     }
                                 }
-                                
                             }
-                            conn.Close();
-                        }   
+                            else
+                            {
+                                indexes.Add(i); //rdr 좌표를 못찾은 좌표들도 indexes에 포함 가끔 Reducer와 Tee사이 객체는 파이프 중간점에 WeldPoint를 잡아서 DB에서 좌표로 찾을 수 없음.
+                            }
 
-                        foreach(int index in indexes)
+                        }
+                        conn.Close();
+                    }
+
+                    // weldGroup에서 필터로 걸러진 좌표를 제외한 좌표들을 복사한다.
+                    for (int j = 0; j < weldGroup.Count; j++)
                     {
-                        weldGroup.RemoveAt(index);
-                        db_ed.WriteMessage("인덱스 : \n",index.ToString());
+                        if (indexes.Contains(j) == false) //Filter에 속한 객체들을 제외하고 리스트 추가.
+                        {
+                            filter_weldGroup.Add(weldGroup[j]);
+                        }
                     }
-                    filter_weldGroup=weldGroup;
-
-                    db_ed.WriteMessage("변경후 : \n", weldGroup.Count.ToString());
-                    }
-                    return filter_weldGroup;
                 }
+                return filter_weldGroup;
             }
         }
+        // Welding 포인트들을 넣으면 검색되는 두개의 포인트의 Vector를 반환. X,-X,Y,-Y,Z,-Z 이 순서로 Text 쌍으로 배치(예 : X -X가 쌍)
+        // 쿼리문 하나 추가해서 두 포인트의 좌표를 비교!
+        public void Get_Pipe_Vector_By_Points(List<Point3d> weldGroup)
+        {
+           // SqlStr_TB_POCINSTANCES_By_Point 사용하고
+           // 하나 더 만들어서 두 포인트를 비교하는 것 추가.. 
+        }
+    }
 }
+
+//단축키 Ctrl+K -> Ctrl+E

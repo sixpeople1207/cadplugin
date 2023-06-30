@@ -1,10 +1,9 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Writing 0x94769c90 Exception at 94769C90h
+FATAL ERROR:  Unhandled Access Violation Writing 0xaa965c0 Exception at aa965c0h
 
-06/29/2023 at 17:28:49.000  Drawing: D:\CSAIH01_MAIN\CSAIH01_MAIN.dxf
+06/30/2023 at 15:23:43.000  Drawing: C:\Users\sixpe\Downloads\CSAIH01_MAIN.dxf
 -------------
-S.dxf
 =======
 FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at c480b53h
 
