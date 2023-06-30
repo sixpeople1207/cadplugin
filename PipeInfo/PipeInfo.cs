@@ -381,7 +381,7 @@ namespace PipeInfo
                         //    li.Max(p => p.Z).ToString(), li.Min(p => p.Z).ToString()
                         //    );
 
-                        InteractivePolyLine.RectangleInteractive(li);
+                       // InteractivePolyLine.RectangleInteractive(li);
 
                         //Tee가 제외된 IDS반환필요
                         ObjectId[] ids = new ObjectId[count];
@@ -1144,11 +1144,10 @@ namespace PipeInfo
         //관련 메소드 : select_Welding_Point 웰딩그룹의 포인트를 넣으면 Tee객체를 찾아 필터링해서 다시 포인트 반환.
         public List<Point3d> db_FilterWeldGroup_By_ComponentType(List<Point3d> weldGroup, string filter)
         {
-            List<int> indexes = new List<int>();
-            int count = 0;
-            db_ed.WriteMessage(weldGroup.Count.ToString());
             using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
             {
+                int count = 0;
+                List<int> indexes = new List<int>();
                 List<Point3d> filter_weldGroup = new List<Point3d>();
                     if (db_path != "")
                     {
@@ -1189,7 +1188,7 @@ namespace PipeInfo
                                             {
                                                 if (rdr_1["MODEL_TEMPLATE_NM"].ToString().Contains(filter))
                                                 {
-                                                    indexes.Append(count);
+                                                    indexes.Add(count);
                                                     count++;
                                                 }
                                             }
