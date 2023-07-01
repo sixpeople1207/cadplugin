@@ -237,7 +237,7 @@ namespace PipeInfo
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Document acDoc = Application.DocumentManager.MdiActiveDocument;
                 Database db = acDoc.Database;
-                var db_control = new DDWorks_Database(ed, db, db_path);
+                var ddworks_Database = new DDWorks_Database(ed, db, db_path);
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
@@ -296,7 +296,11 @@ namespace PipeInfo
                         // Tee객체를 필터링한다. //끝객체 //Reducer
                         string[] filter = { "Tee", "Reducer", "Reducing" };
 
-                        List<Point3d> newPoints = db_control.FilterWeldGroup_By_ComponentType(points, filter);
+                        // 선택한 객체에서 필터를 걸러낸다.
+                        List<Point3d> newPoints = ddworks_Database.FilterWeldGroup_By_ComponentType(points, filter);
+                        // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
+                        Vector3d vec = ddworks_Database.Get_Pipe_Vector_By_Points(points);
+                        ed.WriteMessage(vec.ToString());
 
                         if (newPoints.Count > 0)
                         {
@@ -844,6 +848,64 @@ namespace PipeInfo
             return sql;
 
         }
+        public string SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(string own_ins_id)
+        {
+            string sql = string.Format("SELECT * FROM TB_POCINSTANCES WHERE hex(OWNER_INSTANCE_ID) like '{0}';", own_ins_id);
+            return sql;
+        }
+        public List<Object> SQLite_ExcuteReader_Points_By_POCInfor(List<Point3d> points, string column_name)
+        {
+            List<Object> li = new List<Object>();
+            if (db_path != "")
+            {
+                string connstr = "Data Source=" + db_path;
+                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                {
+                    conn.Open();
+
+                    foreach (var point in points)
+                    {
+                        string sql = SqlStr_TB_POCINSTANCES_By_Point(point);
+                        SQLiteCommand command = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = command.ExecuteReader();
+                        if (rdr.HasRows)
+                        {
+                            while (rdr.Read())
+                            {
+                                li.Add(rdr[column_name]);
+                            }
+                        }
+                    }
+
+                    conn.Close();
+                }
+            }
+            return li;
+        }
+        public Object SQLite_ExcuteReader_OwnerInsId_By_POCInfor(string own_id, string column_name)
+        {
+            Object res = new Object();
+            if (db_path != "")
+            {
+                string connstr = "Data Source=" + db_path;
+                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                {
+                    conn.Open();
+                    string sql = SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(own_id);
+                    SQLiteCommand command = new SQLiteCommand(sql, conn);
+                    SQLiteDataReader rdr = command.ExecuteReader();
+                    if (rdr.HasRows)
+                    {
+                        while (rdr.Read())
+                        {
+                            res = rdr[column_name];
+                        }
+                    }
+                    conn.Close();
+                }
+            }
+            return res;
+        }
         //쿼리문 끝 
 
         //DDWorks Database 함수 시작
@@ -1237,11 +1299,47 @@ namespace PipeInfo
         }
         // Welding 포인트들을 넣으면 검색되는 두개의 포인트의 Vector를 반환. X,-X,Y,-Y,Z,-Z 이 순서로 Text 쌍으로 배치(예 : X -X가 쌍)
         // 쿼리문 하나 추가해서 두 포인트의 좌표를 비교!
-        public void Get_Pipe_Vector_By_Points(List<Point3d> weldGroup)
+        public Vector3d Get_Pipe_Vector_By_Points(List<Point3d> weldGroup)
         {
-           // SqlStr_TB_POCINSTANCES_By_Point 사용하고
-           // 하나 더 만들어서 두 포인트를 비교하는 것 추가.. 
+            List<Point3d> points = new List<Point3d>();
+            var rdr = SQLite_ExcuteReader_Points_By_POCInfor(weldGroup, "OWNER_INSTANCE_ID");
+            //객체가 하나만 반환됨.. 에러.. 
+            foreach (var r in rdr)
+            {
+                if (r.GetType().ToString() == "System.Byte[]")
+                {
+                    string instanceid = BitConverter.ToString((byte[])r).Replace("-", "");
+                    db_ed.WriteMessage("{0}\n", instanceid.ToString());
+                    double posX = (double)SQLite_ExcuteReader_OwnerInsId_By_POCInfor(instanceid, "POSX");
+                    double posY = (double)SQLite_ExcuteReader_OwnerInsId_By_POCInfor(instanceid, "POSY");
+                    double posZ = (double)SQLite_ExcuteReader_OwnerInsId_By_POCInfor(instanceid, "POSZ");
+                    points.Add(new Point3d(posX, posY, posZ));
+
+                }
+                else
+                {
+                    db_ed.WriteMessage(r.ToString());
+                }
+            }
+            Vector3d vec = new Vector3d();
+            if (points.Count > 1)
+            {
+                vec = points[0].GetVectorTo(points[1]);
+            }
+            else
+            {
+                vec = new Vector3d(0, 0, 0);
+            }
+            return vec;
+
         }
+        // 반환된 오너 아이디로(256객체) PipeInformation가져오기 백터와 접목해서 
+
+        // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
+        // 빈공간.. 찾기.. RAYTRAY.. 
+        // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
+        // 4방향으로 Rec 회전 알고리즘 
+        // EnterKey 누르면 거기에 파이프 정보. 
     }
 }
 
