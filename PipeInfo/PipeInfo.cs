@@ -369,7 +369,7 @@ namespace PipeInfo
                                  textAlign[1] = (int)TextHorizontalMode.TextCenter;
                                  textAlign[2] = (int)TextHorizontalMode.TextRight;
 
-                                 DBText text = new DBText();
+                                    DBText text = new DBText();
                                     text.SetDatabaseDefaults();
                                     //text.TextString = near_Points[k].Item1.ToString();
                                     //text.Position = near_Points[k].Item2;
@@ -388,22 +388,25 @@ namespace PipeInfo
                                  }
                                  if (Math.Round(vec_li[k].GetNormal().X, 1) == 1)
                                  {
-                                    nCnt = 2;
-                                    // text.Normal = Vector3d.ZAxis;
+                                    nCnt = 0;
+                                    text.Normal = Vector3d.ZAxis;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                    ed.WriteMessage("벡터 1 :" + text.HorizontalMode.ToString());
                                     if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                     {
-                                       text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y, newPoints[k].Z);
+                                       text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y+500, newPoints[k].Z);
                                     }
                                  }
                                  else if (Math.Round(vec_li[k].GetNormal().X, 1) == -1)
                                  {
-                                    nCnt = 0;
-                                    // text.Normal = Vector3d.ZAxis;
+                                    nCnt = 2;
+                                    text.Normal = Vector3d.ZAxis;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                ed.WriteMessage("벡터 -1 :" + text.HorizontalMode.ToString());
+
+                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                     {
-                                       text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y, newPoints[k].Z);
+                                       text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y+500, newPoints[k].Z);
                                     }
                                  }
                                  else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
