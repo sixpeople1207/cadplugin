@@ -368,7 +368,9 @@ namespace PipeInfo
                               acBlkRec.AppendEntity(info_line);
                               acTrans.AddNewlyCreatedDBObject(info_line, true);
                               int width = 0;
-                              double basePoint = newPoints[0].Y+300;
+                              double basePoint = newPoints[0].X - 300; //<- 구룹
+                              //Group별로 Vector를 파악해서 basePoint를 진행
+
                               //List<Point3d> orderBy = point3Ds.OrderByDescending(p => p.Y).ToList();
 
                               // Vector 에 따른 TEXT의 회전값과 정렬.
@@ -385,30 +387,32 @@ namespace PipeInfo
                                  textAlign[0] = (int)TextHorizontalMode.TextLeft;
                                  textAlign[1] = (int)TextHorizontalMode.TextCenter;
                                  textAlign[2] = (int)TextHorizontalMode.TextRight;
+
+
                                  DBText text = new DBText();
                                  text.SetDatabaseDefaults();
                                  //text.TextString = near_Points[k].Item1.ToString();
                                  //text.Position = near_Points[k].Item2;
                                  text.TextString = spoolInfo_li[k].ToString();
                                  text.Normal = Vector3d.ZAxis;
-                                 if(k%2==0 && k != 0)
-                                 {
-                                    basePoint -= 15;
-                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                 }
-                                 else
-                                 {
-                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                 }
                                  //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
                                  text.Height = 12.0;
-                                 int nCnt = 0;
 
+                                 int nCnt = 0;
                                  if (Math.Round(vec_li[k].GetNormal().X, 1) == 1)
                                  {
                                     //SE,WS는 정렬 : 0, Rotation : 0
                                     //NW,NE은 정렬 : 2, Rotation : 180
                                     nCnt = 2;
+                                    if (k % 2 == 0 && k != 0)
+                                    {
+                                       basePoint -= 15;
+                                       text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                    }
+                                    else
+                                    {
+                                       text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                    }
                                     text.Rotation = Math.PI / 180 * 180;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
                                     if (text.HorizontalMode != TextHorizontalMode.TextLeft)
@@ -421,6 +425,15 @@ namespace PipeInfo
                                     //SE,WS는 정렬 : 2, Rotation : 0
                                     //NW,NE은 정렬 : 0, Rotation : 180
                                     nCnt = 0;
+                                    if (k % 2 == 0 && k != 0)
+                                    {
+                                       basePoint -= 15;
+                                       text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                    }
+                                    else
+                                    {
+                                       text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                    }
                                     text.Rotation = Math.PI / 180 * 180;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
                                     if (text.HorizontalMode != TextHorizontalMode.TextLeft)
@@ -433,11 +446,20 @@ namespace PipeInfo
                                     //NE,ES 정렬 : 0, Rotation : 90
                                     //NW,WS 정렬 : 2, Rotation : 270
                                     nCnt = 2;
+                                    if (k % 2 == 0 && k != 0)
+                                    {
+                                       basePoint -= 15;
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                    }
+                                    else
+                                    {
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                    }
                                     text.Rotation = Math.PI / 180 * 270;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
                                     if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                     {
-                                       text.AlignmentPoint = new Point3d(newPoints[k].X - 300, newPoints[k].Y, newPoints[k].Z);
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
                                     }
                                  }
                                  else if (Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
@@ -445,11 +467,20 @@ namespace PipeInfo
                                     //NE,ES 정렬 : 0, Rotation : 90
                                     //NW,WS 정렬 : 2, Rotation : 270
                                     nCnt = 0;
+                                    if (k % 2 == 0 && k != 0)
+                                    {
+                                       basePoint -= 15;
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                    }
+                                    else
+                                    {
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                    }
                                     text.Rotation = Math.PI / 180 * 270;
                                     text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
                                     if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                     {
-                                       text.AlignmentPoint = new Point3d(newPoints[k].X - 300, newPoints[k].Y, newPoints[k].Z);
+                                       text.Position = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
                                     }
 
                                  }
