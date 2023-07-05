@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Data.SQLite;
 using System.Linq;
 using System.Windows.Forms;
-using static System.Net.Mime.MediaTypeNames;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 
@@ -305,22 +304,43 @@ namespace PipeInfo
 
                                 // 23.7.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
                                 List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(oldPoints);
+                                // 파이프와 파이프의 벡터(Pipe가 두개 이상일때만) 
+                                Vector3d spool_vec = new Vector3d();
+                                double min_Z = oldPoints.Min(p => p.Z);
+                                double max_Z = oldPoints.Max(p => p.Z);
+                                bool multi_mode = false; //배관 : 가로 스풀 : 세로(버티칼)
+                                if (max_Z - min_Z > 200 && (Math.Round(vec[0].GetNormal().X, 1) != 0 || Math.Round(vec[0].GetNormal().Y, 1) != 0))
+                                {
+                                    multi_mode = true;
+                                    oldPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
+                                }
 
-                                if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
-                                {
-                                    oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+                                if (vec.Count > 0)
+                                { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
+                                    if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+                                    {
+                                        oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+                                    }
+                                    if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
+                                    {
+                                        oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                                    }
                                 }
-                                if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
-                                {
-                                    oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-                                }
+                                // 파이프의 벡터 
+                                //if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+                                //{
+                                //   oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+                                //}
+                                //if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
+                                //{
+
+                                //      oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                                //}
+
 
                                 // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
                                 // Spool 정보도 같이 불러온다. (맞대기 용접은 좌표를 더해서 반환)
                                 (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(oldPoints);
-
-
-
                                 // WeldPoint들과 최소 거리에 있는 (현재는 300) WeldPoint들을 모두 그룹으로 묶는다.
                                 if (newPoints.Count > 0)
                                 {
@@ -330,6 +350,7 @@ namespace PipeInfo
                                     int group_index = 0;
                                     if (newPoints.Count > 1)
                                     {
+                                        near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[0]));
                                         for (int i = 0; i < newPoints.Count; i++)
                                         {
                                             // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
@@ -381,14 +402,23 @@ namespace PipeInfo
                                         acTrans.AddNewlyCreatedDBObject(info_line, true);
 
                                         double basePoint = 0;
-                                        if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
+
+                                        if (multi_mode == false)
                                         {
-                                            basePoint = aver_Y - 300; //<- 구룹
+                                            if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
+                                            {
+                                                basePoint = aver_Y - 300; //<- 구룹
+                                            }
+                                            if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
+                                            {
+                                                basePoint = aver_X - 300; //<- 구룹
+                                            }
                                         }
-                                        if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
+                                        else
                                         {
-                                            basePoint = aver_X - 300; //<- 구룹
+                                            basePoint = min_Z;
                                         }
+
 
                                         List<double> basePointLi = new List<double>();
                                         for (int i = 0; i < spoolInfo_li.Count / 2; i++)
@@ -423,120 +453,179 @@ namespace PipeInfo
                                             text.Normal = Vector3d.ZAxis;
                                             //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
                                             text.Height = 12.0;
-
                                             int nCnt = 0;
-                                            if (Math.Round(vec_li[k].GetNormal().X, 1) == 1)
-                                            {
-                                                //SE,WS는 정렬 : 0, Rotation : 0
-                                                //NW,NE은 정렬 : 2, Rotation : 180
-                                                nCnt = 2;
-                                                if (k % 2 == 0 && k != 0)
-                                                {
-                                                    basePoint -= 15;
-                                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                }
-                                                else
-                                                {
-                                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                }
-                                                text.Rotation = Math.PI / 180 * 180;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                                {
-                                                    text.AlignmentPoint = new Point3d(newPoints[0].X + 30, basePoint, newPoints[k].Z);
-                                                }
-                                            }
-                                            else if (Math.Round(vec_li[k].GetNormal().X, 1) == -1)
-                                            {
-                                                //SE,WS는 정렬 : 2, Rotation : 0
-                                                //NW,NE은 정렬 : 0, Rotation : 180
-                                                nCnt = 0;
-                                                if (k % 2 == 0 && k != 0)
-                                                {
-                                                    basePoint -= 15;
-                                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                }
-                                                else
-                                                {
-                                                    text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                }
-                                                text.Rotation = Math.PI / 180 * 180;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                                {
-                                                    text.AlignmentPoint = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                }
-                                            }
-                                            else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
-                                            {
-                                                //NE,ES 정렬 : 0, Rotation : 90
-                                                //NW,WS 정렬 : 2, Rotation : 270
-                                                nCnt = 2;
-                                                if (k % 2 == 0 && k != 0)
-                                                {
-                                                    basePoint -= 15; //마이너스로 해야 순서 맞음.
-                                                                     //newPoints[k].X-300
-                                                    text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
-                                                }
-                                                else
-                                                {
-                                                    text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
-                                                }
-                                                text.Rotation = Math.PI / 180 * 270;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                                {
-                                                    text.AlignmentPoint = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
-                                                }
-                                            }
-                                            else if (Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
-                                            {
 
-                                                //NE,ES 정렬 : 0, Rotation : 90
-                                                //NW,WS 정렬 : 2, Rotation : 270
-                                                nCnt = 0;
-                                                if (k % 2 == 0 && k != 0)
+                                            if (multi_mode == false)
+                                            {
+                                                if (Math.Round(vec_li[k].GetNormal().X, 1) == 1)
                                                 {
-                                                    basePoint -= 15;
-                                                    text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    //SE,WS는 정렬 : 0, Rotation : 0
+                                                    //NW,NE은 정렬 : 2, Rotation : 180
+                                                    nCnt = 2;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                                    }
+                                                    text.Rotation = Math.PI / 180 * 180;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(newPoints[0].X + 30, basePoint, newPoints[k].Z);
+                                                    }
                                                 }
-                                                else
+                                                else if (Math.Round(vec_li[k].GetNormal().X, 1) == -1)
                                                 {
-                                                    text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    //SE,WS는 정렬 : 2, Rotation : 0
+                                                    //NW,NE은 정렬 : 0, Rotation : 180
+                                                    nCnt = 0;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                                    }
+                                                    text.Rotation = Math.PI / 180 * 180;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                                    }
                                                 }
-                                                text.Rotation = Math.PI / 180 * 270;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
                                                 {
-                                                    text.AlignmentPoint = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                                    //NE,ES 정렬 : 0, Rotation : 90
+                                                    //NW,WS 정렬 : 2, Rotation : 270
+                                                    nCnt = 2;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15; //마이너스로 해야 순서 맞음.
+                                                                         //newPoints[k].X-300
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    text.Rotation = Math.PI / 180 * 270;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
                                                 }
+                                                else if (Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
+                                                {
+                                                    //NE,ES 정렬 : 0, Rotation : 90
+                                                    //NW,WS 정렬 : 2, Rotation : 270
+                                                    nCnt = 0;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    text.Rotation = Math.PI / 180 * 270;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(basePoint, newPoints[0].Y, newPoints[k].Z);
+                                                    }
 
-                                            }
-                                            else if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1)
-                                            {
-                                                //이건 3D회전도 필요하다. Z축을 기준으로 Flip시켜야함.
-                                                nCnt = 0;
-                                                text.Normal = Vector3d.YAxis; // 반드시 Posion셋하기 전 Normal 셋팅 필요. Normal을 포지션셋 후에 하면 좌표가 바뀜.
-                                                text.Position = new Point3d(newPoints[k].X, newPoints[k].Y - 300, newPoints[k].Z);
-                                                text.Rotation = Math.PI / 180 * 90;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                }
+                                                else if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1)
                                                 {
-                                                    text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y - 300, newPoints[k].Z);
+                                                    //이건 3D회전도 필요하다. Z축을 기준으로 Flip시켜야함.
+                                                    nCnt = 0;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.X, basePoint);
+                                                    }
+                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
+                                                    text.Rotation = Math.PI / 180 * 90;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.X, basePoint);
+                                                    }
+                                                }
+                                                else if (Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
+                                                {
+                                                    nCnt = 2;
+                                                    text.Normal = Vector3d.YAxis;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
+                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
+                                                    text.Rotation = Math.PI / 180 * 90;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                                    }
                                                 }
                                             }
-                                            else if (Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
-                                            {
-                                                nCnt = 2;
-                                                text.Normal = Vector3d.YAxis;
-                                                text.Position = new Point3d(newPoints[k].X, newPoints[k].Y - 300, newPoints[k].Z);
-                                                text.Rotation = Math.PI / 180 * 90;
-                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                            else if (multi_mode == true) {
+                                                if (Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                    nCnt =0;
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    text.Rotation = Math.PI / 180*270;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                    text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
                                                 {
-                                                    text.AlignmentPoint = new Point3d(newPoints[k].X, newPoints[k].Y - 300, newPoints[k].Z);
+                                                        nCnt = 2;
+                                                    if (k % 2 == 0 && k != 0)
+                                                    {
+                                                        basePoint -= 15;
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    else
+                                                    {
+                                                        text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
+                                                    text.Rotation = Math.PI / 180 * 270;
+                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                    {
+                                                        text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                    }
                                                 }
+                                            
                                             }
+                                   
                                             acBlkRec.AppendEntity(text);
                                             acTrans.AddNewlyCreatedDBObject(text, true);
                                         }
@@ -551,10 +640,6 @@ namespace PipeInfo
                                             li.Add(d.Item2);
                                         }
                                     }
-
-
-
-
 
                                     //ed.WriteMessage("\nX 최대값 {0} 최소값 {1}\n Y 최대값 {2} 최소값 {3}\n Z 최대값 {4} 최소값 {5}",
                                     //    li.Max(p => p.X).ToString(), li.Min(p => p.X).ToString(),
@@ -587,6 +672,10 @@ namespace PipeInfo
                             }
                             acTrans.Commit();
                             acTrans.Dispose();
+
+
+
+
                         }
                         catch (Autodesk.AutoCAD.Runtime.Exception ex)
                         {
@@ -1475,8 +1564,11 @@ namespace PipeInfo
                 conn.Open();
                 SQLiteCommand comm = new SQLiteCommand(sql, conn);
                 SQLiteDataReader rdr = comm.ExecuteReader();
-                rdr.Read();//찾은 객체의 첫번째 항목만 불러온다. 
-                spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                if (rdr.Read())
+                {
+                    rdr.Read();//찾은 객체의 첫번째 항목만 불러온다. 
+                    spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                }
                 conn.Dispose();
             }
             return spool_info;
@@ -1618,7 +1710,7 @@ namespace PipeInfo
                                         foreach (var weldPoint in weldGroup)
                                         {
                                             //CAD좌표는 DDWORKS 좌표에서 4번째에서 반올림한 좌표.
-                                            //오너 아이디에서 반환된 Points와 weldPoint가 일치하면 ^
+                                            //오너 아이디에서 반환된 Points와 weldPoint가 일치하면 
                                             if (Math.Abs(weldPoint.X - points[0].X) < 0.5 && Math.Abs(weldPoint.Y - points[0].Y) < 0.5 && Math.Abs(weldPoint.Z - points[0].Z) < 0.5)
                                             {
                                                 Vector3d vec = (points[1] - points[0]).GetNormal();
