@@ -5,8 +5,10 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity.Infrastructure;
 using System.Data.SQLite;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -112,24 +114,51 @@ namespace PipeInfo
             db_path = data;
         }
 
-        //도면내 블록 중에 용접포인트 유니온 포인트를 가져온다.
+        //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.
         [CommandMethod("bb")]
-        public void selectFence_Block()
+        public void selectBlock()
         {
-            if (db_path != "")
-            {
-                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-                Document acDoc = Application.DocumentManager.MdiActiveDocument;
-                Database db = acDoc.Database;
+         
+        Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+        Document acDoc = Application.DocumentManager.MdiActiveDocument;
+        Database db = acDoc.Database;
+                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
+                    PromptSelectionOptions pso = new PromptSelectionOptions();    
+                    TypedValue[] typeValueBlock = { new TypedValue(0, "INSERT")};
+                    SelectionFilter selFilterBlock = new SelectionFilter(typeValueBlock);
+                    TypedValue[] typeValueText = { new TypedValue(0, "TEXT") };
+                    SelectionFilter selFilterText = new SelectionFilter(typeValueText);
+                PromptSelectionResult ss = ed.GetSelection(pso, selFilterBlock);
 
-                PromptSelectionResult res = ed.GetSelection();
-            }
-            else
-            {
-                DB_Path_Winform win = new DB_Path_Winform();
-                win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
-                win.Show();
-            }
+                if (ss.Status == PromptStatus.OK)
+                {
+                    SelectionSet ssSet = ss.Value;
+                    ObjectId[] oIds = ssSet.GetObjectIds();
+                    foreach (var oId in oIds)
+                    {
+                        Entity en = acTrans.GetObject(oId, OpenMode.ForRead) as Entity;
+                        Type type = en.GetType();
+                        if (type.Name == "BlockReference")
+                        {
+                            var bound =  en.Bounds.Value;
+                            Point3d min = bound.MinPoint;
+                            Point3d max = bound.MaxPoint;
+                            ed.WriteMessage(min.ToString());
+                            ed.WriteMessage(max.ToString());
+                            PromptSelectionResult seW = ed.SelectCrossingWindow(min, max, selFilterText, false);
+                            SelectionSet ssss = seW.Value;
+                            ObjectId[] oI = ssss.GetObjectIds();
+                            ed.WriteMessage(oI.Length.ToString());
+                        }
+                    }
+                }
+                    acTrans.Commit();
+                    acTrans.Dispose();
+                }
+    
         }
 
         [CommandMethod("rr")]
@@ -319,21 +348,21 @@ namespace PipeInfo
                                     oldPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
                                 }
 
-                                if (vec.Count > 0)
-                                { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
-                                    if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
-                                    {
-                                        oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
-                                    }
-                                    if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
-                                    {
-                                        oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-                                    }
-                                    if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1) 
-                                    {
-                                        oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-                                    }
-                                }
+    if (vec.Count > 0)
+    { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
+        if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+        {
+            oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+        }
+        if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
+        {
+            oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+        }
+        if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1) 
+        {
+            oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+        }
+    }
                                 // 파이프의 벡터 
                                 //if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
                                 //{
@@ -463,7 +492,7 @@ namespace PipeInfo
                                             textAlign[1] = (int)TextHorizontalMode.TextCenter;
                                             textAlign[2] = (int)TextHorizontalMode.TextRight;
 
-
+                                            
                                             DBText text = new DBText();
                                             text.SetDatabaseDefaults();
                                             //text.TextString = near_Points[k].Item1.ToString();
@@ -1165,7 +1194,6 @@ namespace PipeInfo
         private Database db_acDB;
         private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재
         private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프
-
         public DDWorks_Database(Editor ed, Database db, string acDB_path)
         {
             db_ed = ed;
