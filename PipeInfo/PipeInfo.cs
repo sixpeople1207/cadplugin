@@ -167,24 +167,24 @@ namespace PipeInfo
                             }
                         }
                         List<Point3d> cirPosLi = new List<Point3d>();
-                        List<string> tePosLi = new List<string>();
+                        List<Point3d> tePosLi = new List<Point3d>();
 
                         //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
                         foreach (var sheet in sheetPosLi.Select((value, i) => (value, i)))
                         {
-                            for (int i = 1; i < typeValeStrings.Length; i++) //"CIRCLE" 과 "TEXT"를 한번씩 반복.
+                             ed.WriteMessage("도곽{0}\n", sheet.i);
+                            for (int j = 1; j < typeValeStrings.Length; j++) //"CIRCLE" 과 "TEXT"를 한번씩 반복.
                             {
-                                TypedValue[] typeValue = { new TypedValue(0, typeValeStrings[i]) };
+                                TypedValue[] typeValue = { new TypedValue(0, typeValeStrings[j]) };
                                 SelectionFilter selFilter = new SelectionFilter(typeValue);
                                 PromptSelectionResult selWin = ed.SelectCrossingWindow(sheet.value.MinPoint, sheet.value.MaxPoint, selFilter, false);
                                 SelectionSet selSetWin = selWin.Value;
                                 ObjectId[] sheetInSelObIds = selSetWin.GetObjectIds();
 
-                                ed.WriteMessage("도곽{0}\n", sheet.i);
                                 foreach (ObjectId sId in sheetInSelObIds)
                                 {
                                     Entity en = acTrans.GetObject(sId, OpenMode.ForRead) as Entity;
-                                    if (typeValeStrings[i] == "CIRCLE" && en.GetType().Name.ToString() == "Circle")
+                                    if (typeValeStrings[j] == "CIRCLE" && en.GetType().Name.ToString() == "Circle")
                                     {
                                         Circle cir = acTrans.GetObject(sId, OpenMode.ForRead) as Circle;
                                         if (cir.Layer.ToString().Contains("Infomation_Welding_Number"))
@@ -192,29 +192,30 @@ namespace PipeInfo
                                             cirPosLi.Add(cir.Center);
                                         }
                                     }
-                                    if (typeValeStrings[i] == "TEXT" && en.GetType().Name.ToString() == "DBText")
+                                    if (typeValeStrings[j] == "TEXT" && en.GetType().Name.ToString() == "DBText")
                                     {
                                         DBText te = acTrans.GetObject(sId, OpenMode.ForRead) as DBText;
                                         if (te.Layer.ToString().Contains("Infomation_Welding_Number"))
                                         {
-                                            foreach(var cirPos in cirPosLi)
-                                            {
-                                                var delta = cirPos - te.Position;
-                                                if(Math.Abs(delta.X) < 1 && Math.Abs(delta.Y) < 1)
-                                                {
-                                                    tePosLi.Add(te.TextString);
-                                                }
-                                            }
+                                             tePosLi.Add(te.Position);
                                         }
                                     }
                                 }
                             }
                         }
-
-                        foreach(var num in tePosLi)
-                        {
-                            ed.WriteMessage("\n"+num.ToString());
-                        }
+                        ed.UpdateScreen();
+                        //foreach(var num in tePosLi)
+                        //{
+                            foreach (var cirPos in cirPosLi)
+                            {
+                                ed.WriteMessage("\n" + cirPos.ToString());
+                              //  var delta = cirPos - num;
+                                //if (Math.Abs(delta.X) < 1 && Math.Abs(delta.Y) < 1)
+                                //{
+                                //    ed.WriteMessage("\n" + num.ToString());
+                                //}
+                            }
+                        //}
                     }
                     acTrans.Commit();
                     acTrans.Dispose();
