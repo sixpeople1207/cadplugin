@@ -206,15 +206,16 @@ namespace PipeInfo
                         ed.UpdateScreen();
                         //foreach(var num in tePosLi)
                         //{
-                            foreach (var cirPos in cirPosLi)
-                            {
-                                ed.WriteMessage("\n" + cirPos.ToString());
-                              //  var delta = cirPos - num;
-                                //if (Math.Abs(delta.X) < 1 && Math.Abs(delta.Y) < 1)
-                                //{
-                                //    ed.WriteMessage("\n" + num.ToString());
-                                //}
-                            }
+                           
+                                ed.WriteMessage("\n"+cirPosLi.Count.ToString());
+                        ed.WriteMessage("\n" + tePosLi.Count.ToString());
+
+                        //  var delta = cirPos - num;
+                        //if (Math.Abs(delta.X) < 1 && Math.Abs(delta.Y) < 1)
+                        //{
+                        //    ed.WriteMessage("\n" + num.ToString());
+                        //}
+
                         //}
                     }
                     acTrans.Commit();
