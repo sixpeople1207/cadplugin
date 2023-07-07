@@ -5,10 +5,9 @@ using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.Infrastructure;
 using System.Data.SQLite;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Runtime.ConstrainedExecution;
 using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -118,47 +117,118 @@ namespace PipeInfo
         [CommandMethod("bb")]
         public void selectBlock()
         {
-         
-        Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
-        Document acDoc = Application.DocumentManager.MdiActiveDocument;
-        Database db = acDoc.Database;
+            try
+            {
+
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database db = acDoc.Database;
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                     BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
-                    PromptSelectionOptions pso = new PromptSelectionOptions();    
-                    TypedValue[] typeValueBlock = { new TypedValue(0, "INSERT")};
-                    SelectionFilter selFilterBlock = new SelectionFilter(typeValueBlock);
-                    TypedValue[] typeValueText = { new TypedValue(0, "TEXT") };
-                    SelectionFilter selFilterText = new SelectionFilter(typeValueText);
-                PromptSelectionResult ss = ed.GetSelection(pso, selFilterBlock);
+                    PromptSelectionOptions pso = new PromptSelectionOptions();
+                    List<SelectionFilter> typedValues = new List<SelectionFilter>();
+                    string[] typeValeStrings = { "INSERT", "CIRCLE", "TEXT" };
+                    TypedValue[] typedBlock = { new TypedValue(0, typeValeStrings[0]) };
+                    SelectionFilter selFilBlk = new SelectionFilter(typedBlock);
 
-                if (ss.Status == PromptStatus.OK)
-                {
-                    SelectionSet ssSet = ss.Value;
-                    ObjectId[] oIds = ssSet.GetObjectIds();
-                    foreach (var oId in oIds)
+                    PromptSelectionResult ss = ed.SelectAll(selFilBlk);
+
+
+                    string sheetName = "SPOOL_도곽";
+                    string titleBoardName = "BL22";
+
+
+                    if (ss.Status == PromptStatus.OK)
                     {
-                        Entity en = acTrans.GetObject(oId, OpenMode.ForRead) as Entity;
-                        Type type = en.GetType();
-                        if (type.Name == "BlockReference")
+                        SelectionSet sSet = ss.Value;
+                        ObjectId[] oId = sSet.GetObjectIds();
+                        List<Extents3d> sheetPosLi = new List<Extents3d>();
+                        List<Extents3d> titleBoardPosLi = new List<Extents3d>();
+
+                        List<string> weldNumber = new List<string>();
+                        List<string> titleBoardTexts = new List<string>();
+                        foreach (ObjectId id in oId)
                         {
-                            var bound =  en.Bounds.Value;
-                            Point3d min = bound.MinPoint;
-                            Point3d max = bound.MaxPoint;
-                            ed.WriteMessage(min.ToString());
-                            ed.WriteMessage(max.ToString());
-                            PromptSelectionResult seW = ed.SelectCrossingWindow(min, max, selFilterText, false);
-                            SelectionSet ssss = seW.Value;
-                            ObjectId[] oI = ssss.GetObjectIds();
-                            ed.WriteMessage(oI.Length.ToString());
+                            Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
+                            if (en.GetType().Name.ToString() == "BlockReference")
+                            {
+                                // 시트 번호와 타이틀 
+                                BlockReference blk = en as BlockReference;
+                                if (blk.Name.ToString() == sheetName)
+                                {
+                                    sheetPosLi.Add(en.Bounds.Value);
+                                }
+                                else if (blk.Name.ToString() == titleBoardName)
+                                {
+                                    titleBoardPosLi.Add(en.Bounds.Value);
+                                }
+                            }
+                        }
+                        List<Point3d> cirPosLi = new List<Point3d>();
+                        List<string> tePosLi = new List<string>();
+
+                        //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
+                        foreach (var sheet in sheetPosLi.Select((value, i) => (value, i)))
+                        {
+                            for (int i = 1; i < typeValeStrings.Length; i++) //"CIRCLE" 과 "TEXT"를 한번씩 반복.
+                            {
+                                TypedValue[] typeValue = { new TypedValue(0, typeValeStrings[i]) };
+                                SelectionFilter selFilter = new SelectionFilter(typeValue);
+                                PromptSelectionResult selWin = ed.SelectCrossingWindow(sheet.value.MinPoint, sheet.value.MaxPoint, selFilter, false);
+                                SelectionSet selSetWin = selWin.Value;
+                                ObjectId[] sheetInSelObIds = selSetWin.GetObjectIds();
+
+                                ed.WriteMessage("도곽{0}\n", sheet.i);
+                                foreach (ObjectId sId in sheetInSelObIds)
+                                {
+                                    Entity en = acTrans.GetObject(sId, OpenMode.ForRead) as Entity;
+                                    if (typeValeStrings[i] == "CIRCLE" && en.GetType().Name.ToString() == "Circle")
+                                    {
+                                        Circle cir = acTrans.GetObject(sId, OpenMode.ForRead) as Circle;
+                                        if (cir.Layer.ToString().Contains("Infomation_Welding_Number"))
+                                        {
+                                            cirPosLi.Add(cir.Center);
+                                        }
+                                    }
+                                    if (typeValeStrings[i] == "TEXT" && en.GetType().Name.ToString() == "DBText")
+                                    {
+                                        DBText te = acTrans.GetObject(sId, OpenMode.ForRead) as DBText;
+                                        if (te.Layer.ToString().Contains("Infomation_Welding_Number"))
+                                        {
+                                            foreach(var cirPos in cirPosLi)
+                                            {
+                                                var delta = cirPos - te.Position;
+                                                if(Math.Abs(delta.X) < 1 && Math.Abs(delta.Y) < 1)
+                                                {
+                                                    tePosLi.Add(te.TextString);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        foreach(var num in tePosLi)
+                        {
+                            ed.WriteMessage("\n"+num.ToString());
                         }
                     }
-                }
                     acTrans.Commit();
                     acTrans.Dispose();
                 }
-    
+            }
+            catch (System.Exception ex)
+
+            {
+
+                Application.DocumentManager.MdiActiveDocument.
+
+                    Editor.WriteMessage(ex.Message);
+
+            }
         }
 
         [CommandMethod("rr")]
@@ -341,28 +411,28 @@ namespace PipeInfo
                                 double min_Z = oldPoints.Min(p => p.Z);
                                 double max_Z = oldPoints.Max(p => p.Z);
                                 bool multi_mode = false; //배관 : 가로 스풀 : 세로(버티칼)
-                                
+
                                 if (max_Z - min_Z > 200 && (Math.Round(vec[0].GetNormal().X, 1) != 0 || Math.Round(vec[0].GetNormal().Y, 1) != 0))
                                 {
                                     multi_mode = true;
                                     oldPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
                                 }
 
-    if (vec.Count > 0)
-    { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
-        if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
-        {
-            oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
-        }
-        if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
-        {
-            oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-        }
-        if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1) 
-        {
-            oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-        }
-    }
+                                if (vec.Count > 0)
+                                { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
+                                    if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+                                    {
+                                        oldPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+                                    }
+                                    if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
+                                    {
+                                        oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                                    }
+                                    if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1)
+                                    {
+                                        oldPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                                    }
+                                }
                                 // 파이프의 벡터 
                                 //if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
                                 //{
@@ -457,7 +527,7 @@ namespace PipeInfo
                                             {
                                                 basePoint = aver_X - 300; //<- 구룹
                                             }
-                                            if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1) 
+                                            if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
                                             {
                                                 basePoint = aver_X - 300; //<- 구룹
                                             }
@@ -492,7 +562,7 @@ namespace PipeInfo
                                             textAlign[1] = (int)TextHorizontalMode.TextCenter;
                                             textAlign[2] = (int)TextHorizontalMode.TextRight;
 
-                                            
+
                                             DBText text = new DBText();
                                             text.SetDatabaseDefaults();
                                             //text.TextString = near_Points[k].Item1.ToString();
@@ -634,11 +704,12 @@ namespace PipeInfo
                                                     }
                                                 }
                                             }
-                                            else if (multi_mode == true) {
+                                            else if (multi_mode == true)
+                                            {
                                                 if (Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
                                                     if (k % 2 == 0 && k != 0)
                                                     {
-                                                    nCnt =0;
+                                                        nCnt = 0;
                                                         basePoint -= 15;
                                                         text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
                                                     }
@@ -646,15 +717,15 @@ namespace PipeInfo
                                                     {
                                                         text.Position = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
                                                     }
-                                                    text.Rotation = Math.PI / 180*270;
-                                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                                    {
-                                                    text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
-                                                    }
-                                                    else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
+                                                text.Rotation = Math.PI / 180 * 270;
+                                                text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                                 {
-                                                        nCnt = 2;
+                                                    text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
+                                                }
+                                                else if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1)
+                                                {
+                                                    nCnt = 2;
                                                     if (k % 2 == 0 && k != 0)
                                                     {
                                                         basePoint -= 15;
@@ -671,9 +742,9 @@ namespace PipeInfo
                                                         text.AlignmentPoint = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
                                                     }
                                                 }
-                                            
+
                                             }
-                                   
+
                                             acBlkRec.AppendEntity(text);
                                             acTrans.AddNewlyCreatedDBObject(text, true);
                                         }

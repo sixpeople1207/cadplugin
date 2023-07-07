@@ -1,8 +1,8 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 57F69EE9h
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at 57FBBF6Ah
 
-07/06/2023 at 17:07:24.000  Drawing: D:\프로젝트_제작도면\도면\DKHB5D1\DKHB5D1\CAD도면(가공)\DKHB5D1_SPOOL.DWG
+07/07/2023 at 12:50:17.000  Drawing: D:\프로젝트_제작도면\도면\DKHB5D1\DKHB5D1\CAD도면(가공)\DKHB5D1_SPOOL.DWG
 -------------
 ed Access Violation Reading 0x0000 Exception at c480b53h
 
