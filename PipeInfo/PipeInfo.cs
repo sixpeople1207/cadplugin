@@ -6,6 +6,7 @@ using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
+using System.IO;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
 using System.Windows.Forms;
@@ -1264,6 +1265,8 @@ namespace PipeInfo
         private string db_path = "";
         private string db_TB_PIPEINSTANCES = "TB_PIPEINSTANCES";
         private Editor db_ed;
+        static Document db_doc = Autodesk.AutoCAD.ApplicationServices.Core.Application.DocumentManager.MdiActiveDocument;
+        string drawingName = Path.GetFileName(db_doc.Name).Split('.')[0];
         private Database db_acDB;
         private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재
         private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프
@@ -1646,27 +1649,30 @@ namespace PipeInfo
             return next_poc_id;
         }
 
+
         /*
          * 함수 이름 : Get_Pipe_Spool_Info_By_OwnerInsId
          * 기능 설명 : Pipe의 Spool정보를 반환.
-         * 관련 테이블 : TB_POCINSTANCES,TB_PIPESIZE,TB_PRODUCTION_DRAWING,TB_PRODUCTION_DRAWING_GROUPS.
+         * 관련 테이블 : TB_POCINSTANCES,TB_PIPESIZE,TB_PRODUCTION_DRAWING,TB_PRODUCTION_DRAWING_GROUPS,TB_INSTANCEGROUPS.
          * 입력 타입 : String 객체. TB_POCINSTANCES(OWNER_INSTANCE_ID).
+         * 비고 : 같은 파일내에 같은 객체를 Group을 여러개 나눌경우 Spool정보가 유일한 값이 아니게 된다. 2개이상 존재. 그러므로 Instance Group ID 확인필요(파일이름).
          */
         public string Get_Pipe_Spool_Info_By_OwnerInsId(string ownerInsId)
         {
             string spool_info = "";
-            string sql = string.Format("SELECT " +
+            string sql_spoolInfo = string.Format("SELECT " +
                     "PIPESIZE_NM," +
                    "UTILITY_NM," +
-                   "PRODUCTION_DRAWING_GROUP_NM, " +
-                   "SPOOL_NUMBER " +
+                   "PRODUCTION_DRAWING_GROUP_NM," +
+                   "SPOOL_NUMBER," +
+                   "INSTANCE_GROUP_ID "+
                "FROM " +
                   "TB_POCINSTANCES " +
                "INNER JOIN " +
                   "TB_PIPESIZE," +
                   "TB_UTILITIES," +
                   "TB_PRODUCTION_DRAWING," +
-                  "TB_PRODUCTION_DRAWING_GROUPS " +
+                  "TB_PRODUCTION_DRAWING_GROUPS,TB_INSTANCEGROUPS " +
                "on " +
                   "TB_POCINSTANCES.PIPESIZE_ID = TB_PIPESIZE.PIPESIZE_ID " +
                "AND " +
@@ -1678,16 +1684,30 @@ namespace PipeInfo
                "AND " +
                   "hex(TB_POCINSTANCES.OWNER_INSTANCE_ID) like '{0}';", ownerInsId);
 
+            string sql_InstanceGroup = string.Format("SELECT * FROM TB_INSTANCEGROUPS as IG INNER JOIN TB_INSTANCEGROUPMEMBERS as IGM on IG.INSTANCE_GROUP_ID=IGM.INSTANCE_GROUP_ID AND IG.INSTANCE_GROUP_ID=" +
+                "(SELECT INSTANCE_GROUP_ID FROM TB_INSTANCEGROUPS WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM='{0}') AND hex(INSTANCE_ID) like '{1}';", drawingName, ownerInsId);
+
             string connstr = "Data Source=" + db_path;
             using (SQLiteConnection conn = new SQLiteConnection(connstr))
             {
                 conn.Open();
-                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteCommand comm = new SQLiteCommand(sql_InstanceGroup, conn);
                 SQLiteDataReader rdr = comm.ExecuteReader();
-                if (rdr.Read())
+                rdr.Read();
+                string instance_GroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                rdr.Close();
+                comm.Dispose();
+                comm = new SQLiteCommand(sql_spoolInfo, conn);
+                rdr = comm.ExecuteReader();
+                
+                while (rdr.Read())
                 {
-                    rdr.Read();//찾은 객체의 첫번째 항목만 불러온다. 
-                    spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                    //찾은 객체의 첫번째 항목만 불러온다. -> 7.10수정 DWG 파일 이름이 곧 INSTANCE GORUP NM이기때문에 INSTANCEGROUP ID와 동일한 SpoolNM을 가져온다.
+                    //함수 추가 필요. 파일이름 -> INSTANCE GROUP NM -> ID DB연결할때 가져와야한다.
+                    if (rdr["INSTANCE_GROUP_ID"] == instance_GroupId)
+                    {
+                        spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                    }
                 }
                 conn.Dispose();
             }
