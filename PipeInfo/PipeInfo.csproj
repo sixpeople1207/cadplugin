@@ -11,7 +11,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>PipeInfo_49</AssemblyName>
+    <AssemblyName>PipeInfo_25</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
