@@ -1,10 +1,12 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at C3C22625h
+INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
 
-07/11/2023 at 15:38:01.000  Drawing: D:\CSAIH01_MAIN\CSAIH01_MAIN.dxf
+07/12/2023 at 16:42:04.000  Drawing: D:\DKG3705_MAIN GAS\DKG3705_MAIN GAS.dxf
 -------------
-(°¡°ø)\DKHB5D1_SPOOL.DWG
+IN GAS\DKG3705_MAIN GAS.dxf
+-------------
+
 -------------
 ed Access Violation Reading 0x0000 Exception at c480b53h
 
