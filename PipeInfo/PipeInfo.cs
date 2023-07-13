@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using Autodesk.Internal.Windows;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
@@ -336,7 +337,6 @@ namespace PipeInfo
             //스풀 경계부분의 정보를 가져와 도면상에 보여준다.
             try
             {
-
                 if (db_path != "")
                 {
                     Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -861,8 +861,27 @@ namespace PipeInfo
             TypedValue[] acTypValAr = new TypedValue[1];
             acTypValAr.SetValue(new TypedValue((int)DxfCode.Start, "TEXT"), 0);
             SelectionFilter acSelFtr = new SelectionFilter(acTypValAr);
-            //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
-            PromptSelectionResult res = ed.SelectAll(acSelFtr);
+
+            int[] valve_Size = { 131 , 100 , 80 , 70 , 65}; //1" , 3/4", 1/2", 3/8", 1/4"
+            try
+            {
+                if (db_path != "")
+                {
+                    var ddworks_Database = new DDWorks_Database(db_path);
+                    List<Point3d> valve_Positions = ddworks_Database.Get_PipeMidPoint_By_ValvePositions();
+                    ed.WriteMessage(valve_Positions[0].X.ToString(), valve_Positions[0].Y.ToString(), valve_Positions[0].Z.ToString());
+                }
+                else
+                {
+                    ed.WriteMessage("DBFile을 확인해주세요.");
+                }
+            }
+            catch(Autodesk.AutoCAD.Runtime.Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+                    //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
+                    PromptSelectionResult res = ed.SelectAll(acSelFtr);
             if (res.Status == PromptStatus.OK)
             {
                 SelectionSet ss = res.Value;
@@ -1340,8 +1359,9 @@ namespace PipeInfo
         static Document db_doc;
         private string drawingName = "";
         private Database db_acDB;
-        private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재
-        private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프
+        private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
+        private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
+        private string valveType = "valve"; //valve타입.
         public DDWorks_Database(string acDB_path)
         {
             db_ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -2042,7 +2062,72 @@ namespace PipeInfo
             }
             return vec_li;
         }
-
+        //Valve위치.
+        public List<Point3d> Get_Valve_Position_By_DDWDB()
+        {
+            List<Point3d> valve_Positions = new List<Point3d>();
+            string connstr = "Data Source=" + db_path;
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                conn.Open();
+                string sql = String.Format("SELECT " +
+                "POC_TEMPLATE_NM,PI.POSX,PI.POSY,PI.POSZ "+ 
+                "FROM "+
+                    "TB_POCTEMPLATES as PT "+
+                "INNER JOIN "+
+                    "TB_POCINSTANCES as PI "+
+                "on "+
+                    "PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID "+
+                "AND "+
+                    "OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%'", ownerType_Component,valveType);
+                SQLiteCommand comm = new SQLiteCommand(sql,conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                while (rdr.Read())
+                {
+                    valve_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"],(double)rdr["POSZ"]));
+                    db_ed.WriteMessage(rdr["POSX"].ToString());
+                }
+                rdr.Close();
+                conn.Dispose();
+            }
+            return valve_Positions;
+        }
+        //Valve INSTANCE_ID에 연결된 파이프의 중심점.
+        public List<Point3d> Get_PipeMidPoint_By_ValvePositions()
+        {
+            List<Point3d> pipeMidPoints = new List<Point3d>();
+            List<Point3d> pipePoints = new List<Point3d>();
+            string connstr = "Data Source=" + db_path;
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                conn.Open();
+                string sql = String.Format(
+                    "SELECT POSX,POSY,POSZ FROM TB_POCINSTANCES " +
+                    "WHERE OWNER_INSTANCE_ID = ("+
+                    "SELECT OWNER_INSTANCE_ID "+
+                    "FROM TB_POCTEMPLATES as PT "+
+                    "INNER JOIN TB_POCINSTANCES as PI "+
+                    "on PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID "+
+                    "AND OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%');", ownerType_Component, valveType);
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                while (rdr.Read())
+                {
+                    pipePoints.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
+                    db_ed.WriteMessage(rdr["POSX"].ToString());
+                }
+                if (pipePoints.Count % 2 == 0)
+                {
+                    for(int i = 0; i < pipePoints.Count; i += 2)
+                    {
+                        pipeMidPoints.Add(new Point3d((pipePoints[i].X + pipePoints[i + 2].X)/2, (pipePoints[i].Y + pipePoints[i + 2].Y) / 2, (pipePoints[i].Z + pipePoints[i + 2].Z) / 2));
+                    }
+                }
+                rdr.Close();
+                conn.Dispose();
+            }
+            return pipeMidPoints;
+        }
         // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
         // 빈공간.. 찾기.. RAYTRAY.. 
         // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
