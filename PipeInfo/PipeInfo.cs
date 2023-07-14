@@ -853,7 +853,7 @@ namespace PipeInfo
         }
 
         [CommandMethod("vv")]
-        public void select_3dpolyline_intersection()
+        public void edit_PipeLength_ConnOfValve()
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
@@ -869,7 +869,11 @@ namespace PipeInfo
                 {
                     var ddworks_Database = new DDWorks_Database(db_path);
                     List<Point3d> valve_Positions = ddworks_Database.Get_PipeMidPoint_By_ValvePositions();
-                    ed.WriteMessage(valve_Positions[0].X.ToString(), valve_Positions[0].Y.ToString(), valve_Positions[0].Z.ToString());
+                    foreach (var valve in valve_Positions)
+                    {
+                        ed.WriteMessage(valve_Positions.Count.ToString());
+                        ed.WriteMessage("{0},{1},{2}", valve.X.ToString(), valve.Y.ToString(), valve.Z.ToString());
+                    }
                 }
                 else
                 {
@@ -2114,13 +2118,12 @@ namespace PipeInfo
                 while (rdr.Read())
                 {
                     pipePoints.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
-                    db_ed.WriteMessage(rdr["POSX"].ToString());
                 }
                 if (pipePoints.Count % 2 == 0)
                 {
                     for(int i = 0; i < pipePoints.Count; i += 2)
                     {
-                        pipeMidPoints.Add(new Point3d((pipePoints[i].X + pipePoints[i + 2].X)/2, (pipePoints[i].Y + pipePoints[i + 2].Y) / 2, (pipePoints[i].Z + pipePoints[i + 2].Z) / 2));
+                        pipeMidPoints.Add(new Point3d((pipePoints[i].X + pipePoints[i + 1].X)/2, (pipePoints[i].Y + pipePoints[i + 1].Y) / 2, (pipePoints[i].Z + pipePoints[i +1].Z) / 2));
                     }
                 }
                 rdr.Close();
