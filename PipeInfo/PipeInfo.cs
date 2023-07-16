@@ -583,6 +583,8 @@ namespace PipeInfo
                                     text.SetDatabaseDefaults();
                                     //text.TextString = near_Points[k].Item1.ToString();
                                     //text.Position = near_Points[k].Item2;
+
+                                    //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
                                     text.TextString = spoolInfo_li[k].ToString();
                                     text.Normal = Vector3d.YAxis;
                                     //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
@@ -853,11 +855,12 @@ namespace PipeInfo
       [CommandMethod("vv")]
       public void edit_PipeLength_ConnOfValve()
       {
+        // Application.DocumentManager.MdiActiveDocument.SendStringToExecute("Zoom " + "All ", true, false, true);
          Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
          Document acDoc = Application.DocumentManager.MdiActiveDocument;
          Database db = acDoc.Database;
          int[] valve_Size = { 131, 100, 80, 70, 65 }; //1" , 3/4", 1/2", 3/8", 1/4"
-         
+         ed.WriteMessage("Valve 크기 지정(기본값)\n1인치:131mm\n3/4인치:100mm\n1/2인치:80mm\n3/8인치:70mm\n1/4인치:65mm");
          try
          {
             if (db_path != "")
@@ -876,7 +879,6 @@ namespace PipeInfo
                acTypText.SetValue(new TypedValue((int)DxfCode.Start, "Text"), 0);
                SelectionFilter acSelFtrPoly = new SelectionFilter(acTypValPoly);
                SelectionFilter acSelFtrText = new SelectionFilter(acTypText);
-
                /*알고리즘 순서
                 Data 준비 : valve위치, valve이름 -> 관련함수 Get_Valve_Position_By_DDWDB()
                 1. valve위치에서 ClossingSelection으로 Poly라인을 선택(CAD)
@@ -886,8 +888,9 @@ namespace PipeInfo
                 5. Text발견시에는 DB에서 찾아온 valve이름에서 사이즈를 찾아 사이즈에 맞는 Vavle값을 Text에서 뺀다.*/
                foreach (var (valve_pos,i) in valve_Positions.Select((value,i) => (value,i)))
                {
-                  // valve주위를 []모양으로 선택.
-                  PromptSelectionResult pre = ed.SelectCrossingWindow(new Point3d(valve_pos.X - 2, valve_pos.Y - 2, valve_pos.Z - 2), new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
+                  // valve주위를 []모양으로 선택. 선택하기전 Zoom All 필수.
+                  PromptSelectionResult pre = ed.SelectCrossingWindow(new Point3d(valve_pos.X - 2, valve_pos.Y - 2, valve_pos.Z - 2), 
+                     new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
                   // 1. Valve와 연결된 Poly라인에 중간좌표에 해당하는 Text를 찾는다.
                   if (pre.Status == PromptStatus.OK)
                   {///////////////////////////////////// 
@@ -904,7 +907,9 @@ namespace PipeInfo
                            Polyline3d pipe_PolyLine = acTrans.GetObject(id, OpenMode.ForRead) as Polyline3d;
                            if (pipe_PolyLine != null)
                            {
-                              Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2, (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2, (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
+                              Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2, 
+                                 (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2, 
+                                 (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
                               // ValvePostion과 Text위치를 검색한다.
                               PromptSelectionResult resText = ed.SelectAll(acSelFtrText);
                               if (resText.Status == PromptStatus.OK)
@@ -915,31 +920,29 @@ namespace PipeInfo
                                  {
                                     text = acTrans.GetObject(idText, OpenMode.ForWrite) as DBText;
                                     var dd = Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X));
-                                    
-                                    if (Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X)) < 1 && Math.Abs(text.AlignmentPoint.Y - Math.Truncate(pipe_Position.Y)) < 1 && Math.Abs(text.AlignmentPoint.Z - Math.Truncate(pipe_Position.Z)) < 1)
+                                    if (Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X)) < 1 && 
+                                       Math.Abs(text.AlignmentPoint.Y - Math.Truncate(pipe_Position.Y)) < 1 && 
+                                       Math.Abs(text.AlignmentPoint.Z - Math.Truncate(pipe_Position.Z)) < 1)
                                     {
                                        if (valve_Name[i].Contains("25A"))
                                        {
-                                          ed.WriteMessage(text.TextString + "\n");
-                                          int val = Convert.ToInt32(text.TextString) - valve_Size[0];
+                                          //131, 100, 80, 70, 65
+                                          int val = Convert.ToInt32(text.TextString) - (valve_Size[0] / 2);
                                           text.TextString = val.ToString();
                                        }
                                        else if (valve_Name[i].Contains("19A"))
                                        {
-                                          ed.WriteMessage(text.TextString + "\n");
-                                          int val = Convert.ToInt32(text.TextString) - valve_Size[1];
+                                          int val = Convert.ToInt32(text.TextString) - (valve_Size[1] / 2);
                                           text.TextString = val.ToString();
                                        }
                                        else if (valve_Name[i].Contains("13A"))
                                        {
-                                          ed.WriteMessage(text.TextString + "\n");
-                                          int val = Convert.ToInt32(text.TextString) - valve_Size[2];
+                                          int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
                                           text.TextString = val.ToString();
                                        }
                                        else if (valve_Name[i].Contains("10A"))
                                        {
-                                          ed.WriteMessage(text.TextString + "\n");
-                                          int val = Convert.ToInt32(text.TextString) - valve_Size[2];
+                                          int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
                                           text.TextString = val.ToString();
                                        }
                                     }
@@ -2129,7 +2132,7 @@ namespace PipeInfo
          using (SQLiteConnection conn = new SQLiteConnection(connstr))
          {
             conn.Open();
-            string sql = String.Format("SELECT " +
+            string sql = String.Format("SELECT distinct " + //중복된 결과값 제거(Valve한개당 POC2개이기 때문에) 
             "DISPLAY_NM,PI.POSX,PI.POSY,PI.POSZ " +
             "FROM " +
                 "TB_POCTEMPLATES as PT " +
