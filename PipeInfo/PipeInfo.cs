@@ -16,6 +16,13 @@ namespace PipeInfo
 {
    public class PipeInfo
    {
+      //여기에 CLASS 맴버를 현재 ISO방향, 
+      //Valve 연결된 파이프 줄이기 기능
+      //db정보
+      //등 중복되는 정보들을 하나로 통합하기. 
+      //나중에는 Handle과 Spool정보와 길이를 맵핑한다. 
+      //추가할 기능은 같은 레벨에 있는 텍스트를 선택하기 정도.. 
+
       public string db_path = "";
       [CommandMethod("ff")]
       public void selectFence()
@@ -113,9 +120,13 @@ namespace PipeInfo
          db_path = data;
       }
 
+      /* 함수 이름 : selectBlock_ExportToInnerInformation
+       * 기능 설명 : SPOOL도곽 선택, BL도곽 선택, 도곽내 글씨정보 모두 추출. Excel Export기능 등.
+       * 명 령 어 : BB
+       */
       //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.
       [CommandMethod("bb")]
-      public void selectBlock()
+      public void selectBlock_ExportToInnerInformation()
       {
          try
          {
@@ -329,6 +340,10 @@ namespace PipeInfo
          }
       }
 
+      /* 함수 이름 : select_Welding_Point
+       * 기능 설명 : 현재 View방향, Pipe Vector, PipeGroup Vector, DrawText, TextDirection, TextAliments(등간격 배치)
+       * 명 령 어 : ss
+       */
       [CommandMethod("ss")]
       public void select_Welding_Point()
       {
@@ -852,6 +867,11 @@ namespace PipeInfo
 
       }
 
+      /* 함수 이름 : edit_PipeLength_ConnOfValve
+       * 기능 설명 : DB(Valve위치, 이름) CAD(연결된 파이프 객체의 중심점, 중심점과 동일한 Text위치, Text값 조정(길이))
+       * 명 령 어 : vv
+       * 비 고 : 추후 DB에서 정확한 길이를 반환하는 기능개발필요.
+       */
       [CommandMethod("vv")]
       public void edit_PipeLength_ConnOfValve()
       {
@@ -974,8 +994,6 @@ namespace PipeInfo
         
       }
    }
-
-
    /* --------------- [CLASS START]-------------------*/
    /* 클래스 이름 : Pipe
     * 기능 설명 : Pipe에 관련된 기능.*/
