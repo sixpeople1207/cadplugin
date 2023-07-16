@@ -59,8 +59,8 @@ C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.DB_Path_Wi
 C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.GenerateResource.cache
 C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
 C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
-C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_108.dll.config
-C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_108.dll
-C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_108.pdb
-C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_108.dll
-C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_108.pdb
+C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_117.dll.config
+C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_117.dll
+C:\Users\82103\Source\Repos\cadplugin\PipeInfo\bin\x64\Debug\PipeInfo_117.pdb
+C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_117.dll
+C:\Users\82103\Source\Repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo_117.pdb

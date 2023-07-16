@@ -3,13 +3,11 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
-using Autodesk.Internal.Windows;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
-using System.Security;
 using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -858,29 +856,41 @@ namespace PipeInfo
          Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
          Document acDoc = Application.DocumentManager.MdiActiveDocument;
          Database db = acDoc.Database;
-         TypedValue[] acTypValTex = new TypedValue[1];
-         acTypValTex.SetValue(new TypedValue((int)DxfCode.Start, "TEXT"), 0);
-         SelectionFilter acSelFtrTex = new SelectionFilter(acTypValTex);
-
          int[] valve_Size = { 131, 100, 80, 70, 65 }; //1" , 3/4", 1/2", 3/8", 1/4"
+         
          try
          {
             if (db_path != "")
             {
+               //DDWorksDabase 클래스 생성
                var ddworks_Database = new DDWorks_Database(db_path);
+               //DDWorksDabase 클래스에서 저장할 valve 위치들
                List<Point3d> valve_Positions = new List<Point3d>();
+               //DDWorksDabase 클래스에서 저장할 valve 이름들
                List<string> valve_Name = new List<string>();
                (valve_Positions, valve_Name) = ddworks_Database.Get_Valve_Position_By_DDWDB();
+               //도면상에서 Polyline과 Text정보들을 가져올 TypeValue객체와 SelectionFilter를 생성해 선택할 필터 준비.
                TypedValue[] acTypValPoly = new TypedValue[1];
-               SelectionFilter acSelFtrPoly = new SelectionFilter(acTypValPoly);
+               TypedValue[] acTypText = new TypedValue[1];
                acTypValPoly.SetValue(new TypedValue((int)DxfCode.Start, "Polyline"), 0);
-               foreach (var valve_pos in valve_Positions)
-               {
-                  //ed.WriteMessage("{0},{1},{2}\n", pipe.X.ToString(), pipe.Y.ToString(), pipe.Z.ToString());
-                  PromptSelectionResult pre = ed.SelectCrossingWindow(new Point3d(valve_pos.X - 2, valve_pos.Y - 2, valve_pos.Z - 2), new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
+               acTypText.SetValue(new TypedValue((int)DxfCode.Start, "Text"), 0);
+               SelectionFilter acSelFtrPoly = new SelectionFilter(acTypValPoly);
+               SelectionFilter acSelFtrText = new SelectionFilter(acTypText);
 
+               /*알고리즘 순서
+                Data 준비 : valve위치, valve이름 -> 관련함수 Get_Valve_Position_By_DDWDB()
+                1. valve위치에서 ClossingSelection으로 Poly라인을 선택(CAD)
+                2. objectId를 검색해서 파이프의 좌표를 저장한다.
+                3. 파이프의 시작점과 끝점을 통해 중간좌표를 얻는다.
+                4. 중간좌표에 해당하는 TEXT가 있는지 CAD상에서 검색한다. 
+                5. Text발견시에는 DB에서 찾아온 valve이름에서 사이즈를 찾아 사이즈에 맞는 Vavle값을 Text에서 뺀다.*/
+               foreach (var (valve_pos,i) in valve_Positions.Select((value,i) => (value,i)))
+               {
+                  // valve주위를 []모양으로 선택.
+                  PromptSelectionResult pre = ed.SelectCrossingWindow(new Point3d(valve_pos.X - 2, valve_pos.Y - 2, valve_pos.Z - 2), new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
+                  // 1. Valve와 연결된 Poly라인에 중간좌표에 해당하는 Text를 찾는다.
                   if (pre.Status == PromptStatus.OK)
-                  {
+                  {///////////////////////////////////// 
                      SelectionSet ss = pre.Value;
                      ObjectId[] pipe_ids = ss.GetObjectIds();
                      //-------------------추가----------------------------------
@@ -895,13 +905,44 @@ namespace PipeInfo
                            if (pipe_PolyLine != null)
                            {
                               Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2, (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2, (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
-                              if (Math.Abs(text.AlignmentPoint.X - pipe_Position.X) < 1 && Math.Abs(text.AlignmentPoint.Y - pipe_Position.Y) < 1 && Math.Abs(text.AlignmentPoint.Z - pipe_Position.Z) < 1)
+                              // ValvePostion과 Text위치를 검색한다.
+                              PromptSelectionResult resText = ed.SelectAll(acSelFtrText);
+                              if (resText.Status == PromptStatus.OK)
                               {
-                                 if (valve_Name.Contains("2B"))
+                                 SelectionSet ssText = resText.Value;
+                                 ObjectId[] idsText = ssText.GetObjectIds();
+                                 foreach (var idText in idsText)
                                  {
-                                    ed.WriteMessage(text.TextString + "\n");
-                                    int val = Convert.ToInt32(text.TextString) - valve_Size[0];
-                                    text.TextString = val.ToString();
+                                    text = acTrans.GetObject(idText, OpenMode.ForWrite) as DBText;
+                                    var dd = Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X));
+                                    
+                                    if (Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X)) < 1 && Math.Abs(text.AlignmentPoint.Y - Math.Truncate(pipe_Position.Y)) < 1 && Math.Abs(text.AlignmentPoint.Z - Math.Truncate(pipe_Position.Z)) < 1)
+                                    {
+                                       if (valve_Name[i].Contains("25A"))
+                                       {
+                                          ed.WriteMessage(text.TextString + "\n");
+                                          int val = Convert.ToInt32(text.TextString) - valve_Size[0];
+                                          text.TextString = val.ToString();
+                                       }
+                                       else if (valve_Name[i].Contains("19A"))
+                                       {
+                                          ed.WriteMessage(text.TextString + "\n");
+                                          int val = Convert.ToInt32(text.TextString) - valve_Size[1];
+                                          text.TextString = val.ToString();
+                                       }
+                                       else if (valve_Name[i].Contains("13A"))
+                                       {
+                                          ed.WriteMessage(text.TextString + "\n");
+                                          int val = Convert.ToInt32(text.TextString) - valve_Size[2];
+                                          text.TextString = val.ToString();
+                                       }
+                                       else if (valve_Name[i].Contains("10A"))
+                                       {
+                                          ed.WriteMessage(text.TextString + "\n");
+                                          int val = Convert.ToInt32(text.TextString) - valve_Size[2];
+                                          text.TextString = val.ToString();
+                                       }
+                                    }
                                  }
                               }
                            }
@@ -927,36 +968,7 @@ namespace PipeInfo
             MessageBox.Show(ex.ToString());
          }
          //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
-         PromptSelectionResult res = ed.SelectAll(acSelFtrTex);
-         if (res.Status == PromptStatus.OK)
-         {
-            SelectionSet ss = res.Value;
-            ObjectId[] ids = ss.GetObjectIds();
-            using (Transaction acTrans = db.TransactionManager.StartTransaction())
-            {
-               DBText text = new DBText();
-               BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-               BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-               foreach (var id in ids)
-               {
-                  text = acTrans.GetObject(id, OpenMode.ForWrite) as DBText;
-                  //cad에서는 미세한 치수가 다르기때문에 정수로 좌표가 같은 객체들을 찾는다.
-                  //ed.WriteMessage(Math.Truncate(text.Position.X - 49207.0).ToString());
-                  //text.postion과 alignmentpoint가 미세하게 다르다. 정확환 좌표는 AlignmentPoint
-                  if (Math.Abs(text.AlignmentPoint.X - 49207.0) < 1 && Math.Abs(text.AlignmentPoint.Y - 44437.0) < 1 && Math.Abs(text.AlignmentPoint.Z - 26435.0) < 1)
-                  {
-                     ed.WriteMessage(text.TextString + "\n");
-                     int val = Convert.ToInt32(text.TextString) - 32;
-                     text.TextString = val.ToString();
-                  }
-               }
-               acTrans.Commit();
-               //acBlkRec.AppendEntity(text);
-               //acTrans.AddNewlyCreatedDBObject(text, true);
-               //acTrans.Commit();
-            }
-
-         }
+        
       }
    }
 
@@ -2118,13 +2130,13 @@ namespace PipeInfo
          {
             conn.Open();
             string sql = String.Format("SELECT " +
-            "POC_TEMPLATE_NM,PI.POSX,PI.POSY,PI.POSZ " +
+            "DISPLAY_NM,PI.POSX,PI.POSY,PI.POSZ " +
             "FROM " +
                 "TB_POCTEMPLATES as PT " +
             "INNER JOIN " +
-                "TB_POCINSTANCES as PI " +
+                "TB_POCINSTANCES as PI , TB_MODELTEMPLATES as MT " +
             "on " +
-                "PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID " +
+                "PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID AND PT.MODEL_TEMPLATE_ID = MT.MODEL_TEMPLATE_ID " +
             "AND " +
                 "OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%'", ownerType_Component, valveType);
             SQLiteCommand comm = new SQLiteCommand(sql, conn);
@@ -2132,7 +2144,7 @@ namespace PipeInfo
             while (rdr.Read())
             {
                valve_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
-               valve_Name.Add(rdr["POC_TEMPLATE_NM"].ToString());
+               valve_Name.Add(rdr["DISPLAY_NM"].ToString());
             }
             rdr.Close();
             conn.Dispose();
