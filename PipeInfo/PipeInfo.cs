@@ -182,12 +182,12 @@ namespace PipeInfo
                         }
                         List<Point3d> cirPosLi = new List<Point3d>();
                         TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
-                        List<DBText> textLi = new List<DBText>();
+                        List<DBText> textAllLi = new List<DBText>();
                         SelectionFilter selFilter = new SelectionFilter(typeValue);
-                        PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
                         ExcelObject excel = new ExcelObject();
                         string excel_savaPath = "D:\\d.xlsx";
                         Compare comparePoint = new Compare();
+                        int[] columns = {1,6,8,2,9,3,4,5,7}; //표제란 정보 넣는 순서. 
                         //excel.excel_InsertData();
                         //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
                         foreach ((var title ,var i) in titleBoardPosLi.Select((value, i) => (value, i)))
@@ -205,11 +205,11 @@ namespace PipeInfo
                                         titleBoard_textLi.Add(te);
                                     }
                                  }
-                                textLi = textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
-                                foreach((var textBoard, var j) in titleBoard_textLi.Select((value,j)=>(value,j)))
+                            titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
+                            foreach ((var textBoard, var j) in titleBoard_textLi.Select((value,j)=>(value,j)))
                                 {
                                     bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
-                                    if (is_inOut) { excel.excel_InsertData(i, j, textBoard.TextString); }
+                                    if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
                                 }
 
                         }                       
@@ -221,6 +221,7 @@ namespace PipeInfo
                         // 5. Sheet Number와 TitleBoardNumber위치가 일치하는지 확인.
                         // 6. 일치하면 용접번호와 TitleBoard정보를 엑셀에 쓴다.
                         // Sheet Number + 용접리스트 + textLi(위치와 글씨정보)를 한 행에 적어준다.
+                        PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
                         if (textAllpsr.Status == PromptStatus.OK)
                         {
                             SelectionSet selAllSet = textAllpsr.Value;
@@ -233,7 +234,7 @@ namespace PipeInfo
                                     DBText te = en as DBText;
                                     if (te.Layer.ToString().Contains("Infomation_Welding_Number"))
                                     {
-                                        textLi.Add(te);
+                                        textAllLi.Add(te);
                                     }
                                 }
                                 else if (en.GetType().Name.ToString() == "Circle")
@@ -246,15 +247,17 @@ namespace PipeInfo
                                 }
                             }
 
+                            List<DBText> weld_Numbers_li = new List<DBText>();
+                            int index = 0;
                             // Circle위치에 해당하는 Text객체만 가져온다. 용접포인트에 해당하는 용접번호.
                             foreach (var cir in cirPosLi)
                             {
-                                foreach (var te in textLi)
+                                foreach (var te in textAllLi)
                                 {
                                     double deltaDis = cir.DistanceTo(te.Position);
                                     if (deltaDis < 3)
                                     {
-                                      //  ed.WriteMessage(te.TextString + "\n");
+                                        weld_Numbers_li.Add(te);
                                     }
                                 }
                             }
@@ -262,11 +265,12 @@ namespace PipeInfo
                             //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
                             foreach ((var sheet,var i) in sheetPosLi.Select((value, i) => (value, i)))
                             {
-                                foreach((var te,var j) in textLi.Select((value, j) => (value,j)))
+                                foreach((var te,var j) in weld_Numbers_li.Select((value, j) => (value,j)))
                                 {
                                     bool is_inOut = comparePoint.isInside_boundary(te.Position, sheet.MinPoint, sheet.MaxPoint);
-                                    if (is_inOut) { excel.excel_InsertData(i, 10 + j, te.TextString); }
+                                    if (is_inOut) { excel.excel_InsertData(i, 10 + index, te.TextString); index++;}
                                 }
+                                index = 0;
                             }
                             excel.excel_save(excel_savaPath);
                         }
@@ -980,7 +984,7 @@ namespace PipeInfo
         public ExcelObject()
         {
             List<string> header = new List<string>()
-            { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","용접번호(최소~최대)","배관사","모델러","제도사" };
+            { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사" };
     
                 excelApp = new Excel.Application();
                 excelApp.Visible = false;
@@ -997,7 +1001,7 @@ namespace PipeInfo
         public void excel_InsertData(int row, int column, string data)
         {
             //2번째 줄부터 작성시작
-            ws.Cells[row + 2, column+1] = data;
+            ws.Cells[row + 2, column] = data;
         }
         public void excel_save(string path)
         {
@@ -1037,13 +1041,6 @@ namespace PipeInfo
             {
                 GC.Collect();
             }
-        }
-        public int regexMatch(string text)
-        {
-            int column_num = 0;
-            string pattern = @"";
-            string result = Regex.Match(text, pattern).Value;
-            return column_num;
         }
     }
     /* 클래스 이름 : Points
