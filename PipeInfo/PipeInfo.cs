@@ -1,5 +1,7 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.ApplicationServices.Core;
 using Autodesk.AutoCAD.DatabaseServices;
+using Autodesk.AutoCAD.DatabaseServices.Filters;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
@@ -13,6 +15,8 @@ using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
+using System.Text.RegularExpressions;
+using System.Security.Policy;
 
 namespace PipeInfo
 {
@@ -177,41 +181,38 @@ namespace PipeInfo
                             }
                         }
                         List<Point3d> cirPosLi = new List<Point3d>();
-                        List<DBText> textLi = new List<DBText>();
                         TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
+                        List<DBText> textLi = new List<DBText>();
                         SelectionFilter selFilter = new SelectionFilter(typeValue);
                         PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
                         ExcelObject excel = new ExcelObject();
-
+                        string excel_savaPath = "D:\\d.xlsx";
+                        Compare comparePoint = new Compare();
                         //excel.excel_InsertData();
                         //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
-                        foreach (var title in titleBoardPosLi.Select((value, i) => (value, i)))
+                        foreach ((var title ,var i) in titleBoardPosLi.Select((value, i) => (value, i)))
                         {
-                            ed.WriteMessage("도곽{0}\n", title.i);
-                            for (int j = 1; j < typeValeStrings.Length; j++) //"CIRCLE" 과 "TEXT"를 한번씩 반복.
-                            {
-
-                                PromptSelectionResult selWin = ed.SelectCrossingWindow(title.value.MinPoint, title.value.MaxPoint, selFilter, false);
-                                if (selWin.Status == PromptStatus.OK)
+                                List<DBText> titleBoard_textLi = new List<DBText>();
+                                PromptSelectionResult selWin = ed.SelectCrossingWindow(title.MinPoint, title.MaxPoint, selFilter, false);
+                            if (selWin.Status == PromptStatus.OK)
                                 {
                                     SelectionSet selSetWin = selWin.Value;
                                     ObjectId[] sheetInSelObIds = selSetWin.GetObjectIds();
                                     ed.SetImpliedSelection(sheetInSelObIds);
-
                                     foreach (ObjectId sId in sheetInSelObIds)
                                     {
                                         DBText te = acTrans.GetObject(sId, OpenMode.ForRead) as DBText;
-                                        textLi.Add(te); //<- 엑셀에 쓰기기능 들어가야함.
+                                        titleBoard_textLi.Add(te);
                                     }
+                                 }
+                                textLi = textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
+                                foreach((var textBoard, var j) in titleBoard_textLi.Select((value,j)=>(value,j)))
+                                {
+                                    bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
+                                    if (is_inOut) { excel.excel_InsertData(i, j, textBoard.TextString); }
                                 }
-                            }
-                        }
-                        textLi = textLi.OrderBy(p => p.Position.Y).ToList();
-                        foreach (var te in textLi)
-                        {
-                            ed.WriteMessage(te.TextString.ToString() + "\n");
-                        }
 
+                        }                       
                         // 기능 이름 : 시트 구역별 용접 번호 가져오기
                         // 구현 순서 : 
                         // 1. select all
@@ -253,14 +254,21 @@ namespace PipeInfo
                                     double deltaDis = cir.DistanceTo(te.Position);
                                     if (deltaDis < 3)
                                     {
-                                        ed.WriteMessage(te.TextString + "\n");
+                                      //  ed.WriteMessage(te.TextString + "\n");
                                     }
                                 }
                             }
+                            List<string> textLiStr = new List<string>();
                             //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
-                            foreach (var sheet in sheetPosLi.Select((value, i) => (value, i)))
+                            foreach ((var sheet,var i) in sheetPosLi.Select((value, i) => (value, i)))
                             {
+                                foreach((var te,var j) in textLi.Select((value, j) => (value,j)))
+                                {
+                                    bool is_inOut = comparePoint.isInside_boundary(te.Position, sheet.MinPoint, sheet.MaxPoint);
+                                    if (is_inOut) { excel.excel_InsertData(i, 10 + j, te.TextString); }
+                                }
                             }
+                            excel.excel_save(excel_savaPath);
                         }
                     }
                     acTrans.Commit();
@@ -270,8 +278,7 @@ namespace PipeInfo
             catch (System.Exception ex)
             {
                 Application.DocumentManager.MdiActiveDocument.
-
-                    Editor.WriteMessage(ex.Message);
+                Editor.WriteMessage(ex.Message);
             }
         }
 
@@ -370,7 +377,6 @@ namespace PipeInfo
                 acTrans.Commit();
             }
         }
-
         /* 함수 이름 : select_Welding_Point
          * 기능 설명 : 현재 View방향, Pipe Vector, PipeGroup Vector, DrawText, TextDirection, TextAliments(등간격 배치)
          * 명 령 어 : ss
@@ -742,7 +748,6 @@ namespace PipeInfo
                 MessageBox.Show(ex.ToString());
             }
         }
-
         /* 함수 이름 : edit_PipeLength_ConnOfValve
          * 기능 설명 : DB(Valve위치, 이름) CAD(연결된 파이프 객체의 중심점, 중심점과 동일한 Text위치, Text값 조정(길이))
          * 명 령 어 : vv
@@ -969,34 +974,42 @@ namespace PipeInfo
 
     public class ExcelObject
     {
+        Excel.Application excelApp = null;
+        Excel.Workbook wb = null;
+        Excel.Worksheet ws = null;
         public ExcelObject()
         {
-        }
-        public void excel_InsertData()
-        {
-            List<string> testData = new List<string>()
+            List<string> header = new List<string>()
             { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","용접번호(최소~최대)","배관사","모델러","제도사" };
-
-            Excel.Application excelApp = null;
-            Excel.Workbook wb = null;
-            Excel.Worksheet ws = null;
-            try
-            {
+    
                 excelApp = new Excel.Application();
                 excelApp.Visible = false;
                 wb = excelApp.Workbooks.Add();
                 ws = wb.Worksheets.get_Item(1) as Excel.Worksheet;
                 // 데이타 넣기
                 int r = 1;
-                foreach (var d in testData)
+                foreach (var h in header)
                 {
-                    ws.Cells[1, r] = d;
+                    ws.Cells[1, r] = h;
                     r++;
                 }
+        }
+        public void excel_InsertData(int row, int column, string data)
+        {
+            //2번째 줄부터 작성시작
+            ws.Cells[row + 2, column+1] = data;
+        }
+        public void excel_save(string path)
+        {
+            try
+            {
+            if (wb != null)
+            {
                 // 엑셀파일 저장
-                wb.SaveAs("C:\\test.xlsx");
+                wb.SaveAs(path);
                 wb.Close(true);
                 excelApp.Quit();
+            }
             }
             finally
             { // Clean up
@@ -1025,6 +1038,13 @@ namespace PipeInfo
                 GC.Collect();
             }
         }
+        public int regexMatch(string text)
+        {
+            int column_num = 0;
+            string pattern = @"";
+            string result = Regex.Match(text, pattern).Value;
+            return column_num;
+        }
     }
     /* 클래스 이름 : Points
     * 기능 설명 : Points 에 관련된 기능.*/
@@ -1035,7 +1055,18 @@ namespace PipeInfo
         // 3. 포인트들의 최소 최대값 위치를 리스트로 반환.(포인트의 Area를 판단)
         // 4. 포인트의 그룹 단일화 (그룹과 그룹의 거리가 최소거리 이하면 한 그룹으로 합침).
     }
-
+    public class Compare
+    {
+        public bool isInside_boundary(Point3d points,Point3d min, Point3d max)
+        {
+            bool isInner = false;
+            if(points.X > min.X && points.Y > min.Y && points.X < max.X && points.Y < max.Y)
+            {
+                isInner = true;
+            }
+            return isInner;
+        }
+    }
     /* 클래스 이름 : Rectangle
     * 기능 설명 : Rectangel 에 관련된 기능.*/
     public class Rectangle
@@ -1044,14 +1075,12 @@ namespace PipeInfo
         //회전하기
         //움직이기.. 등등
     }
-
     public class InteractionControl
     {
         //겹치는 Text선택하기(RayCast기능).
         //빈공간 찾기(Interaction없는 Area) 배관 주변에.
         //선택한 Entity.
     }
-
     /* 클래스 이름 : InteractivePolyLine.
     * 기능 설명 : InteractivePolyLine 에 관련된 기능.*/
     public class InteractivePolyLine
