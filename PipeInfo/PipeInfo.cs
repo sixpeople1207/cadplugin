@@ -6,7 +6,6 @@ using Autodesk.AutoCAD.Runtime;
 using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.ModelConfiguration.Configuration;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
@@ -270,13 +269,10 @@ namespace PipeInfo
                                 }
                             }
                             List<string> textLiStr = new List<string>();
-                        foreach(var sheet in sheetPosLi)
-                        {
-                            
-                        }
-                        
+                        List<Extents3d> sheetPosLiDistinct = sheetPosLi.Distinct().ToList();
+                        ed.WriteMessage(sheetPosLiDistinct.ToString());
                         //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
-                        foreach ((var sheet, var i) in sheetPosLi.Select((value, i) => (value, i)))
+                        foreach ((var sheet, var i) in sheetPosLiDistinct.Select((value, i) => (value, i)))
                             {
                                 ed.WriteMessage(sheet.MinPoint.ToString());
                                 foreach ((var te, var j) in weld_Numbers_li.Select((value, j) => (value, j)))
