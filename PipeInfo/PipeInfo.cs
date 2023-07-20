@@ -3,6 +3,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using AutoCAD;
 using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,7 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
+
 
 namespace PipeInfo
 {
@@ -103,7 +105,7 @@ namespace PipeInfo
                         final_Point.Add(point);
                     }
 
-                    var draw_Text = new TextControl(ed, db);
+                    var draw_Text = new TextControl(ed, db, acDoc);
                     var pipe = new Pipe(ed, db);
                     //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
                     var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
@@ -128,25 +130,43 @@ namespace PipeInfo
          * 기능 설명 : SPOOL도곽 선택, BL도곽 선택, 도곽내 글씨정보 모두 추출. Excel Export기능 등.
          * 명 령 어 : BB
          */
+        public void zoomAll()
+      {
+         AcadApplication app = (AcadApplication)Application.AcadApplication;
+         app.ZoomExtents();
+      }
         //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.
         [CommandMethod("bb")]
         public void selectBlock_ExportToInnerInformation()
         {
             try
             {
+               
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Document acDoc = Application.DocumentManager.MdiActiveDocument;
                 Database db = acDoc.Database;
-                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
-                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
-                    PromptSelectionOptions pso = new PromptSelectionOptions();
-                    List<SelectionFilter> typedValues = new List<SelectionFilter>();
-                    string[] typeValeStrings = { "INSERT", "CIRCLE", "TEXT" };
-                    TypedValue[] typedBlock = { new TypedValue(0, typeValeStrings[0]) };
-                    SelectionFilter selFilBlk = new SelectionFilter(typedBlock);
-
+               //Zoom(new Point3d(db.Limmin.X, db.Limmin.Y, 0),
+               //new Point3d(db.Limmax.X, db.Limmax.Y, 0),
+               //new Point3d(), 1);
+               // db.UpdateExt(true);
+               //Extents3d ext = (short)Application.GetSystemVariable("cvport") == 1 ? new Extents3d(db.Pextmin, db.Pextmax) :
+               //   new Extents3d(db.Extmin, db.Extmax);
+               //ViewTableRecord view = ed.GetCurrentView();
+               //Point2d min = new Point2d(ext.MinPoint.X, ext.MinPoint.Y);
+               //Point2d max = new Point2d(ext.MaxPoint.X, ext.MaxPoint.Y);
+               //view.CenterPoint = min;
+               //view.Height = ext.MinPoint.Y-ext.MaxPoint.Y;
+               //view.Width = ext.MinPoint.X-ext.MaxPoint.Z;
+               //ed.SetCurrentView(view);
+               //ed.WriteMessage(ext.MaxPoint.Y.ToString());
+               zoomAll();
+               PromptResult res = ed.GetString("화면에 도곽정보가 모두 있습니까?(Y or N):");
+               if(res.Status == PromptStatus.OK)
+               {
+                  if (res.StringResult.ToString() == "y" || res.StringResult.ToString() == "Y")
+                  {
                     PromptSelectionResult ss = ed.SelectAll();
                     //DBObjectCollection allObjec = acTrans.GetAllObjects();
 
@@ -160,20 +180,12 @@ namespace PipeInfo
                         List<Extents3d> sheetPosLi = new List<Extents3d>();
                         List<Extents3d> titleBoardPosLi = new List<Extents3d>();
                         List<string> weldNumber = new List<string>();
-                        List<string> titleBoardTexts = new List<string>();
-                        List<ObjectId> objIdAll = new List<ObjectId>();
                         List<Point3d> cirPosLi = new List<Point3d>();
                         TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
                         List<DBText> textAllLi = new List<DBText>();
                         SelectionFilter selFilter = new SelectionFilter(typeValue);
                         ExcelObject excel = new ExcelObject();
-                        List<DBText> titleBoard_textAllLi = new List<DBText>();
-                        string excel_savaPath = "D:\\d.xlsx";
                         Compare comparePoint = new Compare();
-                        Extents3d beforeIndexBound = new Extents3d();
-                        int[] columns = { 8, 6, 1, 2, 9, 3, 4, 5, 7 }; //표제란 정보 넣는 순서. 
-                        // foreach (ObjectId id in oId)ne 
-                        // objIdAll = GetallObjectIds();
                         foreach (var id in oId)
                         {
                             Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
@@ -187,7 +199,6 @@ namespace PipeInfo
                                 }
                                 else if (blk.Name.ToString() == titleBoardName)
                                 {
-                                    ed.WriteMessage(id.ToString());
                                     titleBoardPosLi.Add(en.Bounds.Value);
                                 }
                             }
@@ -209,9 +220,9 @@ namespace PipeInfo
                             }
                          }
 
-                    //excel.excel_InsertData();
-                    //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
-                    foreach ((var title, var i) in titleBoardPosLi.Select((value, i) => (value, i)))
+                  List<DBText> titleBoard_textAllLi = new List<DBText>();
+                  //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
+                  foreach ((var title, var i) in titleBoardPosLi.Select((value, i) => (value, i)))
                     {
                         List<DBText> titleBoard_textLi = new List<DBText>();
                         PromptSelectionResult selWin = ed.SelectCrossingWindow(title.MinPoint, title.MaxPoint, selFilter, false);
@@ -226,13 +237,13 @@ namespace PipeInfo
                                 titleBoard_textAllLi.Add(te);
                             }
                         }
-                        titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
-                        foreach ((var textBoard, var j) in titleBoard_textLi.Select((value, j) => (value, j)))
-                        {
-                            //bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
-                            //if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
-                        }
-                    }
+                        //titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
+                        //foreach ((var textBoard, var j) in titleBoard_textLi.Select((value, j) => (value, j)))
+                        //{
+                        //   //bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
+                        //   //if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
+                        //}
+                     }  
                         // 기능 이름 : 시트 구역별 용접 번호 가져오기
                         // 구현 순서 : 
                         // 1. select all
@@ -240,41 +251,28 @@ namespace PipeInfo
                         // 3. 두 리스트를 비교하여 Circle안에 Text위치가 있는 정보만 다른 리스트에 저장.
                         // 5. Sheet Number와 TitleBoardNumber위치가 일치하는지 확인.
                         // 6. 일치하면 용접번호와 TitleBoard정보를 엑셀에 쓴다.
-                        // Sheet Number + 용접리스트 + textLi(위치와 글씨정보)를 한 행에 적어준다.
-                        //PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
-                        //if (textAllpsr.Status == PromptStatus.OK)
-                        //{
-                            //SelectionSet selAllSet = textAllpsr.Value;
-                            //ObjectId[] allOids = selAllSet.GetObjectIds();
-                            //foreach (var id in allOids)
-                            //{
-                            //    Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
 
-                            //}
-
-                            List<DBText> weld_Numbers_li = new List<DBText>();
-                            int sheet_index = 0;
-                            int board_index = 0;
-                            int[] columns_2 = { 4, 7, 2, 6, 8, 3, 9, 5,1 };
-                            // Circle위치에 해당하는 Text객체만 가져온다. 용접포인트에 해당하는 용접번호.
-                            foreach (var cir in cirPosLi)
-                            {
-                                foreach (var te in textAllLi)
-                                {
-                                    double deltaDis = cir.DistanceTo(te.Position);
-                                    if (deltaDis < 3)
-                                    {
-                                        weld_Numbers_li.Add(te);
-                                    }
-                                }
-                            }
-                            List<string> textLiStr = new List<string>();
-                        List<Extents3d> sheetPosLiDistinct = sheetPosLi.Distinct().ToList();
-                        ed.WriteMessage(sheetPosLiDistinct.ToString());
+                        List<DBText> weld_Numbers_li = new List<DBText>();
+                        int sheet_index = 0;
+                        int board_index = 0;
+                        int[] columns_2 = { 4, 7, 2, 6, 8, 3, 9, 5,1 };
+                        // Circle위치에 해당하는 Text객체만 가져온다. 용접포인트에 해당하는 용접번호.
+                        foreach (var cir in cirPosLi)
+                        {
+                           foreach (var te in textAllLi)
+                           {
+                              double deltaDis = cir.DistanceTo(te.Position);
+                              if (deltaDis < 3)
+                              {
+                                    weld_Numbers_li.Add(te);
+                              }
+                           }
+                        }
+                        List<string> textLiStr = new List<string>();
+                        //List<Extents3d> sheetPosLiDistinct = sheetPosLi.Distinct().ToList();
                         //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
-                        foreach ((var sheet, var i) in sheetPosLiDistinct.Select((value, i) => (value, i)))
+                        foreach ((var sheet, var i) in sheetPosLi.Select((value, i) => (value, i)))
                             {
-                                ed.WriteMessage(sheet.MinPoint.ToString());
                                 foreach ((var te, var j) in weld_Numbers_li.Select((value, j) => (value, j)))
                                 {
                                     bool is_inOut = comparePoint.isInside_boundary(te.Position, sheet.MinPoint, sheet.MaxPoint);
@@ -291,12 +289,14 @@ namespace PipeInfo
                                 }
                                 sheet_index = 0;
                             }
-                            excel.excel_save(excel_savaPath);
+                            excel.excel_save();
                         //}
                     }
                     acTrans.Commit();
                     acTrans.Dispose();
-                }
+                  }
+               }
+            }
             }
             catch (System.Exception ex)
             {
@@ -304,7 +304,128 @@ namespace PipeInfo
                 Editor.WriteMessage(ex.Message);
             }
         }
-        static Dictionary<ObjectId, string> GetAllObjects(Database db)
+      static void Zoom(Point3d pMin, Point3d pMax, Point3d pCenter, double dFactor)
+      {
+         // Get the current document and database
+         Document acDoc = Application.DocumentManager.MdiActiveDocument;
+         Database acCurDb = acDoc.Database;
+         int nCurVport = System.Convert.ToInt32(Application.GetSystemVariable("CVPORT"));
+         // Get the extents of the current space no points
+         // or only a center point is provided
+         // Check to see if Model space is current
+         if (acCurDb.TileMode == true)
+         {
+            if (pMin.Equals(new Point3d()) == true &&
+           pMax.Equals(new Point3d()) == true)
+            {
+               pMin = acCurDb.Extmin;
+               pMax = acCurDb.Extmax;
+            }
+         }
+         else
+         {
+            // Check to see if Paper space is current
+            if (nCurVport == 1)
+            {
+               // Get the extents of Paper space
+               if (pMin.Equals(new Point3d()) == true &&
+               pMax.Equals(new Point3d()) == true)
+               {
+                  pMin = acCurDb.Pextmin;
+                  pMax = acCurDb.Pextmax;
+               }
+            }
+            else
+            {
+               // Get the extents of Model space
+               if (pMin.Equals(new Point3d()) == true &&
+               pMax.Equals(new Point3d()) == true)
+               {
+                  pMin = acCurDb.Extmin;
+                  pMax = acCurDb.Extmax;
+               }
+            }
+         }
+         // Start a transaction
+         using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
+         {
+            // Get the current view
+            using (ViewTableRecord acView = acDoc.Editor.GetCurrentView())
+            {
+               Extents3d eExtents;
+               // Translate WCS coordinates to DCS
+               Matrix3d matWCS2DCS;
+               matWCS2DCS = Matrix3d.PlaneToWorld(acView.ViewDirection);
+               matWCS2DCS = Matrix3d.Displacement(acView.Target - Point3d.Origin) *
+               matWCS2DCS;
+               matWCS2DCS = Matrix3d.Rotation(-acView.ViewTwist,
+               acView.ViewDirection,
+               acView.Target) * matWCS2DCS;
+               // If a center point is specified, define the min and max
+               // point of the extents
+               // for Center and Scale modes
+               if (pCenter.DistanceTo(Point3d.Origin) != 0)
+               {
+                  pMin = new Point3d(pCenter.X - (acView.Width / 2),
+                  pCenter.Y - (acView.Height / 2), 0);
+                  pMax = new Point3d((acView.Width / 2) + pCenter.X,
+                  (acView.Height / 2) + pCenter.Y, 0);
+               }
+               // Create an extents object using a line
+               using (Line acLine = new Line(pMin, pMax))
+               {
+                  eExtents = new Extents3d(acLine.Bounds.Value.MinPoint,
+                  acLine.Bounds.Value.MaxPoint);
+               }
+               // Calculate the ratio between the width and height of the current view
+               double dViewRatio;
+               dViewRatio = (acView.Width / acView.Height);
+               // Tranform the extents of the view
+               matWCS2DCS = matWCS2DCS.Inverse();
+               eExtents.TransformBy(matWCS2DCS);
+               double dWidth;
+               double dHeight;
+               Point2d pNewCentPt;
+               // Check to see if a center point was provided (Center and Scale modes)
+               if (pCenter.DistanceTo(Point3d.Origin) != 0)
+               {
+                  dWidth = acView.Width;
+                  dHeight = acView.Height;
+                  if (dFactor == 0)
+                  {
+                     pCenter = pCenter.TransformBy(matWCS2DCS);
+                  }
+                  pNewCentPt = new Point2d(pCenter.X, pCenter.Y);
+               }
+               else // Working in Window, Extents and Limits mode
+               {
+                  // Calculate the new width and height of the current view
+                  dWidth = eExtents.MaxPoint.X - eExtents.MinPoint.X;
+                  dHeight = eExtents.MaxPoint.Y - eExtents.MinPoint.Y;
+                  // Get the center of the view
+                  pNewCentPt = new Point2d(((eExtents.MaxPoint.X +
+                  eExtents.MinPoint.X) * 0.5),
+                  ((eExtents.MaxPoint.Y +
+                  eExtents.MinPoint.Y) * 0.5));
+               }
+               // Check to see if the new width fits in current window
+               if (dWidth > (dHeight * dViewRatio)) dHeight = dWidth / dViewRatio;
+               // Resize and scale the view
+               if (dFactor != 0)
+               {
+                  acView.Height = dHeight * dFactor;
+                  acView.Width = dWidth * dFactor;
+               }
+               // Set the center of the view
+               acView.CenterPoint = pNewCentPt;
+               // Set the current view
+               acDoc.Editor.SetCurrentView(acView);
+            }
+            // Commit the changes
+            acTrans.Commit();
+         }
+      }
+      static Dictionary<ObjectId, string> GetAllObjects(Database db)
         {
             var dict = new Dictionary<ObjectId, string>();
             for (long i = 0; i < db.Handseed.Value; i++)
@@ -819,116 +940,131 @@ namespace PipeInfo
         [CommandMethod("vv")]
         public void edit_PipeLength_ConnOfValve()
         {
-            // Application.DocumentManager.MdiActiveDocument.SendStringToExecute("Zoom " + "All ", true, false, true);
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;
+            int pipeOfSubDim = 0;
             int[] valve_Size = { 131, 100, 80, 70, 65 }; //1" , 3/4", 1/2", 3/8", 1/4"
             ed.WriteMessage("Valve 크기 지정(기본값)\n1인치:131mm\n3/4인치:100mm\n1/2인치:80mm\n3/8인치:70mm\n1/4인치:65mm");
             try
             {
-                if (db_path != "")
-                {
-                    //DDWorksDabase 클래스 생성
-                    var ddworks_Database = new DDWorks_Database(db_path);
-                    //DDWorksDabase 클래스에서 저장할 valve 위치들
-                    List<Point3d> valve_Positions = new List<Point3d>();
-                    //DDWorksDabase 클래스에서 저장할 valve 이름들
-                    List<string> valve_Name = new List<string>();
-                    (valve_Positions, valve_Name) = ddworks_Database.Get_Valve_Position_By_DDWDB();
-                    //도면상에서 Polyline과 Text정보들을 가져올 TypeValue객체와 SelectionFilter를 생성해 선택할 필터 준비.
-                    TypedValue[] acTypValPoly = new TypedValue[1];
-                    TypedValue[] acTypText = new TypedValue[1];
-                    acTypValPoly.SetValue(new TypedValue((int)DxfCode.Start, "Polyline"), 0);
-                    acTypText.SetValue(new TypedValue((int)DxfCode.Start, "Text"), 0);
-                    SelectionFilter acSelFtrPoly = new SelectionFilter(acTypValPoly);
-                    SelectionFilter acSelFtrText = new SelectionFilter(acTypText);
-                    /*알고리즘 순서
-                     Data 준비 : valve위치, valve이름 -> 관련함수 Get_Valve_Position_By_DDWDB()
-                     1. valve위치에서 ClossingSelection으로 Poly라인을 선택(CAD)
-                     2. objectId를 검색해서 파이프의 좌표를 저장한다.
-                     3. 파이프의 시작점과 끝점을 통해 중간좌표를 얻는다.
-                     4. 중간좌표에 해당하는 TEXT가 있는지 CAD상에서 검색한다. 
-                     5. Text발견시에는 DB에서 찾아온 valve이름에서 사이즈를 찾아 사이즈에 맞는 Vavle값을 Text에서 뺀다.*/
-                    foreach (var (valve_pos, i) in valve_Positions.Select((value, i) => (value, i)))
-                    {
+            zoomAll();
+            PromptResult res = ed.GetString("현재 뷰에 Valve정보가 모두 있습니까?(Y or N):");
+            if (res.Status == PromptStatus.OK && pipeOfSubDim == 0)
+            {
+               if (res.StringResult.ToString() == "y" || res.StringResult.ToString() == "Y")
+               {
+                  if (db_path != "")
+                  {
+
+                     //DDWorksDabase 클래스 생성
+                     var ddworks_Database = new DDWorks_Database(db_path);
+                     //DDWorksDabase 클래스에서 저장할 valve 위치들
+                     List<Point3d> valve_Positions = new List<Point3d>();
+                     //DDWorksDabase 클래스에서 저장할 valve 이름들
+                     List<string> valve_Name = new List<string>();
+                     (valve_Positions, valve_Name) = ddworks_Database.Get_Valve_Position_By_DDWDB();
+                     //도면상에서 Polyline과 Text정보들을 가져올 TypeValue객체와 SelectionFilter를 생성해 선택할 필터 준비.
+                     TypedValue[] acTypValPoly = new TypedValue[1];
+                     TypedValue[] acTypText = new TypedValue[1];
+                     acTypValPoly.SetValue(new TypedValue((int)DxfCode.Start, "Polyline"), 0);
+                     acTypText.SetValue(new TypedValue((int)DxfCode.Start, "Text"), 0);
+                     SelectionFilter acSelFtrPoly = new SelectionFilter(acTypValPoly);
+                     SelectionFilter acSelFtrText = new SelectionFilter(acTypText);
+                     /*알고리즘 순서
+                      Data 준비 : valve위치, valve이름 -> 관련함수 Get_Valve_Position_By_DDWDB()
+                      1. valve위치에서 ClossingSelection으로 Poly라인을 선택(CAD)
+                      2. objectId를 검색해서 파이프의 좌표를 저장한다.
+                      3. 파이프의 시작점과 끝점을 통해 중간좌표를 얻는다.
+                      4. 중간좌표에 해당하는 TEXT가 있는지 CAD상에서 검색한다. 
+                      5. Text발견시에는 DB에서 찾아온 valve이름에서 사이즈를 찾아 사이즈에 맞는 Vavle값을 Text에서 뺀다.*/
+                     foreach (var (valve_pos, i) in valve_Positions.Select((value, i) => (value, i)))
+                     {
                         // valve주위를 []모양으로 선택. 선택하기전 Zoom All 필수.
                         PromptSelectionResult pre = ed.SelectCrossingWindow(new Point3d(valve_pos.X - 2, valve_pos.Y - 2, valve_pos.Z - 2),
-                           new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
+                        new Point3d(valve_pos.X + 2, valve_pos.Y + 2, valve_pos.Z + 2), acSelFtrPoly);
                         // 1. Valve와 연결된 Poly라인에 중간좌표에 해당하는 Text를 찾는다.
                         if (pre.Status == PromptStatus.OK)
                         {///////////////////////////////////// 
-                            SelectionSet ss = pre.Value;
-                            ObjectId[] pipe_ids = ss.GetObjectIds();
-                            //-------------------추가----------------------------------
-                            using (Transaction acTrans = db.TransactionManager.StartTransaction())
-                            {
-                                DBText text = new DBText();
-                                BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                                BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                                foreach (var id in pipe_ids)
-                                {
-                                    Polyline3d pipe_PolyLine = acTrans.GetObject(id, OpenMode.ForRead) as Polyline3d;
-                                    if (pipe_PolyLine != null)
+                           SelectionSet ss = pre.Value;
+                           ObjectId[] pipe_ids = ss.GetObjectIds();
+                           //-------------------추가----------------------------------
+                           using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                           {
+                              DBText text = new DBText();
+                              BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                              BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                              foreach (var id in pipe_ids)
+                              {
+                                 Polyline3d pipe_PolyLine = acTrans.GetObject(id, OpenMode.ForRead) as Polyline3d;
+                                 if (pipe_PolyLine != null)
+                                 {
+                                    Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2,
+                                       (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2,
+                                       (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
+                                    // ValvePostion과 Text위치를 검색한다.
+                                    PromptSelectionResult resText = ed.SelectAll(acSelFtrText);
+                                    if (resText.Status == PromptStatus.OK)
                                     {
-                                        Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2,
-                                           (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2,
-                                           (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
-                                        // ValvePostion과 Text위치를 검색한다.
-                                        PromptSelectionResult resText = ed.SelectAll(acSelFtrText);
-                                        if (resText.Status == PromptStatus.OK)
-                                        {
-                                            SelectionSet ssText = resText.Value;
-                                            ObjectId[] idsText = ssText.GetObjectIds();
-                                            foreach (var idText in idsText)
-                                            {
-                                                text = acTrans.GetObject(idText, OpenMode.ForWrite) as DBText;
-                                                var dd = Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X));
-                                                if (Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X)) < 1 &&
-                                                   Math.Abs(text.AlignmentPoint.Y - Math.Truncate(pipe_Position.Y)) < 1 &&
-                                                   Math.Abs(text.AlignmentPoint.Z - Math.Truncate(pipe_Position.Z)) < 1)
-                                                {
-                                                    if (valve_Name[i].Contains("25A"))
-                                                    {
-                                                        //131, 100, 80, 70, 65
-                                                        int val = Convert.ToInt32(text.TextString) - (valve_Size[0] / 2);
-                                                        text.TextString = val.ToString();
-                                                    }
-                                                    else if (valve_Name[i].Contains("19A"))
-                                                    {
-                                                        int val = Convert.ToInt32(text.TextString) - (valve_Size[1] / 2);
-                                                        text.TextString = val.ToString();
-                                                    }
-                                                    else if (valve_Name[i].Contains("13A"))
-                                                    {
-                                                        int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
-                                                        text.TextString = val.ToString();
-                                                    }
-                                                    else if (valve_Name[i].Contains("10A"))
-                                                    {
-                                                        int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
-                                                        text.TextString = val.ToString();
-                                                    }
-                                                }
-                                            }
-                                        }
+                                       SelectionSet ssText = resText.Value;
+                                       ObjectId[] idsText = ssText.GetObjectIds();
+                                       foreach (var idText in idsText)
+                                       {
+                                          text = acTrans.GetObject(idText, OpenMode.ForWrite) as DBText;
+                                          var dd = Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X));
+                                          if (Math.Abs(text.AlignmentPoint.X - Math.Truncate(pipe_Position.X)) < 1 &&
+                                             Math.Abs(text.AlignmentPoint.Y - Math.Truncate(pipe_Position.Y)) < 1 &&
+                                             Math.Abs(text.AlignmentPoint.Z - Math.Truncate(pipe_Position.Z)) < 1)
+                                          {
+                                             if (valve_Name[i].Contains("25A"))
+                                             {
+                                                //131, 100, 80, 70, 65
+                                                int val = Convert.ToInt32(text.TextString) - (valve_Size[0] / 2);
+                                                text.TextString = val.ToString();
+                                             }
+                                             else if (valve_Name[i].Contains("19A"))
+                                             {
+                                                int val = Convert.ToInt32(text.TextString) - (valve_Size[1] / 2);
+                                                text.TextString = val.ToString();
+                                             }
+                                             else if (valve_Name[i].Contains("13A"))
+                                             {
+                                                int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
+                                                text.TextString = val.ToString();
+                                             }
+                                             else if (valve_Name[i].Contains("10A"))
+                                             {
+                                                int val = Convert.ToInt32(text.TextString) - (valve_Size[2] / 2);
+                                                text.TextString = val.ToString();
+                                             }
+                                          }
+                                       }
                                     }
-                                }
-                                acTrans.Commit();
-                            }
-                            //-------------------추가----------------------------------
+                                 }
+                              }
+                              acTrans.Commit();
+                           }
+                           //-------------------추가----------------------------------
                         }
                         else
                         {
-                            ed.WriteMessage("Valve와 연결된 파이프를 찾지 못했습니다.");
+                           ed.WriteMessage("Valve와 연결된 파이프를 찾지 못했습니다.");
                         }
-                    }
+                     }
 
-                }
-                else
-                {
-                    ed.WriteMessage("DBFile을 확인해주세요.");
-                }
+                  }
+                  else
+                  {
+                     ed.WriteMessage("DBFile을 확인해주세요.");
+                  }
+                  ed.WriteMessage("Pipe의 길이 조정 완료 되었습니다.\n");
+                  pipeOfSubDim++;
+               }
+            }
+            else
+            {
+               ed.WriteMessage("Valve길이가 이미 반영 되었습니다.");
+            }
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
@@ -1043,7 +1179,7 @@ namespace PipeInfo
         public ExcelObject()
         {
             List<string> header = new List<string>()
-            { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사" };
+            { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사","용접번호" };
 
             excelApp = new Excel.Application();
             excelApp.Visible = false;
@@ -1062,17 +1198,28 @@ namespace PipeInfo
             //2번째 줄부터 작성시작
             ws.Cells[row + 2, column] = data;
         }
-        public void excel_save(string path)
+        public void excel_save()
         {
             try
             {
-                if (wb != null)
-                {
-                    // 엑셀파일 저장
-                    wb.SaveAs(path);
-                    wb.Close(true);
-                    excelApp.Quit();
-                }
+            if (wb != null)
+            {
+               Document doc = Application.DocumentManager.MdiActiveDocument;
+               Editor ed = doc.Editor;
+               string drawingName = "";
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.Filter = "EXCEL 파일(*.xlsx)|*.xls";
+            dlg.FileName = "제목없음" + ".xls";
+            if (dlg.ShowDialog() == DialogResult.Cancel) return;
+            DateTime currentTime = DateTime.Now;
+            wb.SaveAs(dlg.FileName, Excel.XlFileFormat.xlWorkbookNormal, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                   Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+            MessageBox.Show("저장되었습니다.");
+
+
+                       wb.Close(true);
+                       excelApp.Quit();
+                   }
             }
             finally
             { // Clean up
@@ -1211,9 +1358,23 @@ namespace PipeInfo
     }
     public class View
     {
-        // 현재 View의 이름을 반환.
-        // 종속성 : TextControl Class와 연관.
-        public string GetViewName(Vector3d viewDirection)
+         private Document _doc = null;
+         private ViewTableRecord _vtr = null;
+         private ViewTableRecord _initial = null;
+      public View(Document doc)
+         {
+            _doc = doc;
+            _initial = doc.Editor.GetCurrentView();
+            _vtr = (ViewTableRecord)_initial.Clone();
+         }
+         public void Reset()
+         {
+            _doc.Editor.SetCurrentView(_initial);
+            _doc.Editor.Regen();
+         }
+         // 현재 View의 이름을 반환.
+         // 종속성 : TextControl Class와 연관.
+         public string GetViewName(Vector3d viewDirection)
         {
             double sqrt033 = Math.Sqrt(1.0 / 3.0);
             switch (viewDirection.GetNormal())
@@ -1237,11 +1398,11 @@ namespace PipeInfo
     public class TextControl
     {
 
-        private Editor ed;
-        private Database db;
-        // 종속성 Class : View
-        private View curView = new View();
-        public TextControl(Editor aced, Database acdb)
+        private Editor ed=null;
+        private Database db=null;
+      // 종속성 Class : View
+        private View curView=null;
+        public TextControl(Editor aced, Database acdb, Document doc)
         {
             /* acTrans : 
                acBlkRec : 
@@ -1252,7 +1413,8 @@ namespace PipeInfo
                Rotate : 배관 그룹의 Vector에 때라 조정 필요 */
             ed = aced;
             db = acdb;
-        }
+         curView = new View(doc);
+      }
         public void ed_Draw_Text_To_Line_Vector(List<Tuple<string, string>> pipe_Information_li, List<Point3d> line_final_Points, int textDisBetween, int textSize)
         {
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
