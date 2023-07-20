@@ -1,12 +1,12 @@
 ﻿using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.ApplicationServices.Core;
 using Autodesk.AutoCAD.DatabaseServices;
-using Autodesk.AutoCAD.DatabaseServices.Filters;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.Runtime;
+using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity.ModelConfiguration.Configuration;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
@@ -15,8 +15,7 @@ using System.Windows.Forms;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
-using System.Text.RegularExpressions;
-using System.Security.Policy;
+using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 
 namespace PipeInfo
 {
@@ -149,7 +148,8 @@ namespace PipeInfo
                     TypedValue[] typedBlock = { new TypedValue(0, typeValeStrings[0]) };
                     SelectionFilter selFilBlk = new SelectionFilter(typedBlock);
 
-                    PromptSelectionResult ss = ed.SelectAll(selFilBlk);
+                    PromptSelectionResult ss = ed.SelectAll();
+                    //DBObjectCollection allObjec = acTrans.GetAllObjects();
 
                     string sheetName = "SPOOL_도곽";
                     string titleBoardName = "BL22";
@@ -160,10 +160,22 @@ namespace PipeInfo
                         ObjectId[] oId = sSet.GetObjectIds();
                         List<Extents3d> sheetPosLi = new List<Extents3d>();
                         List<Extents3d> titleBoardPosLi = new List<Extents3d>();
-
                         List<string> weldNumber = new List<string>();
                         List<string> titleBoardTexts = new List<string>();
-                        foreach (ObjectId id in oId)
+                        List<ObjectId> objIdAll = new List<ObjectId>();
+                        List<Point3d> cirPosLi = new List<Point3d>();
+                        TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
+                        List<DBText> textAllLi = new List<DBText>();
+                        SelectionFilter selFilter = new SelectionFilter(typeValue);
+                        ExcelObject excel = new ExcelObject();
+                        List<DBText> titleBoard_textAllLi = new List<DBText>();
+                        string excel_savaPath = "D:\\d.xlsx";
+                        Compare comparePoint = new Compare();
+                        Extents3d beforeIndexBound = new Extents3d();
+                        int[] columns = { 8, 6, 1, 2, 9, 3, 4, 5, 7 }; //표제란 정보 넣는 순서. 
+                        // foreach (ObjectId id in oId)ne 
+                        // objIdAll = GetallObjectIds();
+                        foreach (var id in oId)
                         {
                             Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
                             if (en.GetType().Name.ToString() == "BlockReference")
@@ -176,43 +188,52 @@ namespace PipeInfo
                                 }
                                 else if (blk.Name.ToString() == titleBoardName)
                                 {
+                                    ed.WriteMessage(id.ToString());
                                     titleBoardPosLi.Add(en.Bounds.Value);
                                 }
                             }
-                        }
-                        List<Point3d> cirPosLi = new List<Point3d>();
-                        TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
-                        List<DBText> textAllLi = new List<DBText>();
-                        SelectionFilter selFilter = new SelectionFilter(typeValue);
-                        ExcelObject excel = new ExcelObject();
-                        string excel_savaPath = "D:\\d.xlsx";
-                        Compare comparePoint = new Compare();
-                        int[] columns = {1,6,8,2,9,3,4,5,7}; //표제란 정보 넣는 순서. 
-                        //excel.excel_InsertData();
-                        //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
-                        foreach ((var title ,var i) in titleBoardPosLi.Select((value, i) => (value, i)))
-                        {
-                                List<DBText> titleBoard_textLi = new List<DBText>();
-                                PromptSelectionResult selWin = ed.SelectCrossingWindow(title.MinPoint, title.MaxPoint, selFilter, false);
-                            if (selWin.Status == PromptStatus.OK)
+                            else if (en.GetType().Name.ToString() == "DBText")
+                            {
+                                DBText te = en as DBText;
+                                if (te.Layer.ToString().Contains("Infomation_Welding_Number"))
                                 {
-                                    SelectionSet selSetWin = selWin.Value;
-                                    ObjectId[] sheetInSelObIds = selSetWin.GetObjectIds();
-                                    ed.SetImpliedSelection(sheetInSelObIds);
-                                    foreach (ObjectId sId in sheetInSelObIds)
-                                    {
-                                        DBText te = acTrans.GetObject(sId, OpenMode.ForRead) as DBText;
-                                        titleBoard_textLi.Add(te);
-                                    }
-                                 }
-                            titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
-                            foreach ((var textBoard, var j) in titleBoard_textLi.Select((value,j)=>(value,j)))
-                                {
-                                    bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
-                                    if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
+                                    textAllLi.Add(te);
                                 }
+                            }
+                            else if (en.GetType().Name.ToString() == "Circle")
+                            {
+                                Circle cir = en as Circle;
+                                if (en.Layer.ToString().Contains("Infomation_Welding_Number"))
+                                {
+                                    cirPosLi.Add(cir.Center);
+                                }
+                            }
+                         }
 
-                        }                       
+                    //excel.excel_InsertData();
+                    //전체 시트 포지션리스트에서 시트별 구역의 Text정보를 가져온다.
+                    foreach ((var title, var i) in titleBoardPosLi.Select((value, i) => (value, i)))
+                    {
+                        List<DBText> titleBoard_textLi = new List<DBText>();
+                        PromptSelectionResult selWin = ed.SelectCrossingWindow(title.MinPoint, title.MaxPoint, selFilter, false);
+                        if (selWin.Status == PromptStatus.OK)
+                        {
+                            SelectionSet selSetWin = selWin.Value;
+                            ObjectId[] sheetInSelObIds = selSetWin.GetObjectIds();
+                            foreach (ObjectId sId in sheetInSelObIds)
+                            {
+                                DBText te = acTrans.GetObject(sId, OpenMode.ForRead) as DBText;
+                                titleBoard_textLi.Add(te);
+                                titleBoard_textAllLi.Add(te);
+                            }
+                        }
+                        titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
+                        foreach ((var textBoard, var j) in titleBoard_textLi.Select((value, j) => (value, j)))
+                        {
+                            //bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
+                            //if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
+                        }
+                    }
                         // 기능 이름 : 시트 구역별 용접 번호 가져오기
                         // 구현 순서 : 
                         // 1. select all
@@ -221,34 +242,21 @@ namespace PipeInfo
                         // 5. Sheet Number와 TitleBoardNumber위치가 일치하는지 확인.
                         // 6. 일치하면 용접번호와 TitleBoard정보를 엑셀에 쓴다.
                         // Sheet Number + 용접리스트 + textLi(위치와 글씨정보)를 한 행에 적어준다.
-                        PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
-                        if (textAllpsr.Status == PromptStatus.OK)
-                        {
-                            SelectionSet selAllSet = textAllpsr.Value;
-                            ObjectId[] allOids = selAllSet.GetObjectIds();
-                            foreach (var id in allOids)
-                            {
-                                Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
-                                if (en.GetType().Name.ToString() == "DBText")
-                                {
-                                    DBText te = en as DBText;
-                                    if (te.Layer.ToString().Contains("Infomation_Welding_Number"))
-                                    {
-                                        textAllLi.Add(te);
-                                    }
-                                }
-                                else if (en.GetType().Name.ToString() == "Circle")
-                                {
-                                    Circle cir = en as Circle;
-                                    if (en.Layer.ToString().Contains("Infomation_Welding_Number"))
-                                    {
-                                        cirPosLi.Add(cir.Center);
-                                    }
-                                }
-                            }
+                        //PromptSelectionResult textAllpsr = ed.SelectAll(selFilter);
+                        //if (textAllpsr.Status == PromptStatus.OK)
+                        //{
+                            //SelectionSet selAllSet = textAllpsr.Value;
+                            //ObjectId[] allOids = selAllSet.GetObjectIds();
+                            //foreach (var id in allOids)
+                            //{
+                            //    Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
+
+                            //}
 
                             List<DBText> weld_Numbers_li = new List<DBText>();
-                            int index = 0;
+                            int sheet_index = 0;
+                            int board_index = 0;
+                            int[] columns_2 = { 4, 7, 2, 6, 8, 3, 9, 5,1 };
                             // Circle위치에 해당하는 Text객체만 가져온다. 용접포인트에 해당하는 용접번호.
                             foreach (var cir in cirPosLi)
                             {
@@ -262,18 +270,33 @@ namespace PipeInfo
                                 }
                             }
                             List<string> textLiStr = new List<string>();
-                            //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
-                            foreach ((var sheet,var i) in sheetPosLi.Select((value, i) => (value, i)))
+                        foreach(var sheet in sheetPosLi)
+                        {
+                            
+                        }
+                        
+                        //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
+                        foreach ((var sheet, var i) in sheetPosLi.Select((value, i) => (value, i)))
                             {
-                                foreach((var te,var j) in weld_Numbers_li.Select((value, j) => (value,j)))
+                                ed.WriteMessage(sheet.MinPoint.ToString());
+                                foreach ((var te, var j) in weld_Numbers_li.Select((value, j) => (value, j)))
                                 {
                                     bool is_inOut = comparePoint.isInside_boundary(te.Position, sheet.MinPoint, sheet.MaxPoint);
-                                    if (is_inOut) { excel.excel_InsertData(i, 10 + index, te.TextString); index++;}
+                                    if (is_inOut) { excel.excel_InsertData(i, 10 + sheet_index, te.TextString); sheet_index++; }
                                 }
-                                index = 0;
+                                foreach (var board_Text in titleBoard_textAllLi)
+                                {
+                                    bool is_inOut = comparePoint.isInside_boundary(board_Text.Position, sheet.MinPoint, sheet.MaxPoint);
+                                    if (is_inOut) { excel.excel_InsertData(i, columns_2[board_index], board_Text.TextString); board_index++; }
+                                    if (board_index > 8)
+                                    {
+                                        board_index = 0;
+                                    }
+                                }
+                                sheet_index = 0;
                             }
                             excel.excel_save(excel_savaPath);
-                        }
+                        //}
                     }
                     acTrans.Commit();
                     acTrans.Dispose();
@@ -285,6 +308,46 @@ namespace PipeInfo
                 Editor.WriteMessage(ex.Message);
             }
         }
+        static Dictionary<ObjectId, string> GetAllObjects(Database db)
+        {
+            var dict = new Dictionary<ObjectId, string>();
+            for (long i = 0; i < db.Handseed.Value; i++)
+            {
+                if (db.TryGetObjectId(new Handle(i), out ObjectId id))
+                    dict.Add(id, id.ObjectClass.Name);
+            }
+            return dict;
+        }
+        static List<ObjectId> GetallObjectIds()
+        {
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+            List<ObjectId> objIdAll = new List<ObjectId>();
+
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+
+                BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
+                foreach (var blk in acBlk)
+                {
+                    var en = (BlockTable)acTrans.GetObject(db.BlockTableId, OpenMode.ForRead);
+                    foreach (var id in en)
+                    {
+                        var btr = (BlockTableRecord)acTrans.GetObject(id, OpenMode.ForRead);
+                        if (btr.IsLayout)
+                        {
+                            foreach (var d in btr)
+                            {
+                                objIdAll.Add(d);
+                            }
+                        }
+                    }
+                }
+                acTrans.Commit();
+            }
+            return objIdAll;
+            }
 
         [CommandMethod("rr")]
         public void draw_rectangle()
@@ -985,18 +1048,18 @@ namespace PipeInfo
         {
             List<string> header = new List<string>()
             { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사" };
-    
-                excelApp = new Excel.Application();
-                excelApp.Visible = false;
-                wb = excelApp.Workbooks.Add();
-                ws = wb.Worksheets.get_Item(1) as Excel.Worksheet;
-                // 데이타 넣기
-                int r = 1;
-                foreach (var h in header)
-                {
-                    ws.Cells[1, r] = h;
-                    r++;
-                }
+
+            excelApp = new Excel.Application();
+            excelApp.Visible = false;
+            wb = excelApp.Workbooks.Add();
+            ws = wb.Worksheets.get_Item(1) as Excel.Worksheet;
+            // 데이타 넣기
+            int r = 1;
+            foreach (var h in header)
+            {
+                ws.Cells[1, r] = h;
+                r++;
+            }
         }
         public void excel_InsertData(int row, int column, string data)
         {
@@ -1007,13 +1070,13 @@ namespace PipeInfo
         {
             try
             {
-            if (wb != null)
-            {
-                // 엑셀파일 저장
-                wb.SaveAs(path);
-                wb.Close(true);
-                excelApp.Quit();
-            }
+                if (wb != null)
+                {
+                    // 엑셀파일 저장
+                    wb.SaveAs(path);
+                    wb.Close(true);
+                    excelApp.Quit();
+                }
             }
             finally
             { // Clean up
@@ -1054,10 +1117,10 @@ namespace PipeInfo
     }
     public class Compare
     {
-        public bool isInside_boundary(Point3d points,Point3d min, Point3d max)
+        public bool isInside_boundary(Point3d points, Point3d min, Point3d max)
         {
             bool isInner = false;
-            if(points.X > min.X && points.Y > min.Y && points.X < max.X && points.Y < max.Y)
+            if (points.X > min.X && points.Y > min.Y && points.X < max.X && points.Y < max.Y)
             {
                 isInner = true;
             }
