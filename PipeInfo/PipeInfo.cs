@@ -778,7 +778,25 @@ namespace PipeInfo
                                             acTrans.AddNewlyCreatedDBObject(info_line, true);
                                             Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
 
-                                            double basePoint = 0;
+                                            keyFilter keyfilter = new keyFilter();
+                                            System.Windows.Forms.Application.AddMessageFilter(keyfilter);
+                                            while (true)
+                                            {
+                                                // Check for user input events
+                                                System.Windows.Forms.Application.DoEvents();
+                                                // Check whether the filter has set the flag
+                                                if (keyfilter.bCanceled == true)
+                                                {
+                                                    ed.WriteMessage("\nLoop cancelled.");
+                                                    break;
+                                                }
+                                                ed.WriteMessage("\nInside while loop...");
+                                            }
+                                            // We're done - remove the message filter
+                                            System.Windows.Forms.Application.RemoveMessageFilter(keyfilter);
+
+
+                                        double basePoint = 0;
 
                                             if (groupVecstr == "X") basePoint = aver_X - 300;
                                             else if (groupVecstr == "Y") basePoint = aver_Y - 300;
@@ -929,12 +947,35 @@ namespace PipeInfo
                 MessageBox.Show(ex.ToString());
             }
         }
-        /* 함수 이름 : edit_PipeLength_ConnOfValve
-         * 기능 설명 : DB(Valve위치, 이름) CAD(연결된 파이프 객체의 중심점, 중심점과 동일한 Text위치, Text값 조정(길이))
-         * 명 령 어 : vv
-         * 비 고 : 추후 DB에서 정확한 길이를 반환하는 기능개발필요.
-         */
-        [CommandMethod("vv")]
+
+        public class keyFilter : IMessageFilter
+        {
+            public const int WM_KEYDOWN = 0x0100;
+
+            public bool bCanceled = false;
+            public bool PreFilterMessage(ref Message m)
+            {
+                if (m.Msg == WM_KEYDOWN)
+                {
+                    // Check for the Escape keypress
+                    Keys kc = (Keys)(int)m.WParam & Keys.KeyCode;
+                    if (m.Msg == WM_KEYDOWN && kc == Keys.Escape)
+                    {
+                        bCanceled = true;
+                    }
+                    // Return true to filter all keypresses
+                    return true;
+                }
+                // Return false to let other messages through
+                return false;
+            }
+        }
+            /* 함수 이름 : edit_PipeLength_ConnOfValve
+             * 기능 설명 : DB(Valve위치, 이름) CAD(연결된 파이프 객체의 중심점, 중심점과 동일한 Text위치, Text값 조정(길이))
+             * 명 령 어 : vv
+             * 비 고 : 추후 DB에서 정확한 길이를 반환하는 기능개발필요.
+             */
+            [CommandMethod("vv")]
         public void edit_PipeLength_ConnOfValve()
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
