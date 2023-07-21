@@ -771,15 +771,14 @@ namespace PipeInfo
                                             aver_Y = aver_Y / group_count;
                                             aver_Z = aver_Z / group_count;
 
-
                                             Line info_line = new Line();
                                             info_line.StartPoint = new Point3d(aver_X, aver_Y, newPoints[0].Z);
                                             info_line.EndPoint = new Point3d(aver_X, aver_Y + 300, newPoints[0].Z);
                                             acBlkRec.AppendEntity(info_line);
                                             acTrans.AddNewlyCreatedDBObject(info_line, true);
+                                            Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
 
                                             double basePoint = 0;
-
 
                                             if (groupVecstr == "X") basePoint = aver_X - 300;
                                             else if (groupVecstr == "Y") basePoint = aver_Y - 300;
@@ -846,7 +845,6 @@ namespace PipeInfo
                                                     text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
                                                     textPosition = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
                                                     if (groupVecstr == "Z") textPosition = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -90, Vector3d.YAxis, Point3d.Origin));
-
                                                 }
                                                 if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
                                                 {
@@ -862,7 +860,6 @@ namespace PipeInfo
                                                 {
                                                     text.AlignmentPoint = textPosition;
                                                 }
-
                                                 acBlkRec.AppendEntity(text);
                                                 acTrans.AddNewlyCreatedDBObject(text, true);
                                             }
