@@ -1,10 +1,12 @@
-﻿using Autodesk.AutoCAD.ApplicationServices;
+﻿using AutoCAD;
+using Autodesk.AutoCAD.ApplicationServices;
+using Autodesk.AutoCAD.Customization;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
+using Autodesk.AutoCAD.GraphicsInterface;
+using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
-using AutoCAD;
-using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
 using System.Data.SQLite;
@@ -16,9 +18,6 @@ using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
-using System.Security.Cryptography;
-using System.Data.Entity;
-using Autodesk.AutoCAD.ApplicationServices.Core;
 
 namespace PipeInfo
 {
@@ -579,17 +578,84 @@ namespace PipeInfo
                     Document acDoc = Application.DocumentManager.MdiActiveDocument;
                     Database db = acDoc.Database;
                     TextControl tControl = new TextControl();
-                    Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
-                    List<Point3d> pFaceMesh = Select.selectPolyFaceMeshToPoints();
-                    string[] filter = { "Tee", "Reducer", "Reducing" };
+                    List<Point3d> pFaceMeshPoints = Select.selectPolyFaceMeshToPoints();
+                    if (pFaceMeshPoints.Count > 0)
+                    {
+                        
+                        string[] filter = { "Tee", "Reducer", "Reducing" };
+                        var ddworks_Database = new DDWorks_Database(db_path);
+                        // -> 필터 적용. 7.24 등등
+                        // 선택한 용접포인트의 위치가 필터에 해당한다면 Point를 삭제.
+                        List<Point3d> weldPoints = ddworks_Database.FilterWeldGroup_By_ComponentType(pFaceMeshPoints, filter);
+                        Vector3d groupVec = new Vector3d(0, 0, 0);
+                        // 23.6.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
+                        List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(weldPoints);
+                        (List<Point3d> orderPoints, string groupVecstr) = Points.orderWeldPoints_By_GroupVector(weldPoints, vec);
+                        // SpoolTexts Base PolyLine
+                        // weldPoints.의 중간지점
+                        double averX = weldPoints.Average(p => p.X);
+                        double averY = weldPoints.Average(p => p.Y);
+                        double averZ = weldPoints.Average(p => p.Z);
+                        Point3d averPoint = new Point3d(averX, averY, averZ);
+                        string commandLine = String.Format("{0},{1},{2}", averPoint.X, averPoint.Y, averPoint.Z);
+                        //Cmd5(averPoint);
+                        ed.WriteMessage("첫 번째 라인을 그려주세요.");
+                        ed.Command("_.LINE", commandLine);
 
-                    // 선택한 용접포인트의 위치가 필터에 해당한다면 Point를 삭제.
-                    List<Point3d> oldPoints = ddworks_Database.FilterWeldGroup_By_ComponentType(point3Ds, filter);
-                    Vector3d groupVec = new Vector3d(0, 0, 0);
-                    // 23.6.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
-                    List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(oldPoints);
-                    ed.WriteMessage(pFaceMesh.Count.ToString());
-                    tControl.Draw_Text_WeldPoints(db_path);
+                        Point3dCollection spoolLines = InteractivePolyLine.CollectPointsInteractive();
+                       
+                        if (spoolLines.Count > 0)
+                        {
+                            Point3d spoolFinalPoint = spoolLines[spoolLines.Count];
+                            (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
+                            List<ObjectId> spoolTexts = tControl.Draw_Text_WeldPoints(spoolFinalPoint, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
+                            ed.UpdateScreen();
+                            //폴리라인 그리는 함수.
+                            keyFilter keyFilter = new keyFilter();
+                            //23.7.25
+                            //현재 뷰에 따라 디폴트값 정해야함
+                            //엔터키로 돌리고 SpoolGroup 방향 기준
+                            //스페이스바로 글씨 회전. 배관 진행방향.
+                            
+                            System.Windows.Forms.Application.AddMessageFilter(keyFilter);
+                            while (true)
+                            {
+                                // Check for user input events
+                                System.Windows.Forms.Application.DoEvents();
+                                // Check whether the filter has set the flag
+                                if (keyFilter.bCanceled == true)
+                                {
+                                    ed.WriteMessage("\n Loop cancelled.");
+                                    break;
+                                }
+                                if (keyFilter.bEntered == true)
+                                {
+                                    using(Transaction actras = db.TransactionManager.StartTransaction())
+                                    {
+                                        foreach(var id in spoolTexts)
+                                        {
+                                            DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
+                                            text.TextString = "천재";
+                                        }
+                                        actras.Commit();
+
+                                    }
+                                    ed.WriteMessage("\n H.");
+                                }
+                                ed.WriteMessage("\n Inside while loop...");
+                            }
+                            // We're done - remove the message filter
+                            System.Windows.Forms.Application.RemoveMessageFilter(keyFilter);
+                        }
+                        else
+                        {
+                            ed.WriteMessage("라인이 그려지지 않았습니다.");
+                        }
+                    }
+                    else
+                    {
+                        ed.WriteMessage("선택된 객체가 없습니다.");
+                    }
                 }
                 else
                 {
@@ -604,7 +670,35 @@ namespace PipeInfo
             }
         }
 
+        public async void Cmd5(Point3d point)
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            HashSet<ObjectId> ids = new HashSet<ObjectId>();
+            string commandLine = String.Format("{0},{1},{2}", point.X, point.Y, point.Z);
 
+            ed.Command("_.LINE", commandLine);
+            await ed.CommandAsync("_.LINE", Editor.PauseToken);
+            while (((string)Application.GetSystemVariable("CMDNAMES")).Contains("LINE"))
+            {
+                try
+                {
+                    await ed.CommandAsync(Editor.PauseToken);
+                    ids.Add(Autodesk.AutoCAD.Internal.Utils.EntLast());
+                }
+                catch { break; } // eUserBreak (Cancel) handling
+            }
+
+            Database db = HostApplicationServices.WorkingDatabase;
+            using (Transaction tr = db.TransactionManager.StartTransaction())
+            {
+                foreach (ObjectId id in ids)
+                {
+                    Entity ent = (Entity)tr.GetObject(id, OpenMode.ForWrite);
+                    ent.ColorIndex = 1;
+                }
+                tr.Commit();
+            }
+        }
 
         /* 함수 이름 : edit_PipeLength_ConnOfValve
          * 기능 설명 : DB(Valve위치, 이름) CAD(연결된 파이프 객체의 중심점, 중심점과 동일한 Text위치, Text값 조정(길이))
@@ -747,6 +841,7 @@ namespace PipeInfo
             //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
 
         }
+
     }
     /* --------------- [CLASS START]-------------------*/
     /* 클래스 이름 : Pipe
@@ -923,13 +1018,62 @@ namespace PipeInfo
         }
     }
     /* 클래스 이름 : Points
-    * 기능 설명 : Points 에 관련된 기능.*/
+    * 기능 설명 : Points 에 정렬,배치,삭제 등 기능.*/
     public class Points
     {
-        // 1. 포인트 그룹을 나누는 기능.
-        // 2. 포인트들의 중간점을 반환.
-        // 3. 포인트들의 최소 최대값 위치를 리스트로 반환.(포인트의 Area를 판단)
-        // 4. 포인트의 그룹 단일화 (그룹과 그룹의 거리가 최소거리 이하면 한 그룹으로 합침).
+        // 함수 기능 : 선택된 WeldPoints들을 그룹 벡터방향에따라 정렬시킨다.
+        // 함수 설명 : vec => 단일 배관의 진행방향
+        //            groupVec => 배관과 배관의 Vector(배관 진행방향은 Y축이고 AL를 채우는 방향은 Z이면 groupVec는 Z)
+        // 반환 : WeldPoint를 groupVec와 동일하게 정렬(spool정보가 쓰여질 순서)
+        public static (List<Point3d>, string) orderWeldPoints_By_GroupVector(List<Point3d> oldPoints, List<Vector3d> vec)
+        {
+            Vector3d groupVec = new Vector3d();
+            string groupVecstr = "";
+            List<Point3d> orderPoints = new List<Point3d>();
+            if (vec.Count > 0)
+            {
+                if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+                {
+                    orderPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                    for (int i = 0; i < oldPoints.Count; i++)
+                    {
+                        //7.12추가
+                        //Pipe가 두 가닥이고 웰드가 지그재그일때는 성립하지 않는 알고리즘이어서 파이프의 백터방향과 같지 않는 방향을 찾을때까지 반복.
+                        //파이프 방향이 Z이면 파이프그룹을 구할때는 Z축을 뺴버린다.
+                        Point3d fromVec = new Point3d(0, orderPoints[0].Y, orderPoints[0].Z);
+                        Point3d toVec = new Point3d(0, orderPoints[i].Y, orderPoints[i].Z);
+                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
+                        if (Math.Round(groupVec.GetNormal().Y, 1) == 1 || Math.Round(groupVec.GetNormal().Y, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList(); groupVecstr = "Y"; break; }
+                        else if (Math.Round(groupVec.GetNormal().Z, 1) == 1 || Math.Round(groupVec.GetNormal().Z, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList(); groupVecstr = "Z"; break; }
+                    }
+                }
+                if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
+                {
+                    orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
+                    for (int i = 0; i < oldPoints.Count; i++)
+                    {
+                        Point3d fromVec = new Point3d(orderPoints[0].X, 0, orderPoints[0].Z);
+                        Point3d toVec = new Point3d(orderPoints[i].X, 0, orderPoints[i].Z);
+                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
+                        if (Math.Round(groupVec.GetNormal().X, 1) == 1 || Math.Round(groupVec.GetNormal().X, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.X).ToList(); groupVecstr = "X"; break; }
+                        else if (Math.Round(groupVec.GetNormal().Z, 1) == 1 || Math.Round(groupVec.GetNormal().Z, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList(); groupVecstr = "Z"; break; }
+                    }
+                }
+                if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1)
+                {
+                    orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
+                    for (int i = 0; i < oldPoints.Count; i++)
+                    {
+                        Point3d fromVec = new Point3d(orderPoints[0].X, orderPoints[0].Y, 0);
+                        Point3d toVec = new Point3d(orderPoints[i].X, orderPoints[i].Y, 0);
+                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
+                        if (Math.Round(groupVec.GetNormal().X, 1) == 1 || Math.Round(groupVec.GetNormal().X, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.X).ToList(); groupVecstr = "X"; break; }
+                        else if (Math.Round(groupVec.GetNormal().Y, 1) == 1 || Math.Round(groupVec.GetNormal().Y, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList(); groupVecstr = "Z"; break; }
+                    }
+                }
+            }
+            return (orderPoints, groupVecstr);
+        }
     }
     public class Compare
     {
@@ -959,28 +1103,48 @@ namespace PipeInfo
     }
     /* 클래스 이름 : InteractivePolyLine.
     * 기능 설명 : InteractivePolyLine 에 관련된 기능.*/
-    public class InteractivePolyLine
+    public class MyDrawOverrule : DrawableOverrule { 
+     public override bool WorldDraw(Drawable drawable, WorldDraw wd)
+        {
+            // Cast Drawable to Line so we can access its methods and
+            // properties
+            Line ln = (Line)drawable;
+            // Draw some graphics primitives
+            wd.Geometry.Circle(
+              ln.StartPoint + 0.5 * ln.Delta,
+              ln.Length / 5,
+              ln.Normal
+            );
+            // In this case we don't want the line to draw itself, nor do
+            // we want ViewportDraw called
+            return true;
+        }
+    }
+
+
+ 
+    
+        public class InteractivePolyLine
     {
-        /// <summary>Collects the points interactively, Temporarily joining vertexes.</summary>
-        /// <returns>Point3dCollection</returns>
+        // 기능 : 사용자에게 포인트를 입력받아 PolyLine 작성.
+        // 반환 : Point3dCollection
+
         public static Point3dCollection CollectPointsInteractive()
         {
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Point3dCollection pointCollection = new Point3dCollection();
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Autodesk.AutoCAD.Colors.Color color = acDoc.Database.Cecolor;
-            PromptPointOptions pointOptions = new PromptPointOptions("\n 첫 번째 점: ")
+
+            PromptPointOptions pointOptions = new PromptPointOptions("\n 포인트 점: ")
             {
                 AllowNone = true
             };
-
-            // acDoc Document에서 Fence시작 포인트를 가져온다. 
+            
             PromptPointResult pointResult = acDoc.Editor.GetPoint(pointOptions);
-
             while (pointResult.Status == PromptStatus.OK)
             {
                 pointCollection.Add(pointResult.Value);
-
                 //6.13 추후 실시간 선택되는것 활성화(블루) 시각화 기능 추가
                 pointOptions.UseBasePoint = true;
                 pointOptions.BasePoint = pointResult.Value;
@@ -995,7 +1159,6 @@ namespace PipeInfo
                     4,
                     true);
                     ed.UpdateScreen();
-
                 }
             }
             if (pointResult.Status == PromptStatus.None)
@@ -1088,12 +1251,11 @@ namespace PipeInfo
                 }
                 catch (Autodesk.AutoCAD.Runtime.Exception ex)
                 {
-                    MessageBox.Show("*에러 : "+ex.ToString());
+                    MessageBox.Show("*에러 : " + ex.ToString());
                 }
-               return point3Ds; 
+                return point3Ds;
             }
         }
-   
     }
     public class View
     {
@@ -1136,7 +1298,6 @@ namespace PipeInfo
     * 기능 설명 : TextControl 에 관련된 기능.*/
     public class TextControl
     {
-
         private Editor ed = null;
         private Database db = null;
         private Document doc = null;
@@ -1362,395 +1523,192 @@ namespace PipeInfo
         public void Text_TransForm_ByKeyDown(KeyPressEventArgs e)
         {
         }
-        public void Draw_Text_WeldPoints(string db_path)
+        public List<ObjectId> Draw_Text_WeldPoints(Point3d lineEnd, List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints, string groupVecstr)
         {
-            var ddworks_Database = new DDWorks_Database(db_path);
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
                 BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                PromptSelectionOptions pso = new PromptSelectionOptions();
-                TypedValue[] tvs = { new TypedValue(0, "Polyline") }; //Polyline (Polyline2D, Polyline3D, PolyfaceMesh, and PolygonMesh)
-                SelectionFilter sf = new SelectionFilter(tvs);
-                PromptSelectionResult pRes = ed.GetSelection(pso, sf);
+                List<ObjectId> spoolTexts = new List<ObjectId>(); //반환값
                 try
                 {
-                    if (pRes.Status == PromptStatus.OK)
+                    // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
+                    // Spool 정보도 같이 불러온다. (맞대기 용접은 좌표를 더해서 반환)
+                    //(List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
+                    // WeldPoint들과 최소 거리에 있는 (현재는 300) WeldPoint들을 모두 그룹으로 묶는다.
+                    if (newPoints.Count > 0)
                     {
-                        SelectionSet ss = pRes.Value;
-                        ObjectId[] oIds = ss.GetObjectIds();
-                        List<Point3d> point3Ds = new List<Point3d>();
-                        var objs = new ObjectIdCollection();
-                        int count = 0;
-
-                        foreach (ObjectId oId in oIds)
+                        List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
+                        List<Point3d> point_Groups = new List<Point3d>();
+                        List<int> key = new List<int>();
+                        int group_index = 0;
+                        if (newPoints.Count > 1)
                         {
-                            Entity ent = acTrans.GetObject(oId, OpenMode.ForRead) as Entity;
-                            Entity pF = new PolyFaceMesh() as Entity;
-                            Type type = ent.GetType();
-                            if (type.Name == "PolyFaceMesh")
+                            near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[0]));
+                            for (int i = 0; i < newPoints.Count; i++)
                             {
-                                objs.Add(oId);
-                                count++;
-                                ent.Highlight();
-
-                                Extents3d et = ent.GeometricExtents;
-                                //실 좌표를 구하기 위해서 폴리라인의 크기를 구한다. 
-                                double x = et.MaxPoint.X - et.MinPoint.X;
-                                double y = et.MaxPoint.Y - et.MinPoint.Y;
-                                double z = et.MaxPoint.Z - et.MinPoint.Z;
-
-                                //et min좌표에서 구한 크기를 빼서 더해준다. 원객체는 xy 가 반지름과 같기 때문에 아무 값이나 상관없다. 
-                                double posX = Math.Round(et.MinPoint.X + (x / 2), 4);
-                                double posY = Math.Round(et.MinPoint.Y + (y / 2), 4);
-                                double posZ = Math.Round(et.MinPoint.Z + (z / 2), 4);
-                                point3Ds.Add(new Point3d(posX, posY, posZ));
-
-                                //ed.WriteMessage(posX.ToString()+"__"+posY.ToString()+"__"+ posZ.ToString());
-                                //용접 포인트를 DB에서 가져오는 알고리즘 추가. 지금은 PolyLine임.
-                                //다시 말하면 좌표로 파이프 정보를 가져오는 알고리즘.
-                                //좌표로 Area 그룹 
-                            }
-                        }
-
-                        // Spool Area Divied 
-                        // Concept :
-                        // 1. 첫 번째 점부터 마지막 점까지 거리를 모두 구한다. 
-                        // 2. 가까운 객체들의 좌표와 저장하고 인덱스를 쌍으로 저장.
-                        // 3. 다시 배열을 탐색할때는 한 번 찾은 객체는 다시 비교하지 않는다. 
-                        List<Point3d> points = new List<Point3d>();
-
-                        // Tee객체를 필터링한다. //끝객체 //Reducer
-                        string[] filter = { "Tee", "Reducer", "Reducing" };
-
-                        // 선택한 용접포인트의 위치가 필터에 해당한다면 Point를 삭제.
-                        List<Point3d> oldPoints = ddworks_Database.FilterWeldGroup_By_ComponentType(point3Ds, filter);
-                        Vector3d groupVec = new Vector3d(0, 0, 0);
-                        // 23.6.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
-                        List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(oldPoints);
-
-                        //파이프의 벡터 방향으로 값을 정렬 한후 1,2번째 파이프의 벡터를 구한다. 그러면 지그재그로 Z로 빠진 애들은 안구하게 됨.
-                        //List<Vector3d> vec = Get_SpoolVector_By_Points(oldPoints);
-
-                        // 파이프와 파이프의 벡터(Pipe가 두개 이상일때만) 
-                        //Vector3d spool_vec = new Vector3d();
-                        // double min_Z = oldPoints.Min(p => p.Z);
-                        //double max_Z = oldPoints.Max(p => p.Z);
-                        List<Point3d> orderPoints = new List<Point3d>();
-                        bool vertical_mode = false; //배관 : 가로 스풀 : 세로(버티칼)
-                        string[] groupVector = { "X", "-X", "Y", "-Y", "Z", "-Z" };
-                        string textArea = "";
-                        string groupVecstr = "";
-                        //if (max_Z - min_Z > 200 && (Math.Round(vec[0].GetNormal().X, 1) != 0 || Math.Round(vec[0].GetNormal().Y, 1) != 0))
-                        //{
-                        //    multi_mode = true;
-                        //    oldPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
-                        //}
-                        if (oldPoints.Count > 0)
-                        {
-                            if (vec.Count > 0)
-                            { //Spool의 진행방향이 Vectical일때를 제외하고는 좌표를 진행 방향의 반대로 정렬을 한다. X진행방향 -> Y
-                                if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
+                                // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
+                                // newPoints를 서로 다른 인덱스로 탐색 i , j
+                                // Group_index : Group Key로 구분
+                                // key 배열 : i와 가까운 포인트의 배열의 인덱스들을 저장. 
+                                // key 배열 : i가 중복 탐색하는 것을 방지.
+                                if (key.Contains(i) == false)
                                 {
-                                    orderPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-                                    for (int i = 0; i < oldPoints.Count; i++)
+                                    for (int j = 1; j < newPoints.Count; j++)
                                     {
-                                        //7.12추가
-                                        //Pipe가 두 가닥이고 웰드가 지그재그일때는 성립하지 않는 알고리즘이어서 파이프의 백터방향과 같지 않는 방향을 찾을때까지 반복.
-                                        //파이프 방향이 Z이면 파이프그룹을 구할때는 Z축을 뺴버린다.
-                                        Point3d fromVec = new Point3d(0, orderPoints[0].Y, orderPoints[0].Z);
-                                        Point3d toVec = new Point3d(0, orderPoints[i].Y, orderPoints[i].Z);
-                                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
-                                        if (Math.Round(groupVec.GetNormal().Y, 1) == 1 || Math.Round(groupVec.GetNormal().Y, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList(); groupVecstr = "Y"; break; }
-                                        else if (Math.Round(groupVec.GetNormal().Z, 1) == 1 || Math.Round(groupVec.GetNormal().Z, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList(); groupVecstr = "Z"; vertical_mode = true; break; }
+                                        if (key.Contains(j) == false)
+                                        {
+                                            var dis = newPoints[i].DistanceTo(newPoints[j]);
+                                            //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
+                                            //ed.WriteMessage("거리값 : {0} \n", dis);
+                                            if (dis < 300)
+                                            {
+                                                key.Add(j);
+                                                ed.WriteMessage(group_index.ToString(), newPoints[j].ToString());
+                                                near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[j]));
+                                            }
+                                        }
                                     }
-                                }
-                                if (Math.Round(vec[0].GetNormal().Y, 1) == 1 || Math.Round(vec[0].GetNormal().Y, 1) == -1)
-                                {
-                                    orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList();
-                                    for (int i = 0; i < oldPoints.Count; i++)
-                                    {
-                                        //7.12추가
-                                        //Pipe가 두 가닥이고 웰드가 지그재그일때는 성립하지 않는 알고리즘이어서 파이프의 백터방향과 같지 않는 방향을 찾을때까지 반복.
-                                        //파이프 방향이 Z이면 파이프그룹을 구할때는 Z축을 뺴버린다.
-                                        Point3d fromVec = new Point3d(orderPoints[0].X, 0, orderPoints[0].Z);
-                                        Point3d toVec = new Point3d(orderPoints[i].X, 0, orderPoints[i].Z);
-                                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
-                                        if (Math.Round(groupVec.GetNormal().X, 1) == 1 || Math.Round(groupVec.GetNormal().X, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.X).ToList(); groupVecstr = "X"; break; }
-                                        else if (Math.Round(groupVec.GetNormal().Z, 1) == 1 || Math.Round(groupVec.GetNormal().Z, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList(); groupVecstr = "Z"; vertical_mode = true; break; }
-                                    }
-                                }
-                                if (Math.Round(vec[0].GetNormal().Z, 1) == 1 || Math.Round(vec[0].GetNormal().Z, 1) == -1)
-                                {
-                                    orderPoints = oldPoints.OrderByDescending(p => p.Z).ToList();
-                                    for (int i = 0; i < oldPoints.Count; i++)
-                                    {
-                                        //7.12추가
-                                        //Pipe가 두 가닥이고 웰드가 지그재그일때는 성립하지 않는 알고리즘이어서 파이프의 백터방향과 같지 않는 방향을 찾을때까지 반복.
-                                        //파이프 방향이 Z이면 파이프그룹을 구할때는 Z축을 뺴버린다.
-                                        Point3d fromVec = new Point3d(orderPoints[0].X, orderPoints[0].Y, 0);
-                                        Point3d toVec = new Point3d(orderPoints[i].X, orderPoints[i].Y, 0);
-                                        groupVec = fromVec.GetVectorTo(toVec).GetNormal();
-                                        if (Math.Round(groupVec.GetNormal().X, 1) == 1 || Math.Round(groupVec.GetNormal().X, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.X).ToList(); groupVecstr = "X"; break; }
-                                        else if (Math.Round(groupVec.GetNormal().Y, 1) == 1 || Math.Round(groupVec.GetNormal().Y, 1) == -1) { orderPoints = oldPoints.OrderByDescending(p => p.Y).ToList(); groupVecstr = "Z"; break; }
-                                    }
+                                    key.Add(i);
+                                    group_index++;
                                 }
                             }
+                            List<Point3d> group = new List<Point3d>();
+                            double aver_X = 0.0;
+                            double aver_Y = 0.0;
+                            double aver_Z = 0.0;
 
-                            // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
-                            // Spool 정보도 같이 불러온다. (맞대기 용접은 좌표를 더해서 반환)
-                            (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
-                            // WeldPoint들과 최소 거리에 있는 (현재는 300) WeldPoint들을 모두 그룹으로 묶는다.
-                            if (newPoints.Count > 0)
-                            {
-                                List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
-                                List<Point3d> point_Groups = new List<Point3d>();
-                                List<int> key = new List<int>();
-                                int group_index = 0;
-                                if (newPoints.Count > 1)
+                            int group_count = 0;
+                            for (int j = 0; j < near_Points.Count; j++)
+                                if (near_Points[j].Item1 == 0)
                                 {
-                                    near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[0]));
-                                    for (int i = 0; i < newPoints.Count; i++)
+                                    group_count++;
+                                    group.Add(near_Points[j].Item2);
+                                    aver_X += near_Points[j].Item2.X;
+                                    aver_Y += near_Points[j].Item2.Y;
+                                    aver_Z += near_Points[j].Item2.Z;
+                                }
+                            aver_X = aver_X / group_count;
+                            aver_Y = aver_Y / group_count;
+                            aver_Z = aver_Z / group_count;
+                            double basePoint = 0;
+
+                            //입력 받은 라인 끝점과 Spool포인트의 Vec에 따라 음수이면 그대로.
+                            //양수이면 Spool Line의 글씨 갯수/2 * 15 해서 플러스
+                            if (groupVecstr == "X") basePoint = aver_X + 300; // 이 값을 조정
+                            else if (groupVecstr == "Y") basePoint = aver_Y + 300;
+                            else basePoint = aver_Z + 300;
+
+                            List<double> basePointLi = new List<double>();
+                            for (int i = 0; i < spoolInfo_li.Count / 2; i++)
+                            {
+                                basePointLi.Add(aver_Y + (i * 15));
+                            }
+                            if (near_Points.Count == spoolInfo_li.Count)
+                            {
+                                // Vector 에 따른 TEXT의 회전값과 정렬.
+                                // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
+                                // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
+                                for (int k = 0; k < near_Points.Count; k++)
+                                {
+                                    string[] textString = new string[3];
+                                    textString[0] = "Left";
+                                    textString[1] = "Center";
+                                    textString[2] = "Right";
+
+                                    int[] textAlign = new int[3];
+                                    textAlign[0] = (int)TextHorizontalMode.TextLeft;
+                                    textAlign[1] = (int)TextHorizontalMode.TextCenter;
+                                    textAlign[2] = (int)TextHorizontalMode.TextRight;
+
+
+                                    DBText text = new DBText();
+                                    text.SetDatabaseDefaults();
+
+                                    //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
+                                    text.TextString = spoolInfo_li[k].ToString();
+                                    text.Normal = Vector3d.YAxis;
+                                    //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
+                                    text.Height = 12.0;
+                                    int nCnt = 0;
+                                    Point3d textPosition = new Point3d();
+
+                                    if (k % 2 == 0 && k != 0)
                                     {
-                                        // 용접 포인트의 Area별 그룹을 선택하기 위해 Tuple 자료형(중복키)
-                                        // newPoints를 서로 다른 인덱스로 탐색 i , j
-                                        // Group_index : Group Key로 구분
-                                        // key 배열 : i와 가까운 포인트의 배열의 인덱스들을 저장. 
-                                        // key 배열 : i가 중복 탐색하는 것을 방지.
-                                        if (key.Contains(i) == false)
-                                        {
-                                            for (int j = 1; j < newPoints.Count; j++)
-                                            {
-                                                if (key.Contains(j) == false)
-                                                {
-                                                    var dis = newPoints[i].DistanceTo(newPoints[j]);
-                                                    //ed.WriteMessage("좌표 : {0}\n", newPoints[j]);
-                                                    //ed.WriteMessage("거리값 : {0} \n", dis);
-                                                    if (dis < 300)
-                                                    {
-                                                        key.Add(j);
-                                                        ed.WriteMessage(group_index.ToString(), newPoints[j].ToString());
-                                                        near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[j]));
-                                                    }
-                                                }
-                                            }
-                                            key.Add(i);
-                                            group_index++;
-                                        }
+                                        basePoint -= 15; 
                                     }
-                                    List<Point3d> group = new List<Point3d>();
-                                    double aver_X = 0.0;
-                                    double aver_Y = 0.0;
-                                    double aver_Z = 0.0;
 
-                                    int group_count = 0;
-                                    for (int j = 0; j < near_Points.Count; j++)
-                                        if (near_Points[j].Item1 == 0)
-                                        {
-                                            group_count++;
-                                            group.Add(near_Points[j].Item2);
-                                            aver_X += near_Points[j].Item2.X;
-                                            aver_Y += near_Points[j].Item2.Y;
-                                            aver_Z += near_Points[j].Item2.Z;
-                                        }
-                                    aver_X = aver_X / group_count;
-                                    aver_Y = aver_Y / group_count;
-                                    aver_Z = aver_Z / group_count;
-
-                                    Line info_line = new Line();
-                                    info_line.StartPoint = new Point3d(aver_X, aver_Y, newPoints[0].Z);
-                                    info_line.EndPoint = new Point3d(aver_X, aver_Y + 300, newPoints[0].Z);
-                                    acBlkRec.AppendEntity(info_line);
-                                    acTrans.AddNewlyCreatedDBObject(info_line, true);
-                                    keyFilter keyFilter = new keyFilter();
-                                    //System.Windows.Forms.Application.AddMessageFilter(keyfilter);
-                                    System.Windows.Forms.Application.AddMessageFilter(keyFilter);
-                                    while (true)
+                                    if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
                                     {
-                                        // Check for user input events
-                                        System.Windows.Forms.Application.DoEvents();
-                                        // Check whether the filter has set the flag
-                                        if (keyFilter.bCanceled == true)
-                                        {
-                                            ed.WriteMessage("\n Loop cancelled.");
-                                            break;
-                                        }
-                                        if (keyFilter.bEntered == true)
-                                        {
-                                            ed.WriteMessage("\n H.");
-                                        }
-                                        ed.WriteMessage("\n Inside while loop...");
-                                    }
-                                    // We're done - remove the message filter
-                                    System.Windows.Forms.Application.RemoveMessageFilter(keyFilter);
-
-                                    double basePoint = 0;
-                                    if (groupVecstr == "X") basePoint = aver_X - 300;
-                                    else if (groupVecstr == "Y") basePoint = aver_Y - 300;
-                                    else basePoint = aver_Z - 300;
-
-                                    List<double> basePointLi = new List<double>();
-                                    for (int i = 0; i < spoolInfo_li.Count / 2; i++)
-                                    {
-                                        basePointLi.Add(aver_Y + (i * 15));
-                                    }
-                                    if (near_Points.Count == spoolInfo_li.Count)
-                                    {
-                                        // Vector 에 따른 TEXT의 회전값과 정렬.
-                                        // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
-                                        // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
-                                        for (int k = 0; k < near_Points.Count; k++)
-                                        {
-                                            string[] textString = new string[3];
-                                            textString[0] = "Left";
-                                            textString[1] = "Center";
-                                            textString[2] = "Right";
-
-                                            int[] textAlign = new int[3];
-                                            textAlign[0] = (int)TextHorizontalMode.TextLeft;
-                                            textAlign[1] = (int)TextHorizontalMode.TextCenter;
-                                            textAlign[2] = (int)TextHorizontalMode.TextRight;
-
-
-                                            DBText text = new DBText();
-                                            text.SetDatabaseDefaults();
-
-                                            //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
-                                            text.TextString = spoolInfo_li[k].ToString();
-                                            text.Normal = Vector3d.YAxis;
-                                            //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
-                                            text.Height = 12.0;
-                                            int nCnt = 0;
-                                            Point3d textPosition = new Point3d();
-
-                                            if (k % 2 == 0 && k != 0)
-                                            {
-                                                basePoint -= 15;
-                                            }
-
-                                            if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
-                                            {
-                                                //벡터가 양수이면 오른쪽 배치
-                                                nCnt = 2;
-                                            }
-                                            else
-                                            {
-                                                //백터가 음수이면 왼쪽 배치
-                                                nCnt = 0;
-                                            }
-
-                                            if (Math.Round(vec_li[k].GetNormal().X, 1) == 1 || Math.Round(vec_li[k].GetNormal().X, 1) == -1)
-                                            {
-                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
-                                                textPosition = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
-                                                if (groupVecstr == "Z") textPosition = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
-                                            }
-                                            if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1 || Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
-                                            {
-                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
-                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
-                                                textPosition = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
-                                                if (groupVecstr == "Z") textPosition = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -90, Vector3d.YAxis, Point3d.Origin));
-                                            }
-                                            if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
-                                            {
-                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 270, Vector3d.YAxis, Point3d.Origin));
-                                                //  text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
-                                                //  textPosition = new Point3d(near_Points[0].Item2.X, basePoint, newPoints[0].Z);
-                                                if (groupVecstr == "X") textPosition = new Point3d(basePoint, near_Points[0].Item2.Y, near_Points[0].Item2.Z);
-                                                else if (groupVecstr == "Y") textPosition = new Point3d(near_Points[0].Item2.X, basePoint, near_Points[0].Item2.Z);
-                                            }
-                                            text.Position = textPosition;
-                                            text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                            if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                            {
-                                                text.AlignmentPoint = textPosition;
-                                            }
-                                            acBlkRec.AppendEntity(text);
-                                            acTrans.AddNewlyCreatedDBObject(text, true);
-                                        }
+                                        //벡터가 양수이면 오른쪽 배치
+                                        nCnt = 2;
                                     }
                                     else
                                     {
-                                        ed.WriteMessage("\nError : 선택한 객체와 DDWorks상의 Spool갯수가 다릅니다.");
+                                        //백터가 음수이면 왼쪽 배치
+                                        nCnt = 0;
                                     }
-                                }
 
-                                List<Point3d> li = new List<Point3d>();
-                                foreach (var d in near_Points)
-                                {
-                                    if (d.Item1 == 1)
+                                    if (Math.Round(vec_li[k].GetNormal().X, 1) == 1 || Math.Round(vec_li[k].GetNormal().X, 1) == -1)
                                     {
-                                        li.Add(d.Item2);
+                                        text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
+                                        textPosition = new Point3d(newPoints[0].X, basePoint, newPoints[k].Z);
+                                        if (groupVecstr == "Z") textPosition = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint);
                                     }
+                                    if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1 || Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
+                                    {
+                                        text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                        text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
+                                        textPosition = new Point3d(basePoint, near_Points[0].Item2.Y, newPoints[k].Z);
+                                        if (groupVecstr == "Z") textPosition = new Point3d(near_Points[0].Item2.X, near_Points[0].Item2.Y, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -90, Vector3d.YAxis, Point3d.Origin));
+                                    }
+                                    if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
+                                    {
+                                        text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 270, Vector3d.YAxis, Point3d.Origin));
+                                        //  text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
+                                        //  textPosition = new Point3d(near_Points[0].Item2.X, basePoint, newPoints[0].Z);
+                                        if (groupVecstr == "X") textPosition = new Point3d(basePoint, near_Points[0].Item2.Y, near_Points[0].Item2.Z);
+                                        else if (groupVecstr == "Y") textPosition = new Point3d(near_Points[0].Item2.X, basePoint, near_Points[0].Item2.Z);
+                                    }
+                                    text.Position = textPosition;
+                                    text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                    if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                    {
+                                        text.AlignmentPoint = textPosition;
+                                    }
+                                    spoolTexts.Add(text.ObjectId);
+                                    acBlkRec.AppendEntity(text);
+                                    acTrans.AddNewlyCreatedDBObject(text, true);
                                 }
-
-                                //ed.WriteMessage("\nX 최대값 {0} 최소값 {1}\n Y 최대값 {2} 최소값 {3}\n Z 최대값 {4} 최소값 {5}",
-                                //    li.Max(p => p.X).ToString(), li.Min(p => p.X).ToString(),
-                                //    li.Max(p => p.Y).ToString(), li.Min(p => p.Y).ToString(),
-                                //    li.Max(p => p.Z).ToString(), li.Min(p => p.Z).ToString()
-                                //    );
-
-                                // InteractivePolyLine.RectangleInteractive(li);
-
-                                //Tee가 제외된 IDS반환필요
-                                //ObjectId[] ids = new ObjectId[count];
-                                //objs.CopyTo(ids, 0);
-                                //ed.SetImpliedSelection(ids);
                             }
-                            else
+                            //삭제 예정.
+                            List<Point3d> li = new List<Point3d>();
+                            foreach (var d in near_Points)
                             {
-                                ed.WriteMessage("\nError : 파이프 정보가 없습니다.");
+                                if (d.Item1 == 1)
+                                {
+                                    li.Add(d.Item2);
+                                }
                             }
-                            // 그룹이 선택되면 그룹과 그룹의 거리가 가까우면 머지한다. 
-                            // 그룹이 선택되었으면 배관그룹의 Vector방향과 파이프의 진행방향을 구한다. 이건 포인트별로 배관정보를 가져와 진행  Vector를 구한다. 
-                            // 그 다음객체가 파이프,파이프 or 유니온 or 그랜드 까지 OK tee는 제외 마지막 객체 제외. 용접포인트가 tee에 있는애인지 마지막인지만 판단하면 될 거 같다. 
-                            // 도면의 여러 탭을 사용할때 각 DB를 따로 불러와야하는 불편함도 있음.
-                            // 현재 도면에서 DB를 사용하지 않고 리터치하는 방향. 
-                            // 네모그리기. 회전하기 움직이기 등 네모와 화면상에 배관이 겹치는지 RAYCAST알고리즘 필요. 
-
+                            //
                         }
                         else
                         {
-                            ed.WriteMessage("\nError : 선택된 객체가 없습니다.");
+                            ed.WriteMessage("\nError : 파이프 정보가 없습니다.");
                         }
-                        acTrans.Commit();
-                        acTrans.Dispose();
-
-
+                    }
+                    else
+                    {
+                        ed.WriteMessage("\nError : 선택된 객체가 없습니다.");
                     }
                 }
                 catch (Autodesk.AutoCAD.Runtime.Exception ex)
                 {
                     MessageBox.Show(ex.ToString());
                 }
-            }
-
-        }
-        public class keyFilter : IMessageFilter
-        {
-            public const int WM_KEYDOWN = 0x0100;
-            public bool bCanceled = false;
-            public bool bEntered = false;
-            public bool PreFilterMessage(ref Message m)
-            {
-                if (m.Msg == WM_KEYDOWN)
-                {
-                    // Check for the Escape keypress
-                    Keys kc = (Keys)(int)m.WParam & Keys.KeyCode;
-                    if (m.Msg == WM_KEYDOWN && kc == Keys.Escape)
-                    {
-                        bCanceled = true;
-                    }
-                    if (m.Msg == WM_KEYDOWN && kc == Keys.G)
-                    {
-                        bEntered = true;
-                    }
-                    // Return true to filter all keypresses
-                    return true;
-                }
-                // Return false to let other messages through
-                return false;
+                acTrans.Commit();
+                acTrans.Dispose();
+                return spoolTexts;
             }
         }
     }
@@ -2553,6 +2511,32 @@ namespace PipeInfo
         public class Excel
         {
             //원하는 정보를 엑셀로 Export
+        }
+    }
+    public class keyFilter : IMessageFilter
+    {
+        public const int WM_KEYDOWN = 0x0100;
+        public bool bCanceled = false;
+        public bool bEntered = false;
+        public bool PreFilterMessage(ref Message m)
+        {
+            if (m.Msg == WM_KEYDOWN)
+            {
+                // Check for the Escape keypress
+                Keys kc = (Keys)(int)m.WParam & Keys.KeyCode;
+                if (m.Msg == WM_KEYDOWN && kc == Keys.Escape)
+                {
+                    bCanceled = true;
+                }
+                if (m.Msg == WM_KEYDOWN && kc == Keys.G)
+                {
+                    bEntered = true;
+                }
+                // Return true to filter all keypresses
+                return true;
+            }
+            // Return false to let other messages through
+            return false;
         }
     }
 }
