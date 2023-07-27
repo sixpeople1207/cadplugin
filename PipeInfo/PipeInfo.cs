@@ -148,9 +148,16 @@ namespace PipeInfo
             {
                 var pipe = new Pipe();
                 List<Polyline3d> linePoints = pipe.get_PolyLinePoints_By_PromptSelectResult(prSelRes);
-                List<Vector3d> groupVec = pipe.get_Pipe_SpoolGroup_Vector(linePoints);
-                 pipe.set_Distance_By_Pipe_between(groupVec, linePoints, pointCollection);
-                //blkRec.AppendEntity(line);
+                if (linePoints.Count > 1)
+                {
+                    List<Vector3d> groupVec = pipe.get_Pipe_SpoolGroup_Vector(linePoints);
+                    pipe.set_Distance_By_Pipe_between(groupVec, linePoints, pointCollection);
+                }
+                else
+                {
+                    ed.WriteMessage("\nError : 두개 이상의 파이프를 선택해 주세요.");
+                }
+                    //blkRec.AppendEntity(line);
                 //acTrans.AddNewlyCreatedDBObject(line, true);
             }
 
@@ -1011,6 +1018,10 @@ namespace PipeInfo
                     lineVecs.Add(new Vector3d(Math.Round(vec.X), Math.Round(vec.Y), Math.Round(vec.Z)));
                 }
                 bool equal = false;
+                if(lineVecs.Count == 1)
+                {
+                    equal = true;
+                }
                 for (int i = 1; i < lineVecs.Count; i++)
                 {
                     equal = lineVecs[0].IsEqualTo(lineVecs[i]);
@@ -1091,45 +1102,18 @@ namespace PipeInfo
                 else if (vecXYZ == 1) { gorupVecStr = "Y"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Y).ToList(); }
                 else if (vecXYZ == 2) {gorupVecStr = "Z"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Z).ToList(); }
 
-                foreach (var li in lines_Point)
-                {
-                    ed.WriteMessage("\n" + li.StartPoint.Z.ToString());
-                }
                 //차례대로 쓰기.
                 if (groupVecs.Count == lines_Point.Count - 1)
                 {
                     for (int i = 1; i < lines_Point.Count; i++)
                     {
                         DBText text = new DBText();
-                        // 이부분은 파이프의 진행방향만 필요 라인벡터에서 값을 가져와 곱해준다. 진행방향으로만 좌표추출.
-                        //Point3d midlePoint = new Point3d(
-                        //    Math.Abs(lines_Point[i].StartPoint.X - (lineVecs[0].X * (lines_Point[i].StartPoint.X - lines_Point[i].EndPoint.X)/2)),
-                        //    Math.Abs(lines_Point[i].StartPoint.Y - (lineVecs[0].Y * (lines_Point[i].StartPoint.Y - lines_Point[i].EndPoint.Y)/2)),
-                        //    Math.Abs(lines_Point[i].StartPoint.Z - (lineVecs[0].Z * (lines_Point[i].StartPoint.Z - lines_Point[i].EndPoint.Z)/2)));
+                     
                         Point3d midlePoint = new Point3d(
                              lines_Point[0].StartPoint.X + lineVecs[0].X* Math.Abs(lines_Point[0].StartPoint.X - lines_Point[0].EndPoint.X) / 2,
                              lines_Point[0].StartPoint.Y + lineVecs[0].Y* Math.Abs(lines_Point[0].StartPoint.Y - lines_Point[0].EndPoint.Y) / 2,
                              lines_Point[0].StartPoint.Z + lineVecs[0].Z * Math.Abs(lines_Point[0].StartPoint.Z - lines_Point[0].EndPoint.Z) / 2);
-                        // 텍스트 포지션
-                        //if (lineVecStr == "Z")
-                        //{
-                        //    text.Position = new Point3d(
-                        //        lines_Point[i].StartPoint.X, 
-                        //        lines_Point[i].StartPoint.Y, 
-                        //        midlePoint.Z);
-                        //}
-                        //else if (lineVecStr == "X")
-                        //{
-                        //    text.Position = new Point3d(midlePoint.X, lines_Point[i].StartPoint.Y, lines_Point[i].StartPoint.Z);
-                        //}
-                        //else if (lineVecStr == "Y")
-                        //{
-                        //    text.Position = new Point3d(
-                        //        lines_Point[i].StartPoint.X - 12,
-                        //        midlePoint.Y, 
-                        //        lines_Point[i].StartPoint.Z-(Math.Abs(Math.Round(lines_Point[i].StartPoint.Z - lines_Point[i - 1].StartPoint.Z, 1)))/2);
-                        //text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 270, Vector3d.YAxis, Point3d.Origin));
-                        // }
+  
                         text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
                         //gouprvecstr X LineVec Y일때 정확히 맞음.
                         if (gorupVecStr == "X" && lineVecStr == "Z")
@@ -1148,12 +1132,38 @@ namespace PipeInfo
                             lines_Point[i].StartPoint.Z);
                             text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.X - lines_Point[i - 1].StartPoint.X, 1)).ToString();
                         }
+                        else if (gorupVecStr == "Y" && lineVecStr == "Z")
+                        {
+                            text.Position = new Point3d(
+                            lines_Point[i].StartPoint.X + (groupVecs[0].X * 20.0),
+                            lines_Point[i].StartPoint.Y,
+                             midlePoint.Z
+                            );
+                            text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Y - lines_Point[i - 1].StartPoint.Y, 1)).ToString();
+                        }
+                        else if (gorupVecStr == "Y" && lineVecStr == "X")
+                        {
+                            text.Position = new Point3d(
+                             midlePoint.X,
+                            lines_Point[i].StartPoint.Y,
+                            lines_Point[i].StartPoint.Z
+                            );
+                            text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Y - lines_Point[i - 1].StartPoint.Y, 1)).ToString();
+                        }
                         else if (gorupVecStr == "Z" && lineVecStr == "Y")
                         {
                             text.Position = new Point3d(
                             lines_Point[i].StartPoint.X,
                             midlePoint.Y,
-                            lines_Point[i].StartPoint.Z+ (groupVecs[0].Z * 20.0));
+                            lines_Point[i].StartPoint.Z);
+                            text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Z - lines_Point[i - 1].StartPoint.Z, 1)).ToString();
+                        }
+                        else if (gorupVecStr == "Z" && lineVecStr == "X")
+                        {
+                            text.Position = new Point3d(
+                                midlePoint.X,
+                            lines_Point[i].StartPoint.Y,
+                            lines_Point[i].StartPoint.Z);
                             text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Z - lines_Point[i - 1].StartPoint.Z, 1)).ToString();
                         }
                         text.Height = 12;
