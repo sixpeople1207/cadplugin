@@ -1,6 +1,5 @@
 ﻿using AutoCAD;
 using Autodesk.AutoCAD.ApplicationServices;
-using Autodesk.AutoCAD.Customization;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
@@ -9,19 +8,18 @@ using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.Core.Metadata.Edm;
+using System.Data;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using static System.Windows.Forms.LinkLabel;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
-
+using CadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 namespace PipeInfo
 {
     public class PipeInfo
@@ -598,7 +596,7 @@ namespace PipeInfo
          * 명 령 어 : ss
          */
         [CommandMethod("ss")]
-        public async void select_Welding_Point()
+        public void select_Welding_Point()
         {
             //스풀 경계부분의 정보를 가져와 도면상에 보여준다.
             try
@@ -2046,6 +2044,24 @@ namespace PipeInfo
             if (db_doc.Name != null)
             {
                 drawingName = Path.GetFileName(db_doc.Name).Split('.')[0];
+                //string connstr = "Data Source=" + acDB_path;
+                //using (var cn = new SqlConnection(connstr))
+                //{
+                //    try
+                //    {
+                //        cn.Open();
+                //        CadApp.ShowAlertDialog("Connected!");
+                //    }
+                //    catch (System.Exception ex)
+                //    {
+                //        CadApp.ShowAlertDialog(
+                //            $"Connecting to SQL Server failed:\n{ex.Message}");
+                //    }
+                //    finally
+                //    {
+                //        if (cn.State == ConnectionState.Open) cn.Close();
+                //    }
+                //}
             }
             else
             {
