@@ -45,3 +45,10 @@ C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.CoreCom
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.CopyComplete
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo_8.dll
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo_8.pdb
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.AssemblyReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\Interop.AutoCAD.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\Interop.AXDBLib.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.ResolveComReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.DB_Path_Winform.resources
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.GenerateResource.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Debug\PipeInfo.csproj.CoreCompileInputs.cache
