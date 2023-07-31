@@ -20,6 +20,8 @@ using Excel = Microsoft.Office.Interop.Excel;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using CadApp = Autodesk.AutoCAD.ApplicationServices.Application;
+using Microsoft.Office.Interop.Excel;
+
 namespace PipeInfo
 {
     public class PipeInfo
@@ -165,7 +167,7 @@ namespace PipeInfo
         }
 
 
-        //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.
+        //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.e
         [CommandMethod("ee")]
         public void selectBlock_ExportToInnerInformation()
         {
@@ -267,12 +269,6 @@ namespace PipeInfo
                                             titleBoard_textAllLi.Add(te);
                                         }
                                     }
-                                    //titleBoard_textLi = titleBoard_textLi.OrderByDescending(t => t.AlignmentPoint.Y).ToList();
-                                    //foreach ((var textBoard, var j) in titleBoard_textLi.Select((value, j) => (value, j)))
-                                    //{
-                                    //   //bool is_inOut = comparePoint.isInside_boundary(textBoard.Position, title.MinPoint, title.MaxPoint);
-                                    //   //if (is_inOut) { excel.excel_InsertData(i, columns[j], textBoard.TextString); }
-                                    //}
                                 }
                                 // 기능 이름 : 시트 구역별 용접 번호 가져오기
                                 // 구현 순서 : 
@@ -283,8 +279,10 @@ namespace PipeInfo
                                 // 6. 일치하면 용접번호와 TitleBoard정보를 엑셀에 쓴다.
 
                                 List<DBText> weld_Numbers_li = new List<DBText>();
-                                int sheet_index = 0;
+                                int weld_Rows_Count = 0;
                                 int board_index = 0;
+                                int current_Row_Num = 0;
+                                bool isRow_Insert = false;
                                 int[] columns_2 = { 4, 7, 2, 6, 8, 3, 9, 5, 1 };
                                 // Circle위치에 해당하는 Text객체만 가져온다. 용접포인트에 해당하는 용접번호.
                                 foreach (var cir in cirPosLi)
@@ -299,25 +297,47 @@ namespace PipeInfo
                                     }
                                 }
                                 List<string> textLiStr = new List<string>();
+                                List<int> startToEnd_li = new List<int>();
                                 //List<Extents3d> sheetPosLiDistinct = sheetPosLi.Distinct().ToList();
                                 //전체 TEXT위치에서 Sheet 위치에 해당하는 Text만 차례대로 옉셀에 쓰기를 진행한다. 
-                                foreach ((var sheet, var i) in sheetPosLi.Select((value, i) => (value, i)))
+                                foreach (var sheet in sheetPosLi)
                                 {
+                                    //표제란 정보를 한번만 쓰고, 나머지는 Rows를 추가해 빈공간을 만든다.
+                                    isRow_Insert=true;
                                     foreach ((var te, var j) in weld_Numbers_li.Select((value, j) => (value, j)))
                                     {
                                         bool is_inOut = comparePoint.isInside_boundary(te.Position, sheet.MinPoint, sheet.MaxPoint);
-                                        if (is_inOut) { excel.excel_InsertData(i, 10 + sheet_index, te.TextString); sheet_index++; }
+                                        if (is_inOut) { excel.excel_InsertData(current_Row_Num, 10, te.TextString, isRow_Insert); weld_Rows_Count++; current_Row_Num++; }
                                     }
+                                    //행 추가기능 멈춤.
+                                    isRow_Insert = false;
+                                    //만약 도곽내에 웰딩 포인트가 없다면 엑셀 내에서 한줄밑에 써준다.
+                                    if (weld_Rows_Count == 0)
+                                    {
+                                        current_Row_Num++;
+                                    }
+                                    //도곽내에 있는 표제란정보가 도곽 영역내부에 있는지 판단.
                                     foreach (var board_Text in titleBoard_textAllLi)
                                     {
                                         bool is_inOut = comparePoint.isInside_boundary(board_Text.Position, sheet.MinPoint, sheet.MaxPoint);
-                                        if (is_inOut) { excel.excel_InsertData(i, columns_2[board_index], board_Text.TextString); board_index++; }
-                                        if (board_index > 8)
-                                        {
-                                            board_index = 0;
-                                        }
+                                        //현재행에서 웰딩포인트 갯수를 빼주면 첫 행의 번호를 알 수 있다.
+                                        if (is_inOut) {excel.excel_InsertData(current_Row_Num - weld_Rows_Count, columns_2[board_index], board_Text.TextString, isRow_Insert); board_index++;}
+                                        if (board_index > 8){board_index = 0;}
                                     }
-                                    sheet_index = 0;
+                                    //웰딩 포인트를 발견한다면 표제란의 시작행번호와 끝 행번호를 리스트에 저장한다.
+                                    if (weld_Rows_Count > 0)
+                                    {
+                                        startToEnd_li.Add(current_Row_Num - weld_Rows_Count);
+                                        startToEnd_li.Add(current_Row_Num);
+                                    }
+                                    //다음 도곽정보에서 웰딩포이트 카운트를 위해 초기화
+                                    weld_Rows_Count = 0;
+                                }
+                                
+                                //도곽을 모두 순회완료하고나서 엑셀 표제란에 빈공간을 채워준다. 표제란 영역복사 붙여넣기.
+                                for (int k = 1; k < startToEnd_li.Count; k += 2)
+                                {
+                                    excel.excel_CopyTo_StartEnd(startToEnd_li[k - 1], startToEnd_li[k]);
                                 }
                                 excel.excel_save();
                                 //}
@@ -1236,10 +1256,26 @@ namespace PipeInfo
                 r++;
             }
         }
-        public void excel_InsertData(int row, int column, string data)
+        public void excel_InsertData(int row, int column, string data, bool isRow_Insert)
         {
-            //2번째 줄부터 작성시작
+            //표제도곽의 정보가 복사될 빈 공간을 만들어 준다. 도곽정보는 첫 번째 행에만 들어있고 
+            //excel_CopyTo_StartEnd로 빈 공간에 쓰기를 한다.
+            if (isRow_Insert)
+            {
+                ws.Rows[row+2].Insert(XlDirection.xlDown);
+            }
+            //기본적으로 도곽의 헤더값이 첫 행에 들어가니 2번째 행부터 값 시작.
             ws.Cells[row + 2, column] = data;
+
+        }
+        // 기능 엑셀의 첫 지점과 끝지점을 주면 첫 번째 줄을 끝줄까지 모두 복사한다.
+        public void excel_CopyTo_StartEnd(int start, int end)
+        {
+            //기본적으로 도곽의 헤더값이 첫 행에 들어가니 2번째 행부터 값 시작.
+            int header_Count = 2;
+            //입력 받는 end값은 0부터 시작카운트한 값이니 1을 더 더해준다.
+            int paste_Rows = 1;
+            ws.Range[string.Format("A{0}:I{0}", start+ header_Count)].Copy(ws.Range[string.Format("A{0}:I{1}", start+ header_Count+ paste_Rows, end+ paste_Rows)]);   
         }
         public void excel_save()
         {
@@ -1249,7 +1285,6 @@ namespace PipeInfo
                 {
                     Document doc = Application.DocumentManager.MdiActiveDocument;
                     Editor ed = doc.Editor;
-                    string drawingName = "";
                     SaveFileDialog dlg = new SaveFileDialog();
                     dlg.Filter = "EXCEL 파일(*.xlsx)|*.xls";
                     dlg.FileName = "제목없음" + ".xls";

@@ -82,9 +82,6 @@ C:\Users\82103\Source\Repos\sixpeople1207\cadplugin\PipeInfo\bin\x64\Debug\72.dl
 C:\Users\82103\Source\Repos\sixpeople1207\cadplugin\PipeInfo\bin\x64\Debug\72.pdb
 C:\Users\82103\Source\Repos\sixpeople1207\cadplugin\PipeInfo\obj\x64\Debug\72.dll
 C:\Users\82103\Source\Repos\sixpeople1207\cadplugin\PipeInfo\obj\x64\Debug\72.pdb
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\DDWorksISO_Retouch_PlugIn_Ver_1.dll.config
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\DDWorksISO_Retouch_PlugIn_Ver_1.dll
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\DDWorksISO_Retouch_PlugIn_Ver_1.pdb
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.AssemblyReference.cache
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\Interop.AutoCAD.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\Interop.AXDBLib.dll
@@ -92,5 +89,13 @@ C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.Res
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.DB_Path_Winform.resources
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.GenerateResource.cache
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\DDWorksISO_Retouch_PlugIn_Ver_1.dll
-C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\DDWorksISO_Retouch_PlugIn_Ver_1.pdb
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\System.Data.SQLite.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\System.Data.SQLite.xml
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\69.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\70.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\71.dll.config
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\71.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\71.pdb
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\71.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\71.pdb
