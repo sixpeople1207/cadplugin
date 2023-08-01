@@ -1,0 +1,114 @@
+﻿<adw:RibbonTab
+   x:Key="TabXaml" Title="Custom Tab XAML" Id="CustomTabXaml">
+
+	<adw:RibbonPanel >
+
+		<adw:RibbonPanelSource Title="Custom Panel XAML" >
+
+			<!--Add a ribbon row-->
+
+			<!--Note: You could add only rows
+
+                  to the panel source content-->
+
+			<adw:RibbonRow x:Uid="adw:RibbonRow_1">
+
+				<!--Add Ribbon Items here-->
+
+				<!--The items could be any RibbonItem derived classes-->
+
+				<!--Like RibbonButton
+
+              RibbonDropDownButton,
+
+              RibbonForm,
+
+              RibbonHwnd,
+
+              RibbonLabel
+
+              RibbonMenuButton,
+
+              RibbonRowPanel,
+
+              RibbonSeperator,
+
+              RibbonToggleButton
+
+              or any RibbonItem derived custom controls-->
+
+				<adw:RibbonButton Id="ClickMe_2" ShowText="true">
+
+					<adw:RibbonButton.Orientation>
+
+						<Orientation>
+
+							Vertical
+
+						</Orientation>
+
+					</adw:RibbonButton.Orientation>
+
+					<adw:RibbonButton.Image>
+
+						<BitmapImage
+
+						  UriSource="Images/bitmap1.bmp"/>
+
+					</adw:RibbonButton.Image>
+
+					<adw:RibbonButton.LargeImage>
+
+						<BitmapImage
+
+						  UriSource="Images/bitmap1.bmp"/>
+
+					</adw:RibbonButton.LargeImage>
+
+					<adw:RibbonButton.Size>
+
+						<adw:RibbonItemSize>
+
+							Large
+
+						</adw:RibbonItemSize>
+
+					</adw:RibbonButton.Size>
+
+					<adw:RibbonButton.Text>
+
+						Click Me
+
+					</adw:RibbonButton.Text>
+
+					<adw:RibbonButton.ToolTip>
+
+						<src:RibbonToolTip
+
+						  BasicText = "Click Me basic help"
+
+						  CommandName = "ClickMe"
+
+						  ExtendedURISource =
+
+                  "/MyRibbon;component/Dictionary1.xaml"
+
+						  ExtendedURISourceKey = "ClickMe_ToolTip"
+
+						  HelpSource = "./Help/readme.chm"
+
+						  HelpTopic =
+
+                  "WS1a9193826455f5ff1dbc298511635bea8752e2f"/>
+
+					</adw:RibbonButton.ToolTip>
+
+				</adw:RibbonButton>
+
+			</adw:RibbonRow>
+
+		</adw:RibbonPanelSource>
+
+	</adw:RibbonPanel>
+
+</adw:RibbonTab>

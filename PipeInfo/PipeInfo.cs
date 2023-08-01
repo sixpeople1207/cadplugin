@@ -6,9 +6,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Windows.Media.Imaging; 
 using System.Drawing.Imaging;
-using System.Reflection;
 using System.Drawing;
+using System.Reflection;
 using Microsoft.Office.Interop.Excel;
 
 using AutoCAD;
@@ -28,6 +29,8 @@ using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using Autodesk.Windows;
 using Autodesk.AutoCAD.ApplicationServices.Core;
+using System.Security.Cryptography.X509Certificates;
+using System.Windows.Media;
 
 namespace PipeInfo
 {
@@ -947,8 +950,29 @@ namespace PipeInfo
         [CommandMethod("ui")]
         public void dd()
         {
-            RibbonButton Button = new RibbonButton();
-            
+            Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
+            //RibbonControl >> RibbonTab >> RibbonPanel >> 
+            RibbonTab tab = new RibbonTab();
+            tab.Title = "DDWORKS";
+            tab.Id = "Tab_ID";
+            ribbonControl.Tabs.Add(tab);
+
+            Autodesk.Windows.RibbonPanelSource panelSor = new RibbonPanelSource();
+            panelSor.Title = "Panel1";
+            RibbonPanel panel = new RibbonPanel();
+            panel.Source = panelSor;
+
+            tab.Panels.Add(panel);
+            RibbonTab tab = resourceDictionary["TabXaml"] as RibbonTab;
+            RibbonRowPanel panRow = new RibbonRowPanel();
+            RibbonButton button = new RibbonButton();
+            button.Text = "Spool Text";
+            button.ShowText = true;
+            button.ShowImage = true;
+            button.Image = 
+            panelSor.Items.Add(button);
+            panelSor.Items.Add(panRow);
+
         }
 
         /* --------------- [CLASS START]-------------------*/
@@ -2103,24 +2127,6 @@ namespace PipeInfo
                 if (db_doc.Name != null)
                 {
                     drawingName = Path.GetFileName(db_doc.Name).Split('.')[0];
-                    //string connstr = "Data Source=" + acDB_path;
-                    //using (var cn = new SqlConnection(connstr))
-                    //{
-                    //    try
-                    //    {
-                    //        cn.Open();
-                    //        CadApp.ShowAlertDialog("Connected!");
-                    //    }
-                    //    catch (System.Exception ex)
-                    //    {
-                    //        CadApp.ShowAlertDialog(
-                    //            $"Connecting to SQL Server failed:\n{ex.Message}");
-                    //    }
-                    //    finally
-                    //    {
-                    //        if (cn.State == ConnectionState.Open) cn.Close();
-                    //    }
-                    //}
                 }
                 else
                 {
