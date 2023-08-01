@@ -693,8 +693,6 @@ namespace PipeInfo
                                 //엔터키로 돌리고 SpoolGroup 방향 기준
                                 //스페이스바로 글씨 회전. 배관 진행방향.
                                 System.Windows.Forms.Application.AddMessageFilter(keyFilter);
-
-
                                 while (true)
                                 {
                                     //메세지 처리 문제는 나중에 진행.
@@ -709,8 +707,6 @@ namespace PipeInfo
                                     {
                                         using (Transaction actras = db.TransactionManager.StartTransaction())
                                         {
-                                            //ed.SetImpliedSelection(spoolTexts.ToArray());
-                                            //ed.Command("._3DROTATE");
                                             foreach (var id in spoolTexts)
                                             {
                                                 DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
@@ -1905,6 +1901,7 @@ namespace PipeInfo
                                 int text_SideBetween_Dis = 20;
                                 int text_TopDownBetween_Dis = 25;
                                 int textTrans_Ang = 90;
+                                Point3d befor_TextPosition = new Point3d();
 
                                 if (groupVecstr == "X")
                                 {
@@ -1955,13 +1952,28 @@ namespace PipeInfo
                                         //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
                                         text.Height = 12.0;
                                         int nCnt = 0;
-
+                                       
                                         Point3d textPosition = new Point3d();
 
-                                        if (k % 2 == 0 && k != 0)
+                                        if(k > 0)
+                                        {
+                                        string[] beforeText = spoolInfo_li[k - 1].Split('_');
+                                        string[] afterText = spoolInfo_li[k].Split('_');
+                                        if (beforeText[2] != afterText[2])
                                         {
                                             basePoint -= text_TopDownBetween_Dis;
                                         }
+                                        }
+
+                                        //if (k % 2 != 0 && k != 0)
+                                        //{
+                                        //    string[] beforeText = spoolInfo_li[k - 1].Split('_');
+                                        //    string[] afterText = spoolInfo_li[k].Split('_');
+                                        //    if (beforeText[3] != afterText[3])
+                                        //    {
+                                        //        basePoint -= text_TopDownBetween_Dis;
+                                        //    }
+                                        //}
 
                                         if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
                                         {
@@ -2020,7 +2032,14 @@ namespace PipeInfo
                                             }
 
                                         }
+                                        if (textPosition.IsEqualTo(befor_TextPosition))
+                                        {
+                                            if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z);
+                                            else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
+                                            else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y , textPosition.Z - text_TopDownBetween_Dis);
+                                        }
                                         text.Position = textPosition;
+                                        befor_TextPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z);
                                         text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
                                         if (text.HorizontalMode != TextHorizontalMode.TextLeft)
                                         {
