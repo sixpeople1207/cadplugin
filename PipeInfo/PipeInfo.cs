@@ -963,15 +963,15 @@ namespace PipeInfo
             panel.Source = panelSor;
 
             tab.Panels.Add(panel);
-            RibbonTab tab = resourceDictionary["TabXaml"] as RibbonTab;
+          //  RibbonTab tab = resourceDictionary["TabXaml"] as RibbonTab;
             RibbonRowPanel panRow = new RibbonRowPanel();
             RibbonButton button = new RibbonButton();
             button.Text = "Spool Text";
             button.ShowText = true;
             button.ShowImage = true;
-            button.Image = 
-            panelSor.Items.Add(button);
-            panelSor.Items.Add(panRow);
+            //button.Image = 
+          //  panelSor.Items.Add(button);
+          //  panelSor.Items.Add(panRow);
 
         }
 
@@ -1979,24 +1979,19 @@ namespace PipeInfo
                                        
                                         Point3d textPosition = new Point3d();
 
-                                        if(k > 0)
+                                        if (k > 0)
                                         {
-                                        string[] beforeText = spoolInfo_li[k - 1].Split('_');
-                                        string[] afterText = spoolInfo_li[k].Split('_');
-                                        if (beforeText[2] != afterText[2])
-                                        {
-                                            basePoint -= text_TopDownBetween_Dis;
-                                        }
+                                            string[] beforeText = spoolInfo_li[k - 1].Split('_');
+                                            string[] afterText = spoolInfo_li[k].Split('_');
+                                            if (beforeText[beforeText.Count()-2] != afterText[beforeText.Count() - 2])
+                                            {
+                                                basePoint -= text_TopDownBetween_Dis;
+                                            }
                                         }
 
                                         //if (k % 2 != 0 && k != 0)
                                         //{
-                                        //    string[] beforeText = spoolInfo_li[k - 1].Split('_');
-                                        //    string[] afterText = spoolInfo_li[k].Split('_');
-                                        //    if (beforeText[3] != afterText[3])
-                                        //    {
-                                        //        basePoint -= text_TopDownBetween_Dis;
-                                        //    }
+                                        //   basePoint -= text_TopDownBetween_Dis;
                                         //}
 
                                         if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
@@ -2042,14 +2037,14 @@ namespace PipeInfo
                                         }
                                         if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
                                         {
-                                            //  text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 270, Vector3d.YAxis, Point3d.Origin));
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
                                             text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
-                                            if (nCnt == 2)
+                                            if (nCnt == 0)
                                             {
                                                 if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z - text_SideBetween_Dis);
                                                 else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z - text_SideBetween_Dis);
                                             }
-                                            else if (nCnt == 0)
+                                            else if (nCnt == 2)
                                             {
                                                 if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
                                                 else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
