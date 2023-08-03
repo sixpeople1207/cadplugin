@@ -32,6 +32,9 @@ using Autodesk.AutoCAD.ApplicationServices.Core;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Media;
 
+[assembly: ExtensionApplication(typeof(PipeInfo.App))]
+[assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
+
 namespace PipeInfo
 {
     public class PipeInfo
@@ -42,7 +45,6 @@ namespace PipeInfo
         //등 중복되는 정보들을 하나로 통합하기. 
         //나중에는 Handle과 Spool정보와 길이를 맵핑한다. 
         //추가할 기능은 같은 레벨에 있는 텍스트를 선택하기 정도.. 
-
         public string db_path = "";
         public void DataGet(string data)
         {
@@ -175,7 +177,6 @@ namespace PipeInfo
             }
 
         }
-
 
         //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.e
         [CommandMethod("ee")]
@@ -947,8 +948,8 @@ namespace PipeInfo
             //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
 
         }
-        [CommandMethod("ui")]
-        public void dd()
+      //  [CommandMethod("ui")]
+        public void ui()
         {
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
             //RibbonControl >> RibbonTab >> RibbonPanel >> 
@@ -2916,8 +2917,37 @@ namespace PipeInfo
                 return false;
             }
         }
-
     }
+    public class App : IExtensionApplication
+    {
+        static PipeInfo _palette;
+
+        public void Initialize()
+        {
+            // ... other stuff
+            // Create a hook on the "Idle" event of the application class
+            Application.Idle += new EventHandler(Application_Idle);
+
+        }
+
+        public void Terminate()
+        {
+            Console.WriteLine("Cleaning up...");
+        }
+        void Application_Idle(object sender, EventArgs e)
+        {
+
+            // Remove the event handler as it is no longer needed
+            Application.Idle -= Application_Idle;
+
+          _palette = new PipeInfo();
+          _palette.ui();
+
+        }
+
+   
+    }
+
 }
 
 //단축키 Ctrl+K -> Ctrl+E

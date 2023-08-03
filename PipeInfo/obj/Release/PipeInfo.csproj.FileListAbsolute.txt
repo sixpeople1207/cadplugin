@@ -1,0 +1,7 @@
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\PipeInfo.csproj.AssemblyReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\Interop.AutoCAD.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\Interop.AXDBLib.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\PipeInfo.csproj.ResolveComReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\PipeInfo.DB_Path_Winform.resources
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\PipeInfo.csproj.GenerateResource.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\Release\PipeInfo.csproj.CoreCompileInputs.cache

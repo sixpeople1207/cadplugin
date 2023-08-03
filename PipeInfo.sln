@@ -5,28 +5,46 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PipeInfo", "PipeInfo\PipeInfo.csproj", "{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}"
 EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "DDWorks_CAD_PlugIn", "DDWorks_CAD_PlugIn\DDWorks_CAD_PlugIn.vdproj", "{6780C308-C1EA-4AC7-921B-1E935259CDC9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|ARM64 = Debug|ARM64
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|ARM64 = Release|ARM64
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|ARM64.Build.0 = Debug|Any CPU
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|x64.ActiveCfg = Debug|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|x64.Build.0 = Debug|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|x86.ActiveCfg = Debug|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Debug|x86.Build.0 = Debug|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|ARM64.ActiveCfg = Release|ARM64
+		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|ARM64.Build.0 = Release|ARM64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|x64.ActiveCfg = Release|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|x64.Build.0 = Release|x64
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|x86.ActiveCfg = Release|x86
 		{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}.Release|x86.Build.0 = Release|x86
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Debug|Any CPU.ActiveCfg = Debug
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Debug|ARM64.ActiveCfg = Debug
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Debug|ARM64.Build.0 = Debug
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Debug|x64.ActiveCfg = Debug
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Debug|x86.ActiveCfg = Debug
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Release|Any CPU.ActiveCfg = Release
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Release|ARM64.ActiveCfg = Release
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Release|ARM64.Build.0 = Release
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Release|x64.ActiveCfg = Release
+		{6780C308-C1EA-4AC7-921B-1E935259CDC9}.Release|x86.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

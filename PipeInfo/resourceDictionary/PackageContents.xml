@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0" ProductType="Application" Name="DDworks" AppVersion="1.0" Description="Command" Author="Jade" FriendlyVersion="1.0" AutodeskProduct="AutoCAD">
+<CompanyDetails Name="Jade"/>
+  <Components>
+    <RuntimeRequirements SupportPath="./Contents/CircleOrRecNumber" OS="Win32|Win64" Platform="AutoCAD*" SeriesMin="R19.0" SeriesMax="R24.2" />
+    <ComponentEntry AppName="CircleOrRecNumber" Version="1.0" ModuleName="./Contents/CircleOrRecNumber/CircleOrRecNumber.dll" LoadOnAppearance="True" LoadOnAutoCADStartup="True" LoadOnCommandInvocation="True">
+      <Commands GroupName="CircleOrRecNumber">
+        <Command Local="MLNUMBER" Global="MLNUMBER" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
+  <Components>
+    <RuntimeRequirements SupportPath="./Contents/CircleNumber" OS="Win32|Win64" Platform="AutoCAD*" SeriesMin="R19.0" SeriesMax="R24.2" />
+    <ComponentEntry AppName="DDworks_Cad" Version="1.0" ModuleName="./Contents/plugin.dll" LoadOnAppearance="True" LoadOnAutoCADStartup="True" LoadOnCommandInvocation="True">
+      <Commands GroupName="DDworks_Cad">
+        <Command Local="DINNO" Global="DINNO" />
+      </Commands>
+    </ComponentEntry>
+  </Components>
+</ApplicationPackage>

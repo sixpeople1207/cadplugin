@@ -2,3 +2,10 @@ C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.A
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.DB_Path_Winform.resources
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.GenerateResource.cache
 C:\Users\sixpe\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.CoreCompileInputs.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.AssemblyReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\Interop.AutoCAD.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\Interop.AXDBLib.dll
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.ResolveComReference.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.DB_Path_Winform.resources
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.GenerateResource.cache
+C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Release\PipeInfo.csproj.CoreCompileInputs.cache
