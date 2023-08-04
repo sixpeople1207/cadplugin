@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging; 
 using System.Drawing.Imaging;
 using System.Drawing;
@@ -31,6 +32,15 @@ using Autodesk.Windows;
 using Autodesk.AutoCAD.ApplicationServices.Core;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Media;
+using System.Runtime.InteropServices.ComTypes;
+using static Autodesk.AutoCAD.Internal.LayoutContextMenu;
+using System.Windows;
+using System.Resources;
+using MessageBox = System.Windows.Forms.MessageBox;
+using System.Windows.Controls;
+using Orientation = System.Windows.Controls.Orientation;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Drawing.Printing;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -948,7 +958,7 @@ namespace PipeInfo
             //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
 
         }
-      //  [CommandMethod("ui")]
+        [CommandMethod("ui")]
         public void ui()
         {
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
@@ -956,26 +966,103 @@ namespace PipeInfo
             RibbonTab tab = new RibbonTab();
             tab.Title = "DDWORKS";
             tab.Id = "Tab_ID";
-            ribbonControl.Tabs.Add(tab);
 
-            Autodesk.Windows.RibbonPanelSource panelSor = new RibbonPanelSource();
-            panelSor.Title = "Panel1";
+            RibbonPanelSource panelSor = new RibbonPanelSource();
+            panelSor.Title = "Spool Information";
+
             RibbonPanel panel = new RibbonPanel();
-            panel.Source = panelSor;
+            RibbonPanel panel_1 = new RibbonPanel();
 
-            tab.Panels.Add(panel);
-          //  RibbonTab tab = resourceDictionary["TabXaml"] as RibbonTab;
-            RibbonRowPanel panRow = new RibbonRowPanel();
+            RibbonTextBox textbox = new RibbonTextBox();
+            textbox.Width = 100;
+            textbox.IsEmptyTextValid = false;
+            textbox.AcceptTextOnLostFocus = true;
+            textbox.InvokesCommand = true;
+            textbox.Text = "1\" Vavle길이";
+            textbox.Size = RibbonItemSize.Standard;
+            textbox.TextValue = "40";
+            panelSor.Items.Add(textbox);
+            panelSor.Items.Add(new RibbonRowBreak());
+
+            RibbonTextBox textbox1 = new RibbonTextBox();
+            textbox1.Width = 100;
+            textbox1.IsEmptyTextValid = false;
+            textbox1.AcceptTextOnLostFocus = true;
+            textbox1.InvokesCommand = true;
+            textbox1.Size = RibbonItemSize.Standard;
+            textbox1.Text = "1\" Vavle길이";
+            textbox1.TextValue = "40";
+            panelSor.Items.Add(textbox1);
+
+            RibbonCombo cmd = new RibbonCombo();
+            cmd.Name = "cmd1";
+            cmd.Id = "Mycmd1";
+            cmd.Text = "Template Size";
+            cmd.IsEnabled = true;
+            cmd.ShowText = true;
+            panelSor.Items.Add(cmd);
+
             RibbonButton button = new RibbonButton();
-            button.Text = "Spool Text";
+            button.Orientation = Orientation.Vertical;
+            button.Text = "Lines\nDistance";
+            button.Size = RibbonItemSize.Large;
             button.ShowText = true;
             button.ShowImage = true;
-            //button.Image = 
-          //  panelSor.Items.Add(button);
-          //  panelSor.Items.Add(panRow);
+            button.LargeImage = Images.getBitmap(Properties.Resources.line);
+            button.CommandParameter = "LineChecked ";
+            button.CommandHandler = new RibbonCommandHandler();
+            panelSor.Items.Add(button);
+            
+            RibbonButton button2 = new RibbonButton();
+            button2.Orientation = Orientation.Vertical;
+            button2.Size = RibbonItemSize.Large;
+            button2.ShowImage = true;
+            button2.ShowText = true;
+            button2.LargeImage = Images.getBitmap(Properties.Resources.CLOUD);
+            button2.Text = "Spool\nText";
+            panelSor.Items.Add(button2);
+
+            panel.Source = panelSor;
+            tab.Panels.Add(panel);
+
+            ribbonControl.Tabs.Add(tab);
 
         }
+        public class RibbonCommandHandler : System.Windows.Input.ICommand
+        {
+            public bool CanExecute(object parameter)
+            {
+                return true;
+            }
 
+            public event EventHandler CanExecuteChanged;
+
+            public void Execute(object parameter)
+            {
+                Document doc = acadApp.DocumentManager.MdiActiveDocument;
+                PipeInfo pi = new PipeInfo();
+                if (parameter is RibbonButton)
+                {
+                    RibbonButton button = parameter as RibbonButton;
+                    pi.select_Welding_Point();
+                    doc.Editor.WriteMessage("\nRibbonButton Executed: " + button.Text + "\n");
+                }
+            }
+        }
+        public class Images
+        {
+            public static BitmapImage getBitmap(Bitmap image)
+            {
+                MemoryStream stream = new MemoryStream();
+                image.Save(stream, ImageFormat.Png);
+                BitmapImage bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.StreamSource = stream;
+                bmp.EndInit();
+
+                return bmp;
+            }
+        }
         /* --------------- [CLASS START]-------------------*/
         /* 클래스 이름 : Pipe
          * 기능 설명 : Pipe에 관련된 기능.*/

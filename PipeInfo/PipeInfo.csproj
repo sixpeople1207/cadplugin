@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>DDWorks_ISO_Retouch_PlugIn_Ver_2</AssemblyName>
+    <AssemblyName>42</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -189,6 +189,11 @@
       <DependentUpon>DB_Path_Winform.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -198,11 +203,20 @@
     <EmbeddedResource Include="DB_Path_Winform.resx">
       <DependentUpon>DB_Path_Winform.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="CLOUD.bmp" />
     <Content Include="DINNO ICON.ico" />
     <Content Include="resourceDictionary\DINNO ICON.ico" />
     <Content Include="resourceDictionary\PackageContents.xml" />
+    <None Include="Resources\line.bmp" />
+    <None Include="Resources\excel.bmp" />
+    <None Include="Resources\distance.bmp" />
+    <None Include="Resources\CLOUD.bmp" />
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="AutoCAD">
