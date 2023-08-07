@@ -974,26 +974,26 @@ namespace PipeInfo
             RibbonPanel panel = new RibbonPanel();
             RibbonPanel panel_1 = new RibbonPanel();
 
-            RibbonTextBox textbox = new RibbonTextBox();
-            textbox.Width = 100;
-            textbox.IsEmptyTextValid = false;
-            textbox.AcceptTextOnLostFocus = true;
-            textbox.InvokesCommand = true;
-            textbox.Text = "1\" Vavle길이";
-            textbox.Size = RibbonItemSize.Standard;
-            textbox.TextValue = "40";
-            panelSor.Items.Add(textbox);
-            panelSor.Items.Add(new RibbonRowBreak());
+            //RibbonTextBox textbox = new RibbonTextBox();
+            //textbox.Width = 100;
+            //textbox.IsEmptyTextValid = false;
+            //textbox.AcceptTextOnLostFocus = true;
+            //textbox.InvokesCommand = true;
+            //textbox.Text = "1\" Vavle길이";
+            //textbox.Size = RibbonItemSize.Standard;
+            //textbox.TextValue = "40";
+            //panelSor.Items.Add(textbox);
+            //panelSor.Items.Add(new RibbonRowBreak());
 
-            RibbonTextBox textbox1 = new RibbonTextBox();
-            textbox1.Width = 100;
-            textbox1.IsEmptyTextValid = false;
-            textbox1.AcceptTextOnLostFocus = true;
-            textbox1.InvokesCommand = true;
-            textbox1.Size = RibbonItemSize.Standard;
-            textbox1.Text = "1\" Vavle길이";
-            textbox1.TextValue = "40";
-            panelSor.Items.Add(textbox1);
+            //RibbonTextBox textbox1 = new RibbonTextBox();
+            //textbox1.Width = 100;
+            //textbox1.IsEmptyTextValid = false;
+            //textbox1.AcceptTextOnLostFocus = true;
+            //textbox1.InvokesCommand = true;
+            //textbox1.Size = RibbonItemSize.Standard;
+            //textbox1.Text = "1\" Vavle길이";
+            //textbox1.TextValue = "40";
+            //panelSor.Items.Add(textbox1);
 
             RibbonCombo cmd = new RibbonCombo();
             cmd.Name = "cmd1";
