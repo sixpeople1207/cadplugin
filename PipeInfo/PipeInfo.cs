@@ -41,6 +41,7 @@ using System.Windows.Controls;
 using Orientation = System.Windows.Controls.Orientation;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing.Printing;
+using System.Linq.Expressions;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -1005,6 +1006,7 @@ namespace PipeInfo
             RibbonButton button = new RibbonButton();
             button.Orientation = Orientation.Vertical;
             button.Text = "Lines\nDistance";
+            button.Id = "LineBetween_distance";
             button.Size = RibbonItemSize.Large;
             button.ShowText = true;
             button.ShowImage = true;
@@ -1016,11 +1018,24 @@ namespace PipeInfo
             RibbonButton button2 = new RibbonButton();
             button2.Orientation = Orientation.Vertical;
             button2.Size = RibbonItemSize.Large;
+            button2.Id = "Spool_Information";
             button2.ShowImage = true;
             button2.ShowText = true;
             button2.LargeImage = Images.getBitmap(Properties.Resources.CLOUD);
             button2.Text = "Spool\nText";
+            button2.CommandHandler = new RibbonCommandHandler();
             panelSor.Items.Add(button2);
+
+            RibbonButton button3 = new RibbonButton();
+            button3.Orientation = Orientation.Vertical;
+            button3.Size = RibbonItemSize.Large;
+            button3.Id = "Export_WIR";
+            button3.ShowImage = true;
+            button3.ShowText = true;
+            button3.LargeImage = Images.getBitmap(Properties.Resources.excel);
+            button3.Text = "Export\nexcel";
+            button3.CommandHandler = new RibbonCommandHandler();
+            panelSor.Items.Add(button3);
 
             panel.Source = panelSor;
             tab.Panels.Add(panel);
@@ -1034,9 +1049,7 @@ namespace PipeInfo
             {
                 return true;
             }
-
             public event EventHandler CanExecuteChanged;
-
             public void Execute(object parameter)
             {
                 Document doc = acadApp.DocumentManager.MdiActiveDocument;
@@ -1044,11 +1057,23 @@ namespace PipeInfo
                 if (parameter is RibbonButton)
                 {
                     RibbonButton button = parameter as RibbonButton;
-                    pi.select_Welding_Point();
-                    doc.Editor.WriteMessage("\nRibbonButton Executed: " + button.Text + "\n");
+                    doc.Editor.WriteMessage("\n기능: " + button.Id + "\n");
+                    switch (button.Id)
+                    {
+                        case "LineBetween_distance":
+                            pi.pipeBetween_Distance();
+                            break;
+                        case "Spool_Information":
+                            pi.select_Welding_Point();
+                            break;
+                        case "Export_WIR":
+                            pi.selectBlock_ExportToInnerInformation();
+                            break;
+                    }
                 }
             }
         }
+
         public class Images
         {
             public static BitmapImage getBitmap(Bitmap image)
