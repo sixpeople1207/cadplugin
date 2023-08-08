@@ -42,6 +42,7 @@ using Orientation = System.Windows.Controls.Orientation;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing.Printing;
 using System.Linq.Expressions;
+using Autodesk.AutoCAD.Windows.Data;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -754,6 +755,48 @@ namespace PipeInfo
                                             // acText.Normal = Vector3d.ZAxis;
                                             // acText.Justify = AttachmentPoint.BaseLeft;
                                             keyFilter.bEntered = false;
+                                        }
+                                    }
+                                    if (keyFilter.bZaxis == true)
+                                    {
+                                        using (Transaction actras = db.TransactionManager.StartTransaction())
+                                        {
+                                            foreach (var id in spoolTexts)
+                                            {
+                                                DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
+                                                Point3d pos = text.Position;
+                                                Point3d alig = text.AlignmentPoint;
+                                                TextHorizontalMode hor = text.HorizontalMode;
+
+                                                text.SetDatabaseDefaults();
+                                                // 배관의 Spool Vector에 따라 기준점 바꾸기.
+                                                // 라인의 끝점부터 그리기.
+                                                if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
+                                                {
+                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                                }
+                                                else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
+                                                {
+                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                                }
+                                                else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
+                                                {
+                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
+                                                }
+                                                text.Position = pos;
+                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                {
+                                                    text.AlignmentPoint = alig;
+                                                }
+                                            }
+                                            ObjectId[] ids = spoolTexts.ToArray();
+                                            SelectionSet ss = SelectionSet.FromObjectIds(ids);
+                                            
+                                          ed.Regen();
+                                            actras.Commit();
+                                            // acText.Normal = Vector3d.ZAxis;
+                                            // acText.Justify = AttachmentPoint.BaseLeft;
+                                            keyFilter.bZaxis = false;
                                         }
                                     }
                                 }
@@ -3008,6 +3051,7 @@ namespace PipeInfo
             public const int WM_KEYDOWN = 0x0100;
             public bool bCanceled = false;
             public bool bEntered = false;
+            public bool bZaxis = false;
             public bool PreFilterMessage(ref Message m)
             {
                 if (m.Msg == WM_KEYDOWN)
@@ -3021,6 +3065,10 @@ namespace PipeInfo
                     if (m.Msg == WM_KEYDOWN && kc == Keys.G)
                     {
                         bEntered = true;
+                    }
+                    if (m.Msg == WM_KEYDOWN && kc == Keys.Z)
+                    {
+                        bZaxis = true;
                     }
                     // Return true to filter all keypresses
                     return true;
