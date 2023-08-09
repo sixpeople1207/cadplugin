@@ -762,9 +762,21 @@ namespace PipeInfo
                                         using (Transaction actras = db.TransactionManager.StartTransaction())
                                         {
                                             DBText text = actras.GetObject(spoolTexts[0], OpenMode.ForWrite) as DBText;
+                                            List<Point3d> textPositions = new List<Point3d>();
 
-                                            Point3d basePoint = text.Position;
-                                            Point3d baseAlig = text.AlignmentPoint;
+                                            for (int i = 0; i < spoolTexts.Count; i++)
+                                            {
+                                                DBText textA = actras.GetObject(spoolTexts[i], OpenMode.ForWrite) as DBText;
+                                                if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                {
+                                                    textPositions.Add(textA.AlignmentPoint);
+                                                }
+                                                else
+                                                {
+                                                    textPositions.Add(textA.Position);
+                                                }
+                                            }
+
                                             // 은 탄환은 없다. 그냥 basepoint 기준으로  -15씩 하는거 만들어야 한다. 
                                             // 하나씩 비교하면서 같은지 확인 하면서 회전값만 주면 될 것 같다. 
                                             // 다시! 8.9
@@ -830,33 +842,25 @@ namespace PipeInfo
                                                     }
                                                 }
 
-                                                textA.Position = posB;
-                                                textB.Position = posA;
-                                         
+                                                textA.Position = textPositions[i-1];
+                                                textB.Position = textPositions[i];
 
                                                 if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
                                                 {
-                                                    textA.AlignmentPoint = aligA;
-                                                    textA.Justify = AttachmentPoint.BaseRight;
-                                                    textB.Justify = AttachmentPoint.BaseLeft;
+                                                    textA.AlignmentPoint = textPositions[i - 1];
                                                 }
                                                 else if (textB.HorizontalMode != TextHorizontalMode.TextLeft)
                                                 {
-                                                    textB.AlignmentPoint = aligB;
-
+                                                    textB.AlignmentPoint = textPositions[i];
                                                 }
-                                           
+
                                                 string str = textA.TextString;
                                                 textA.TextString = textB.TextString;
                                                 textB.TextString = str;
-                                                //ObjectId[] ids = spoolTexts.ToArray();
-                                                //ObjectId[] ids = { spoolTexts[0], spoolTexts[1] };
-                                                //SelectionSet ss = SelectionSet.FromObjectIds(ids);
+
                                             }
                                             ed.Regen();
                                             actras.Commit();
-                                            // acText.Normal = Vector3d.ZAxis;
-                                            // acText.Justify = AttachmentPoint.BaseLeft;
                                             keyFilter.bZaxis = false;
                                         }
                                     }
