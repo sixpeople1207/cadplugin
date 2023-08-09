@@ -761,38 +761,99 @@ namespace PipeInfo
                                     {
                                         using (Transaction actras = db.TransactionManager.StartTransaction())
                                         {
-                                            foreach (var id in spoolTexts)
-                                            {
-                                                DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
-                                                Point3d pos = text.Position;
-                                                Point3d alig = text.AlignmentPoint;
-                                                TextHorizontalMode hor = text.HorizontalMode;
+                                            DBText text = actras.GetObject(spoolTexts[0], OpenMode.ForWrite) as DBText;
 
-                                                text.SetDatabaseDefaults();
+                                            Point3d basePoint = text.Position;
+                                            Point3d baseAlig = text.AlignmentPoint;
+                                            // 은 탄환은 없다. 그냥 basepoint 기준으로  -15씩 하는거 만들어야 한다. 
+                                            // 하나씩 비교하면서 같은지 확인 하면서 회전값만 주면 될 것 같다. 
+                                            // 다시! 8.9
+                                            for (int i=1; i<spoolTexts.Count; i+=2)
+                                            {
+                                                DBText textA = actras.GetObject(spoolTexts[i], OpenMode.ForWrite) as DBText;
+                                                DBText textB = actras.GetObject(spoolTexts[i-1], OpenMode.ForWrite) as DBText;
+                                            
+                                                Point3d posA = textA.Position;
+                                                Point3d posB = textB.Position;
+
+                                                Point3d aligA = textA.AlignmentPoint;
+                                                Point3d aligB = textB.AlignmentPoint;
+
+                                                TextHorizontalMode horA = textA.HorizontalMode;
+                                                AttachmentPoint justifyA = textA.Justify;
+                                                TextHorizontalMode horB = textB.HorizontalMode;
+                                                AttachmentPoint justifyB = textB.Justify;
+                                                textA.SetDatabaseDefaults();
+
                                                 // 배관의 Spool Vector에 따라 기준점 바꾸기.
                                                 // 라인의 끝점부터 그리기.
                                                 if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
                                                 {
-                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                                    if (groupVecstr == "Y")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                    }
+                                                    else if (groupVecstr == "Z")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+
+                                                    }
                                                 }
                                                 else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
                                                 {
-                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                                    if (groupVecstr == "Z")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+
+                                                    }
+                                                    else if (groupVecstr == "X")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+
+                                                    }
                                                 }
                                                 else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
                                                 {
-                                                    text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
+                                                    if (groupVecstr == "X")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                    }
+                                                    else if (groupVecstr == "Y")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                        textB.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                    }
                                                 }
-                                                text.Position = pos;
-                                                if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+
+                                                textA.Position = posB;
+                                                textB.Position = posA;
+                                         
+
+                                                if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
                                                 {
-                                                    text.AlignmentPoint = alig;
+                                                    textA.AlignmentPoint = aligA;
+                                                    textA.Justify = AttachmentPoint.BaseRight;
+                                                    textB.Justify = AttachmentPoint.BaseLeft;
                                                 }
+                                                else if (textB.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                {
+                                                    textB.AlignmentPoint = aligB;
+
+                                                }
+                                           
+                                                string str = textA.TextString;
+                                                textA.TextString = textB.TextString;
+                                                textB.TextString = str;
+                                                //ObjectId[] ids = spoolTexts.ToArray();
+                                                //ObjectId[] ids = { spoolTexts[0], spoolTexts[1] };
+                                                //SelectionSet ss = SelectionSet.FromObjectIds(ids);
                                             }
-                                            ObjectId[] ids = spoolTexts.ToArray();
-                                            SelectionSet ss = SelectionSet.FromObjectIds(ids);
-                                            
-                                          ed.Regen();
+                                            ed.Regen();
                                             actras.Commit();
                                             // acText.Normal = Vector3d.ZAxis;
                                             // acText.Justify = AttachmentPoint.BaseLeft;
