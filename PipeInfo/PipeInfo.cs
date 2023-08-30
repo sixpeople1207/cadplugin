@@ -7,7 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Windows.Controls;
-using System.Windows.Media.Imaging; 
+using System.Windows.Media.Imaging;
 using System.Drawing.Imaging;
 using System.Drawing;
 using System.Reflection;
@@ -26,9 +26,12 @@ using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
-using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using Autodesk.Windows;
+using MessageBox = System.Windows.Forms.MessageBox;
+using Orientation = System.Windows.Controls.Orientation;
+
+using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Autodesk.AutoCAD.ApplicationServices.Core;
 using System.Security.Cryptography.X509Certificates;
 using System.Windows.Media;
@@ -36,9 +39,7 @@ using System.Runtime.InteropServices.ComTypes;
 using static Autodesk.AutoCAD.Internal.LayoutContextMenu;
 using System.Windows;
 using System.Resources;
-using MessageBox = System.Windows.Forms.MessageBox;
 using System.Windows.Controls;
-using Orientation = System.Windows.Controls.Orientation;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing.Printing;
 using System.Linq.Expressions;
@@ -170,24 +171,32 @@ namespace PipeInfo
             Database db = acDoc.Database;
             Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
             PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
-
-            if (prSelRes.Status == PromptStatus.OK)
+            try
             {
-                var pipe = new Pipe();
-                List<Polyline3d> linePoints = pipe.get_PolyLinePoints_By_PromptSelectResult(prSelRes);
-                if (linePoints.Count > 1)
+                if (prSelRes.Status == PromptStatus.OK)
                 {
-                    List<Vector3d> groupVec = pipe.get_Pipe_SpoolGroup_Vector(linePoints);
-                    pipe.set_Distance_By_Pipe_between(groupVec, linePoints, pointCollection);
+                    using (var lck = acDoc.LockDocument())
+                    {
+                        var pipe = new Pipe();
+                        List<Polyline3d> linePoints = pipe.get_PolyLinePoints_By_PromptSelectResult(prSelRes);
+                        if (linePoints.Count > 1)
+                        {
+                            List<Vector3d> groupVec = pipe.get_Pipe_SpoolGroup_Vector(linePoints);
+                            pipe.set_Distance_By_Pipe_between(groupVec, linePoints, pointCollection);
+                        }
+                        else
+                        {
+                            ed.WriteMessage("\nError : 두개 이상의 파이프를 선택해 주세요.");
+                        }
+                        //blkRec.AppendEntity(line);
+                        //acTrans.AddNewlyCreatedDBObject(line, true);
+                    }
                 }
-                else
-                {
-                    ed.WriteMessage("\nError : 두개 이상의 파이프를 선택해 주세요.");
-                }
-                //blkRec.AppendEntity(line);
-                //acTrans.AddNewlyCreatedDBObject(line, true);
             }
-
+            catch(System.Exception ex)
+            {
+                ed.WriteMessage(ex.ToString());
+            }
         }
 
         //도면내 도곽내 MES정보와 용접포인트 번호를 가져온다.e
@@ -3167,12 +3176,10 @@ namespace PipeInfo
 
           _palette = new PipeInfo();
           _palette.ui();
-
         }
 
    
     }
-
 }
 
 //단축키 Ctrl+K -> Ctrl+E
