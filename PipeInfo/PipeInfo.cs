@@ -30,6 +30,7 @@ using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using Autodesk.Windows;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
+using System.Text.RegularExpressions;
 
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Autodesk.AutoCAD.ApplicationServices.Core;
@@ -44,6 +45,7 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing.Printing;
 using System.Linq.Expressions;
 using Autodesk.AutoCAD.Windows.Data;
+using System.Security.Cryptography;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -205,7 +207,6 @@ namespace PipeInfo
         {
             try
             {
-
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Document acDoc = Application.DocumentManager.MdiActiveDocument;
                 Database db = acDoc.Database;
@@ -226,7 +227,7 @@ namespace PipeInfo
                     //ed.SetCurrentView(view);
                     //ed.WriteMessage(ext.MaxPoint.Y.ToString());
                     zoomAll();
-                    PromptResult res = ed.GetString("화면에 도곽정보가 모두 있습니까?(Y or N):");
+                    PromptResult res = ed.GetString("[WIR 정보 추출] 화면에 도곽정보가 모두 있습니까?(Y or N):");
                     if (res.Status == PromptStatus.OK)
                     {
                         if (res.StringResult.ToString() == "y" || res.StringResult.ToString() == "Y")
@@ -248,7 +249,9 @@ namespace PipeInfo
                                 TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
                                 List<DBText> textAllLi = new List<DBText>();
                                 SelectionFilter selFilter = new SelectionFilter(typeValue);
-                                ExcelObject excel = new ExcelObject();
+                                List<string> header = new List<string>()
+                                { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사","용접번호" };
+                                ExcelObject excel = new ExcelObject(header);
                                 Compare comparePoint = new Compare();
                                 foreach (var id in oId)
                                 {
@@ -365,7 +368,6 @@ namespace PipeInfo
                                     //다음 도곽정보에서 웰딩포이트 카운트를 위해 초기화
                                     weld_Rows_Count = 0;
                                 }
-
                                 //도곽을 모두 순회완료하고나서 엑셀 표제란에 빈공간을 채워준다. 표제란 영역복사 붙여넣기.
                                 for (int k = 1; k < startToEnd_li.Count; k += 2)
                                 {
@@ -659,7 +661,7 @@ namespace PipeInfo
                     Document acDoc = Application.DocumentManager.MdiActiveDocument;
                     Database db = acDoc.Database;
                     TextControl tControl = new TextControl();
-                    ed.WriteMessage("\nWeldPoint들을 선택해주세요.(CrossingWindow).");
+                    ed.WriteMessage("\n[Spool Information] WeldPoint들을 선택해주세요.(CrossingWindow).");
                     List<Point3d> pFaceMeshPoints = Select.selectPolyFaceMeshToPoints();
                     if (pFaceMeshPoints.Count > 0)
                     {
@@ -682,7 +684,7 @@ namespace PipeInfo
                             Point3d averPoint = new Point3d(averX, averY, averZ);
                             string commandLine = String.Format("{0},{1},{2}", averPoint.X, averPoint.Y, averPoint.Z);
                             //Cmd5(averPoint);
-                            ed.WriteMessage("Spool정보 기준라인을 그려주세요.");
+                            ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.");
                             ed.Command("_.LINE", commandLine);
                             //    Point3dCollection spoolLines = InteractivePolyLine.CollectPointsInteractive();
                             //       if (spoolLines.Count > 0)
@@ -1076,7 +1078,8 @@ namespace PipeInfo
             //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
 
         }
-        [CommandMethod("ui")]
+
+       // [CommandMethod("ui")]
         public void ui()
         {
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
@@ -1085,11 +1088,22 @@ namespace PipeInfo
             tab.Title = "DDWORKS";
             tab.Id = "Tab_ID";
 
-            RibbonPanelSource panelSor = new RibbonPanelSource();
-            panelSor.Title = "Spool Information";
+            RibbonPanelSource panelSpool_Sor = new RibbonPanelSource();
+            panelSpool_Sor.Title = "Spool Information";
+
+            RibbonPanelSource panelWir_Sor = new RibbonPanelSource();
+            panelWir_Sor.Title = "Layout Title Text";
+
+            RibbonPanelSource panelMES_Sor = new RibbonPanelSource();
+            panelMES_Sor.Title = "Spool Text";
+
+            RibbonPanelSource panelSetting_Sor = new RibbonPanelSource();
+            panelSetting_Sor.Title = "3D Pipe Spool";
 
             RibbonPanel panel = new RibbonPanel();
-            RibbonPanel panel_1 = new RibbonPanel();
+            RibbonPanel panel_wir = new RibbonPanel();
+            RibbonPanel panel_Setting = new RibbonPanel();
+            RibbonPanel panel_mes = new RibbonPanel();
 
             //RibbonTextBox textbox = new RibbonTextBox();
             //textbox.Width = 100;
@@ -1112,25 +1126,25 @@ namespace PipeInfo
             //textbox1.TextValue = "40";
             //panelSor.Items.Add(textbox1);
 
-            RibbonCombo cmd = new RibbonCombo();
-            cmd.Name = "cmd1";
-            cmd.Id = "Mycmd1";
-            cmd.Text = "Template Size";
-            cmd.IsEnabled = true;
-            cmd.ShowText = true;
-            panelSor.Items.Add(cmd);
+            //RibbonCombo cmd = new RibbonCombo();
+            //cmd.Name = "cmd1";
+            //cmd.Id = "Mycmd1";
+            //cmd.Text = "Template Size";
+            //cmd.IsEnabled = true;
+            //cmd.ShowText = true;
+            //panelSpool_Sor.Items.Add(cmd);
 
             RibbonButton button = new RibbonButton();
             button.Orientation = Orientation.Vertical;
-            button.Text = "Lines\nDistance";
+            button.Text = "Lines Distance\n(BB)";
             button.Id = "LineBetween_distance";
             button.Size = RibbonItemSize.Large;
             button.ShowText = true;
             button.ShowImage = true;
             button.LargeImage = Images.getBitmap(Properties.Resources.line);
-            button.CommandParameter = "LineChecked ";
+            button.CommandParameter = "LineChecked";
             button.CommandHandler = new RibbonCommandHandler();
-            panelSor.Items.Add(button);
+            panelSpool_Sor.Items.Add(button);
             
             RibbonButton button2 = new RibbonButton();
             button2.Orientation = Orientation.Vertical;
@@ -1139,9 +1153,9 @@ namespace PipeInfo
             button2.ShowImage = true;
             button2.ShowText = true;
             button2.LargeImage = Images.getBitmap(Properties.Resources.CLOUD);
-            button2.Text = "Spool\nText";
+            button2.Text = "Spool Text\n(SS)";
             button2.CommandHandler = new RibbonCommandHandler();
-            panelSor.Items.Add(button2);
+            panelSpool_Sor.Items.Add(button2);
 
             RibbonButton button3 = new RibbonButton();
             button3.Orientation = Orientation.Vertical;
@@ -1150,16 +1164,93 @@ namespace PipeInfo
             button3.ShowImage = true;
             button3.ShowText = true;
             button3.LargeImage = Images.getBitmap(Properties.Resources.excel);
-            button3.Text = "Export\nexcel";
+            button3.Text = "WIR Excel\n(EE)";
             button3.CommandHandler = new RibbonCommandHandler();
-            panelSor.Items.Add(button3);
+            panelWir_Sor.Items.Add(button3);
 
-            panel.Source = panelSor;
+            RibbonButton button4 = new RibbonButton();
+            button4.Orientation = Orientation.Vertical;
+            button4.Size = RibbonItemSize.Large;
+            button4.Id = "Export_MES";
+            button4.ShowImage = true;
+            button4.ShowText = true;
+            button4.LargeImage = Images.getBitmap(Properties.Resources.excel);
+            button4.Text = "MES Excel\n(AA)";
+            button4.CommandHandler = new RibbonCommandHandler();
+            panelMES_Sor.Items.Add(button4);
+
+            panel.Source = panelSpool_Sor;
             tab.Panels.Add(panel);
-
+            panel_wir.Source = panelWir_Sor;  
+            //panel_Setting.Source = panelSetting_Sor;
+            panel_mes.Source = panelMES_Sor;
+            tab.Panels.Add(panel_Setting);
+            tab.Panels.Add(panel_wir);
+            tab.Panels.Add(panel_mes);
             ribbonControl.Tabs.Add(tab);
-
         }
+
+        [CommandMethod("aa")]
+        public void spool_Export()
+        {
+            try
+            {
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database db = acDoc.Database;
+                Point3d first = new Point3d();
+                Point3d second = new Point3d();
+                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    PromptPointOptions poOpt = new PromptPointOptions("\n[MES 정보추출] 도곽의 왼쪽 상단을 선택해주세요.");
+                    poOpt.AllowNone = false;
+                    PromptPointResult poRes = ed.GetPoint(poOpt);
+                    if (poRes.Status == PromptStatus.OK)
+                    {
+
+                        first = poRes.Value;
+                        //ed.WriteMessage(first.ToString());
+
+                        PromptCornerOptions coOpt = new PromptCornerOptions("\n[MES 정보추출] 도곽의 오른쪽 하단을 선택해주세요.", first);
+                        poRes = ed.GetCorner(coOpt);
+                        second = poRes.Value;
+                        //ed.WriteMessage(second.ToString());
+
+                        PromptSelectionResult selSet = ed.SelectCrossingWindow(first, second);
+                        SelectionSet sel = selSet.Value;
+                        ObjectId[] objs = sel.GetObjectIds();
+                        //스풀번호만 가져올 수 있는 정규식 진행중.. 
+                        Regex patten = new Regex(@"^[0-9A-Z]{2,3}_[A-Z0-9]{1,3}_[A-Z0-9]{1,5}_[A-Z0-9]{1,4}_[0-9]{3}$");
+                        ExcelObject excelObject = new ExcelObject();
+
+                        foreach (var obj in objs)
+                        {
+                            Entity ent = acTrans.GetObject(obj, OpenMode.ForRead) as Entity;
+                            Type type = ent.GetType();
+                            if (type.Name == "DBText")
+                            {
+                                DBText text = (DBText)ent;
+                                if (patten.IsMatch(text.TextString) || ent.Layer.ToString().Contains("Welding_Number"))
+                                {
+                                    excelObject.excel_InsertData(1, 1, text.TextString, true);
+                                    //ed.WriteMessage("\n"+text.TextString);
+                                }
+                                //ed.WriteMessage(text.TextString.ToString());
+                            }
+                        }
+                        excelObject.excel_save();
+                        acTrans.Commit();
+                        acTrans.Dispose();
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Application.DocumentManager.MdiActiveDocument.
+                Editor.WriteMessage(ex.Message);
+            }
+        }
+
         public class RibbonCommandHandler : System.Windows.Input.ICommand
         {
             public bool CanExecute(object parameter)
@@ -1176,7 +1267,7 @@ namespace PipeInfo
                     RibbonButton button = parameter as RibbonButton;
                     doc.Editor.WriteMessage("\n기능: " + button.Id + "\n");
                     switch (button.Id)
-                    {
+                    {                                                                                                                                                                                                          
                         case "LineBetween_distance":
                             pi.pipeBetween_Distance();
                             break;
@@ -1185,6 +1276,9 @@ namespace PipeInfo
                             break;
                         case "Export_WIR":
                             pi.selectBlock_ExportToInnerInformation();
+                            break;
+                        case "Export_MES":
+                            pi.spool_Export();
                             break;
                     }
                 }
@@ -1502,9 +1596,15 @@ namespace PipeInfo
             Excel.Worksheet ws = null;
             public ExcelObject()
             {
-                List<string> header = new List<string>()
-            { "설비", "PROJECT", "공정", "접수일", "관리번호","도면번호","배관사","모델러","제도사","용접번호" };
-
+                excelApp = new Excel.Application();
+                excelApp.Visible = false;
+                wb = excelApp.Workbooks.Add();
+                ws = wb.Worksheets.get_Item(1) as Excel.Worksheet;
+            }
+            public ExcelObject(List<string> header)
+            {
+                //list를 받아서 넣는것 하나 만들고 아예 헤더가 없는것도 하나 해야할 것 같다 23.10.25
+                
                 excelApp = new Excel.Application();
                 excelApp.Visible = false;
                 wb = excelApp.Workbooks.Add();
@@ -1527,7 +1627,6 @@ namespace PipeInfo
                 }
                 //기본적으로 도곽의 헤더값이 첫 행에 들어가니 2번째 행부터 값 시작.
                 ws.Cells[row + 2, column] = data;
-
             }
             // 기능 엑셀의 첫 지점과 끝지점을 주면 첫 번째 줄을 끝줄까지 모두 복사한다.
             public void excel_CopyTo_StartEnd(int start, int end)
@@ -1548,15 +1647,19 @@ namespace PipeInfo
                         Editor ed = doc.Editor;
                         System.Windows.Forms.SaveFileDialog dlg = new System.Windows.Forms.SaveFileDialog();
                         dlg.Filter = "EXCEL 파일(*.xlsx)|*.xls";
-                        dlg.FileName = "제목없음" + ".xls";
+                        dlg.FileName = "제목없음" + ".xlsx";
                         if (dlg.ShowDialog() == DialogResult.Cancel) return;
                         DateTime currentTime = DateTime.Now;
-                        wb.SaveAs(dlg.FileName, Excel.XlFileFormat.xlWorkbookNormal, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-                               Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+                        //MessageBox.Show(dlg.FileName.ToString());
+                        wb.SaveAs(dlg.FileName, XlFileFormat.xlWorkbookDefault);
                         MessageBox.Show("저장되었습니다.");
                         wb.Close(true);
                         excelApp.Quit();
                     }
+                }
+                catch(Exception exc)
+                {
+                    MessageBox.Show(exc.Message);
                 }
                 finally
                 { // Clean up
@@ -1695,7 +1798,7 @@ namespace PipeInfo
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
                 Autodesk.AutoCAD.Colors.Color color = acDoc.Database.Cecolor;
 
-                PromptPointOptions pointOptions = new PromptPointOptions("\n 포인트 점: ")
+                PromptPointOptions pointOptions = new PromptPointOptions("\n 라인간격을 측정할 라인들을 선택(포인트 점2P): ")
                 {
                     AllowNone = true
                 };

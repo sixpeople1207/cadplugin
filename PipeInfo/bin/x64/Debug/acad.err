@@ -1,13 +1,10 @@
 
 
-FATAL ERROR:  Unhandled e0434352h Exception at B2CCCF19h
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at E7A9BC03h
 
-08/30/2023 at 09:30:59.000  Drawing: D:\프로젝트_제작도면\도면\DKHB5D1\DKHB5D1\CAD도면(미가공)\DKHB5D1_MAIN GAS.dxf
+10/26/2023 at 11:11:50.000  Drawing: D:\프로젝트_제작도면\도면\5D DXF,CAD 제작도 SAMPLE\DTT3703\DTT3703_SPOOL.DWG
 -------------
-
-
--------------
-ed Access Violation Reading 0x0000 Exception at c480b53h
+ Access Violation Reading 0x0000 Exception at c480b53h
 
 06/28/2023 at 23:56:50.000  Drawing: Drawing1.dwg
 -------------
