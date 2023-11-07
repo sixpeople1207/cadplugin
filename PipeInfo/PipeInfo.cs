@@ -942,7 +942,7 @@ namespace PipeInfo
          * 명 령 어 : vv
          * 비 고 : 추후 DB에서 정확한 길이를 반환하는 기능개발필요.
          */
-        //  [CommandMethod("vv")]
+        [CommandMethod("vv")]
         public void edit_PipeLength_ConnOfValve()
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -1079,7 +1079,46 @@ namespace PipeInfo
 
         }
 
-       // [CommandMethod("ui")]
+        /* 함수 이름 : components_Change
+         * 기능 설명 : DB에 768인 객체들을 모두 가져온다. 
+         * 명 령 어 : CC
+         * 비 고 : 23.11.03 심볼 매칭 (기능 만드는중)
+         */
+        [CommandMethod("cc")]
+        public void components_Change()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+            int pipeOfSubDim = 0;
+            int[] valve_Size = { 131, 100, 80, 70, 65 }; //1" , 3/4", 1/2", 3/8", 1/4"
+            ed.WriteMessage("Valve 크기 지정(기본값)\n1인치:131mm\n3/4인치:100mm\n1/2인치:80mm\n3/8인치:70mm\n1/4인치:65mm");
+            try
+            {
+                zoomAll();
+                PromptResult res = ed.GetString("현재 뷰에 Valve정보가 모두 있습니까?(Y or N):");
+                if (res.Status == PromptStatus.OK && pipeOfSubDim == 0)
+                {
+                    if (res.StringResult.ToString() == "y" || res.StringResult.ToString() == "Y")
+                    {
+                        if (db_path != "")
+                        {
+                            //DDWorksDabase 클래스 생성
+                            var ddworks_Database = new DDWorks_Database(db_path);
+                            //DB에서 오너 아이디가 768인 애들만 가져온다.
+                            //
+                        }
+                    }
+                }
+            }
+            catch (Autodesk.AutoCAD.Runtime.Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+
+        }
+
+        // [CommandMethod("ui")]
         public void ui()
         {
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
@@ -1190,6 +1229,50 @@ namespace PipeInfo
             ribbonControl.Tabs.Add(tab);
         }
 
+        /* 기능 이름 : SA
+         * 기능 설명 : 객체의 ObjectID를 출력해준다. 
+         */
+
+        [CommandMethod("sa")]
+        public void get_handle_objId()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                PromptSelectionOptions poOpt = new PromptSelectionOptions();
+                PromptSelectionResult poRes = ed.GetSelection(poOpt);
+               
+                if (poRes.Status == PromptStatus.OK)
+                {
+                    SelectionSet ss = poRes.Value;
+                    ObjectId[] objId = ss.GetObjectIds();
+                    foreach (ObjectId id in objId)
+                    {
+                        ed.WriteMessage(id.ToString());
+                    }
+                }
+            }
+        }
+        /* 기능 이름 : VA
+       * 기능 설명 : Database내에 모든 컴포넌트의 위치를 읽어온다. 추후에는 심볼로 대체하기.
+       */
+        [CommandMethod("va")]
+        public void get_Components_Positions()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+            DDWorks_Database ddworks_database = new DDWorks_Database(db_path);
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                List<Point3d> component_positions = new List<Point3d>();
+                component_positions = ddworks_database.Get_Components_Positions();
+                ed.WriteMessage(component_positions.Count.ToString());
+            }
+        }
+
         [CommandMethod("aa")]
         public void spool_Export()
         {
@@ -1220,7 +1303,12 @@ namespace PipeInfo
                         SelectionSet sel = selSet.Value;
                         ObjectId[] objs = sel.GetObjectIds();
                         //스풀번호만 가져올 수 있는 정규식 진행중.. 
-                        Regex patten = new Regex(@"^[0-9A-Z]{2,3}_[A-Z0-9]{1,3}_[A-Z0-9]{1,5}_[A-Z0-9]{1,4}_[0-9]{3}$");
+                        Regex patten_A = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        Regex patten_B = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        Regex patten_C = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        Regex patten_D = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+
+
                         ExcelObject excelObject = new ExcelObject();
 
                         foreach (var obj in objs)
@@ -1230,10 +1318,10 @@ namespace PipeInfo
                             if (type.Name == "DBText")
                             {
                                 DBText text = (DBText)ent;
-                                if (patten.IsMatch(text.TextString) || ent.Layer.ToString().Contains("Welding_Number"))
+                                if (patten_A.IsMatch(text.TextString) || ent.Layer.ToString().Contains("Welding_Number") || patten_B.IsMatch(text.TextString) || patten_C.IsMatch(text.TextString) || patten_D.IsMatch(text.TextString))
                                 {
                                     excelObject.excel_InsertData(1, 1, text.TextString, true);
-                                    //ed.WriteMessage("\n"+text.TextString);
+                                    ed.WriteMessage("\n"+text.TextString);
                                 }
                                 //ed.WriteMessage(text.TextString.ToString());
                             }
@@ -3146,7 +3234,11 @@ namespace PipeInfo
                 }
                 return vec_li;
             }
+
             //Valve위치.
+            //기능 설명 : Valve와 연결된 파이프를 찾아 삽입값을 빼준다.
+            //Valve INSTANCE_ID에 연결된 파이프위치들을 반환한다.
+            //CAD에서 밸브와 연결된 파이프를 찾아 MidPoint에 있는 Text의 값을(PolyLine의 길이조정).
             public (List<Point3d>, List<string>) Get_Valve_Position_By_DDWDB()
             {
                 List<Point3d> valve_Positions = new List<Point3d>();
@@ -3164,7 +3256,7 @@ namespace PipeInfo
                     "on " +
                         "PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID AND PT.MODEL_TEMPLATE_ID = MT.MODEL_TEMPLATE_ID " +
                     "AND " +
-                        "OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%'", ownerType_Component, valveType);
+                        "OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%'", ownerType_Component, valveType); //연결된 객체가 컴포넌트이고, POC템플릿에 밸브랑 이름이 들어간 객체
                     SQLiteCommand comm = new SQLiteCommand(sql, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
                     while (rdr.Read())
@@ -3177,50 +3269,73 @@ namespace PipeInfo
                 }
                 return (valve_Positions, valve_Name);
             }
-            //Valve INSTANCE_ID에 연결된 파이프위치들을 반환한다.
-            //CAD에서 이 좌표로 Pipe를 찾아 MidPoint에 있는 Text의 값을(PolyLine의 길이조정).
-            public List<Point3d> Get_PipePoints_By_WithValve()
+
+            /*
+             * 함수 이름 : 
+             * 기능 설명 : Model Instance객체의 좌표를 모두 찾아 반환한다.
+            * */
+            public List<Point3d> Get_Components_Positions()
             {
-                List<Point3d> pipePoints = new List<Point3d>();
-                List<string> connectd_Poc_Id = new List<string>();
+                List<Point3d> vavle_Positions = new List<Point3d> ();
                 string connstr = "Data Source=" + db_path;
                 using (SQLiteConnection conn = new SQLiteConnection(connstr))
                 {
                     conn.Open();
-                    string sql_ConId = String.Format(
-                        "SELECT CONNECTED_POC_ID " +
-                        "FROM TB_POCTEMPLATES as PT " +
-                        "INNER JOIN TB_POCINSTANCES as PI " +
-                        "on PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID " +
-                        "AND OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%';", ownerType_Component, valveType);
-                    SQLiteCommand comm = new SQLiteCommand(sql_ConId, conn);
+                    string sql_command = string.Format("SELECT * FROM TB_MODELTEMPLATES "+
+                        "INNER JOIN TB_MODELINSTANCES on TB_MODELTEMPLATES.MODEL_TEMPLATE_ID "+
+                        "= TB_MODELINSTANCES.MODEL_TEMPLATE_ID;");
+                    SQLiteCommand comm = new SQLiteCommand(sql_command, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
-                    while (rdr.Read())
-                    {
-                        connectd_Poc_Id.Add(BitConverter.ToString((byte[])rdr["CONNECTED_POC_ID"]).Replace("-", ""));
-                    }
 
-                    foreach (var id in connectd_Poc_Id)
-                    {
-                        string sql_Pos = string.Format("SELECT POSX,POSY,POSZ FROM TB_POCINSTANCES WHERE OWNER_INSTANCE_ID=(SELECT OWNER_INSTANCE_ID FROM TB_POCINSTANCES WHERE hex(INSTANCE_ID) = '{0}');", id);
-                        SQLiteCommand comm_Conn = new SQLiteCommand(sql_Pos, conn);
-                        SQLiteDataReader rdr_ins = comm_Conn.ExecuteReader();
-                        while (rdr_ins.Read())
-                        {
-                            Point3d point = new Point3d((double)rdr_ins["POSX"], (double)rdr_ins["POSY"], (double)rdr_ins["POSZ"]);
-                            pipePoints.Add(point);
-                        }
-                    }
-                    conn.Dispose();
                 }
-                return pipePoints;
+                return vavle_Positions;
             }
-            // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
-            // 빈공간.. 찾기.. RAYTRAY.. 
-            // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
-            // 4방향으로 Rec 회전 알고리즘 
-            // EnterKey 누르면 거기에 파이프 정보. 
-            /* --------------- [CLASS END] -------------------*/
+
+           //기능 설명 : Valve와 연결된 파이프를 찾아 삽입값을 빼준다.
+           //Valve INSTANCE_ID에 연결된 파이프위치들을 반환한다.
+           //CAD에서 밸브와 연결된 파이프를 찾아 MidPoint에 있는 Text의 값을(PolyLine의 길이조정).
+           public List<Point3d> Get_PipePoints_By_WithValve()
+           {
+               List<Point3d> pipePoints = new List<Point3d>();
+               List<string> connectd_Poc_Id = new List<string>();
+               string connstr = "Data Source=" + db_path;
+               using (SQLiteConnection conn = new SQLiteConnection(connstr))
+               {
+                   conn.Open();
+                   string sql_ConId = String.Format(
+                       "SELECT CONNECTED_POC_ID " +
+                       "FROM TB_POCTEMPLATES as PT " +
+                       "INNER JOIN TB_POCINSTANCES as PI " +
+                       "on PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID " +
+                       "AND OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%';", ownerType_Component, valveType);
+                   SQLiteCommand comm = new SQLiteCommand(sql_ConId, conn);
+                   SQLiteDataReader rdr = comm.ExecuteReader();
+                   while (rdr.Read())
+                   {
+                       connectd_Poc_Id.Add(BitConverter.ToString((byte[])rdr["CONNECTED_POC_ID"]).Replace("-", ""));
+                   }
+
+                   foreach (var id in connectd_Poc_Id)
+                   {
+                       string sql_Pos = string.Format("SELECT POSX,POSY,POSZ FROM TB_POCINSTANCES WHERE OWNER_INSTANCE_ID=(SELECT OWNER_INSTANCE_ID FROM TB_POCINSTANCES WHERE hex(INSTANCE_ID) = '{0}');", id);
+                       SQLiteCommand comm_Conn = new SQLiteCommand(sql_Pos, conn);
+                       SQLiteDataReader rdr_ins = comm_Conn.ExecuteReader();
+                       while (rdr_ins.Read())
+                       {
+                           Point3d point = new Point3d((double)rdr_ins["POSX"], (double)rdr_ins["POSY"], (double)rdr_ins["POSZ"]);
+                           pipePoints.Add(point);
+                       }
+                   }
+                   conn.Dispose();
+               }
+               return pipePoints;
+           }
+           // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
+           // 빈공간.. 찾기.. RAYTRAY.. 
+           // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
+           // 4방향으로 Rec 회전 알고리즘 
+           // EnterKey 누르면 거기에 파이프 정보. 
+           /* --------------- [CLASS END] -------------------*/
 
         }
         public class keyFilter : IMessageFilter
