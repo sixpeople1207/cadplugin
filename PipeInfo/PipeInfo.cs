@@ -1258,7 +1258,7 @@ namespace PipeInfo
         /* 기능 이름 : VA
        * 기능 설명 : Database내에 모든 컴포넌트의 위치를 읽어온다. 추후에는 심볼로 대체하기.
        */
-        [CommandMethod("va")]
+        [CommandMethod("zz")]
         public void get_Components_Positions()
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -1267,12 +1267,32 @@ namespace PipeInfo
             DDWorks_Database ddworks_database = new DDWorks_Database(db_path);
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
-                List<Point3d> component_positions = new List<Point3d>();
-                component_positions = ddworks_database.Get_Components_Positions();
-                ed.WriteMessage(component_positions.Count.ToString());
+                List<Point3d> component_Positions = new List<Point3d>();
+                List<Point3d> blk_Positions = new List<Point3d>();
+                component_Positions = ddworks_database.Get_Components_Positions();
+                List<ObjectId> allObjIds = GetallObjectIds();
+
+                foreach (ObjectId id in allObjIds)
+                {
+                    Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
+                    Type ty = en.GetType();
+                    if (ty.Name == "BlockReference")
+                    {
+                        BlockReference bl = en as BlockReference;
+                        blk_Positions.Add(bl.Position);
+                    }
+                }
+
+                foreach (Point3d point in component_Positions)
+                {
+                    //ed.WriteMessage(point.ToString());
+                    ed.WriteMessage(blk_Positions[0].ToString());
+                   // ed.WriteMessage(blk_Positions.Find(x => x == point).ToString());
+                }
+                acTrans.Commit();
             }
         }
-
+     
         [CommandMethod("aa")]
         public void spool_Export()
         {
@@ -3281,12 +3301,18 @@ namespace PipeInfo
                 using (SQLiteConnection conn = new SQLiteConnection(connstr))
                 {
                     conn.Open();
-                    string sql_command = string.Format("SELECT * FROM TB_MODELTEMPLATES "+
+                    string sql_command = string.Format("SELECT POSX,POSY,POSZ FROM TB_MODELTEMPLATES "+
                         "INNER JOIN TB_MODELINSTANCES on TB_MODELTEMPLATES.MODEL_TEMPLATE_ID "+
                         "= TB_MODELINSTANCES.MODEL_TEMPLATE_ID;");
                     SQLiteCommand comm = new SQLiteCommand(sql_command, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
 
+                    while(rdr.Read())
+                    {
+                        vavle_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
+                    }
+                    rdr.Close();
+                    conn.Dispose();
                 }
                 return vavle_Positions;
             }
