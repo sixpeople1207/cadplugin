@@ -1268,7 +1268,7 @@ namespace PipeInfo
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
                 List<Point3d> component_Positions = new List<Point3d>();
-                List<Point3d> blk_Positions = new List<Point3d>();
+                List<Extents3d> blk_Positions = new List<Extents3d>();
                 component_Positions = ddworks_database.Get_Components_Positions();
                 List<ObjectId> allObjIds = GetallObjectIds();
 
@@ -1279,7 +1279,7 @@ namespace PipeInfo
                     if (ty.Name == "BlockReference")
                     {
                         BlockReference bl = en as BlockReference;
-                        blk_Positions.Add(bl.Position);
+                        blk_Positions.Add((Extents3d)bl.Bounds);
                     }
                 }
 
