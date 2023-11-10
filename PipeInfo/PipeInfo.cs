@@ -46,6 +46,7 @@ using System.Drawing.Printing;
 using System.Linq.Expressions;
 using Autodesk.AutoCAD.Windows.Data;
 using System.Security.Cryptography;
+using System.Net;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -1265,8 +1266,18 @@ namespace PipeInfo
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;
             DDWorks_Database ddworks_database = new DDWorks_Database(db_path);
+
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
+                BlockTable acBlkTbl;
+                acBlkTbl = acTrans.GetObject(db.BlockTableId,
+                                                OpenMode.ForRead) as BlockTable;
+
+                // Open the Block table record Model space for write
+                BlockTableRecord acBlkTblRec;
+                acBlkTblRec = acTrans.GetObject(acBlkTbl[BlockTableRecord.ModelSpace],
+                                                OpenMode.ForWrite) as BlockTableRecord;
+
                 List<Point3d> component_Positions = new List<Point3d>();
                 List<Extents3d> blk_Positions = new List<Extents3d>();
                 component_Positions = ddworks_database.Get_Components_Positions();
@@ -1274,20 +1285,32 @@ namespace PipeInfo
 
                 foreach (ObjectId id in allObjIds)
                 {
-                    Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
+                    Entity en = acTrans.GetObject(id, OpenMode.ForWrite) as Entity;
                     Type ty = en.GetType();
                     if (ty.Name == "BlockReference")
                     {
                         BlockReference bl = en as BlockReference;
                         blk_Positions.Add((Extents3d)bl.Bounds);
+                        bl.Erase();
+                        //BlockReference blkRef = (BlockReference)acTrans.GetObject(bl.BlockId, OpenMode.ForWrite);
+                        //blkRef.Erase();           
                     }
                 }
 
+                blk_Positions = blk_Positions.OrderBy(p => p.MinPoint.X).ToList();
+                component_Positions = component_Positions.OrderBy(p => p.X).ToList();
+
                 foreach (Point3d point in component_Positions)
                 {
-                    //ed.WriteMessage(point.ToString());
-                    ed.WriteMessage(blk_Positions[0].ToString());
-                   // ed.WriteMessage(blk_Positions.Find(x => x == point).ToString());
+                    foreach(Extents3d bd in blk_Positions)
+                    {
+                        if(bd.MinPoint.X < point.X && bd.MinPoint.Y < point.Y && bd.MinPoint.Z < point.Z && bd.MaxPoint.X > point.X && bd.MaxPoint.Y > point.Y && bd.MaxPoint.Z > point.Z)
+                        {
+                            Zoom(bd.MinPoint, bd.MaxPoint, point, 1.0);
+                            ed.WriteMessage("찾았다");
+                            break;
+                        }
+                    }
                 }
                 acTrans.Commit();
             }

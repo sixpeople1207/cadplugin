@@ -1,8 +1,12 @@
 
 
-FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at E7A9BC03h
+INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
 
-10/26/2023 at 11:11:50.000  Drawing: D:\프로젝트_제작도면\도면\5D DXF,CAD 제작도 SAMPLE\DTT3703\DTT3703_SPOOL.DWG
+11/10/2023 at 16:46:35.000  Drawing: D:\프로젝트_제작도면\도면\CSAIH01_MAIN\CSAIH01_MAIN.dxf
+-------------
+1_MAIN.dxf
+-------------
+.DWG
 -------------
  Access Violation Reading 0x0000 Exception at c480b53h
 
