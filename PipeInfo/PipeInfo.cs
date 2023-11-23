@@ -66,7 +66,69 @@ namespace PipeInfo
         {
             db_path = data;
         }
-        //   [CommandMethod("ff")]
+
+        //DWG 경로만으로 파일을 열어 도면 안에 있는 Block정보를 Copy하는 예제. 23.11.23 
+        [CommandMethod("dwg")]
+        public void ReadDWG()
+        {
+            DocumentCollection dm = Application.DocumentManager;
+            Editor ed = dm.MdiActiveDocument.Editor;
+            Database destDb = dm.MdiActiveDocument.Database;
+            Database sourceDb = new Database(false, true);
+            PromptResult sourceFileName;
+            try
+            {
+                // Get name of DWG from which to copy blocks CAD에서 ""를 붙여 경로 입력
+                sourceFileName =
+                ed.GetString("\nEnter the name of the source drawing: ");
+                // Read the DWG into a side database
+                sourceDb.ReadDwgFile(sourceFileName.StringResult,System.IO.FileShare.Read,true,"");
+                ObjectIdCollection blockIds = new ObjectIdCollection();
+                Autodesk.AutoCAD.DatabaseServices.TransactionManager tm =
+                sourceDb.TransactionManager;
+                using (Transaction myT = tm.StartTransaction())
+                {
+                    // Open the block table
+                    BlockTable bt =
+                        (BlockTable)tm.GetObject(sourceDb.BlockTableId,
+                                                OpenMode.ForRead,
+                                                false);
+                    // Check each block in the block table
+                    foreach (ObjectId btrId in bt)
+                    {
+                        BlockTableRecord btr =
+                          (BlockTableRecord)tm.GetObject(btrId,OpenMode.ForRead,false);
+                        // Only add named & non-layout blocks to the copy list
+                        if (!btr.IsAnonymous && !btr.IsLayout)
+                            blockIds.Add(btrId);
+                        btr.Dispose();
+                    }
+                }
+                // Copy blocks from source to destination database
+                IdMapping mapping = new IdMapping();
+                sourceDb.WblockCloneObjects(blockIds,
+                                            destDb.BlockTableId,
+                                            mapping,
+                                            DuplicateRecordCloning.Replace,
+                                            false);
+                ed.WriteMessage("\nCopied "
+                                + blockIds.Count.ToString()
+                                + " block definitions from "
+                                + sourceFileName.StringResult
+                                + " to the current drawing.");
+                foreach(var id in blockIds)
+                {
+                    ed.WriteMessage(id.ToString());         
+                }
+            }
+            catch(Autodesk.AutoCAD.Runtime.Exception ex)
+            {
+                ed.WriteMessage("\nError during copy: " + ex.Message);
+            }
+            sourceDb.Dispose();
+        }
+
+        //[CommandMethod("ff")]
         public void selectFence()
         {
             if (db_path != "")
@@ -1283,6 +1345,7 @@ namespace PipeInfo
                 component_Positions = ddworks_database.Get_Components_Positions();
                 List<ObjectId> allObjIds = GetallObjectIds();
 
+                //테스트. 모든 블록 지우는 기능
                 foreach (ObjectId id in allObjIds)
                 {
                     Entity en = acTrans.GetObject(id, OpenMode.ForWrite) as Entity;
@@ -1300,6 +1363,7 @@ namespace PipeInfo
                 blk_Positions = blk_Positions.OrderBy(p => p.MinPoint.X).ToList();
                 component_Positions = component_Positions.OrderBy(p => p.X).ToList();
 
+                // DB 기자재 위치와 도면 블록 위치 찾는 기능
                 foreach (Point3d point in component_Positions)
                 {
                     foreach(Extents3d bd in blk_Positions)
