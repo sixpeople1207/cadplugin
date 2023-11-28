@@ -116,6 +116,7 @@ namespace PipeInfo
                                 + " block definitions from "
                                 + sourceFileName.StringResult
                                 + " to the current drawing.");
+                
                 foreach(var id in blockIds)
                 {
                     ed.WriteMessage(id.ToString());         
@@ -1313,7 +1314,10 @@ namespace PipeInfo
                     ObjectId[] objId = ss.GetObjectIds();
                     foreach (ObjectId id in objId)
                     {
-                        ed.WriteMessage(id.ToString());
+                        Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
+                        Type type = en.GetType();
+                        ed.WriteMessage("오브젝트 아이디 : {0}\n오브젝트 타입 : {1}\n타입 이름 : {2}\n",id, type, type.Name);
+
                     }
                 }
             }
@@ -1410,29 +1414,54 @@ namespace PipeInfo
                         SelectionSet sel = selSet.Value;
                         ObjectId[] objs = sel.GetObjectIds();
                         //스풀번호만 가져올 수 있는 정규식 진행중.. 
-                        Regex patten_A = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
-                        Regex patten_B = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
-                        Regex patten_C = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
-                        Regex patten_D = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_A = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_B = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_C = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,3}_[A-Za-z0-9]{1,10}-[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_D = new Regex(@"^[0-9A-Za-z]{1,5}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,5}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_E = new Regex(@"^[0-9A-Za-z]{1,3}_[A-Za-z]{1,3}_[A-Za-z]{1,3}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_F = new Regex(@"^[0-9A-Za-z]{1,5}_[A-Za-z]{1,10}_[A-Za-z]{1,5}_[A-Za-z0-9]{1,10}_[A-Za-z0-9]{1,10}_[0-9]{1,3}$");
+                        //Regex patten_G = new Regex(@"^[0-9A-Za-z]{1,5}_[A-Za-z]{1,10}_[A-Za-z]{1,5}_[A-Za-z0-9]{1,10}_[A-Za-z]{1,10}_[0-9]{1,3}$");
+                        Regex patten_T = new Regex(@"^[0-9A]{1,3}");
+
 
 
                         ExcelObject excelObject = new ExcelObject();
-
+                        int excel_write_count = 0;
                         foreach (var obj in objs)
                         {
                             Entity ent = acTrans.GetObject(obj, OpenMode.ForRead) as Entity;
                             Type type = ent.GetType();
-                            if (type.Name == "DBText")
+                            if (type.Name == "DBText" || type.Name == "MText") //Mtext일때도 진행될 수 있게 추가 필요. 23.11.27일 제작도면 
                             {
-                                DBText text = (DBText)ent;
-                                if (patten_A.IsMatch(text.TextString) || ent.Layer.ToString().Contains("Welding_Number") || patten_B.IsMatch(text.TextString) || patten_C.IsMatch(text.TextString) || patten_D.IsMatch(text.TextString))
-                                {
-                                    excelObject.excel_InsertData(1, 1, text.TextString, true);
-                                    ed.WriteMessage("\n"+text.TextString);
+                                string tx = "";
+                                if (type.Name == "DBText") {
+                                    DBText text = (DBText)ent;
+                                    tx = text.TextString;
                                 }
+                                else if (type.Name == "MText") {
+                                    MText text = (MText)ent;
+                                    tx = text.Text;
+                                }
+
+                                string[] dash_split = tx.Split('-');
+                                string[] underbar_split = tx.Split('_');
+
+                                // 정규식에서 "-" , "_"를 포함한 Text와 첫 시작이 사이즈 "19A"인 Text를 검출하는 방법으로 변경(23.11.28)
+                                if((underbar_split.Length > 2 && dash_split.Length == 0 || underbar_split.Length > 2 && dash_split.Length > 0) && patten_T.IsMatch(underbar_split[0]))
+                                {
+                                    excelObject.excel_InsertData(1, 1, tx, true);
+                                    excel_write_count += 1;
+                                    //ed.WriteMessage("\n" + tx);
+                                }
+                                //if (patten_A.IsMatch(tx) || patten_B.IsMatch(tx) || patten_C.IsMatch(tx) || patten_D.IsMatch(tx) || patten_E.IsMatch(tx))
+                                //{
+                                //    excelObject.excel_InsertData(1, 1, tx, true);
+                                //    ed.WriteMessage("\n"+ tx);
+                                //}
                                 //ed.WriteMessage(text.TextString.ToString());
                             }
                         }
+                        ed.WriteMessage("\n[MES 정보추출] {0}개의 Spool 정보가 저장되었습니다.", excel_write_count.ToString());
                         excelObject.excel_save();
                         acTrans.Commit();
                         acTrans.Dispose();
@@ -1841,7 +1870,7 @@ namespace PipeInfo
                         Document doc = Application.DocumentManager.MdiActiveDocument;
                         Editor ed = doc.Editor;
                         System.Windows.Forms.SaveFileDialog dlg = new System.Windows.Forms.SaveFileDialog();
-                        dlg.Filter = "EXCEL 파일(*.xlsx)|*.xls";
+                        dlg.Filter = "EXCEL 파일(*.xlsx)|*.xlsx";
                         dlg.FileName = "제목없음" + ".xlsx";
                         if (dlg.ShowDialog() == DialogResult.Cancel) return;
                         DateTime currentTime = DateTime.Now;
