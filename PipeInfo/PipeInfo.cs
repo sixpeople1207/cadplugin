@@ -2406,8 +2406,9 @@ namespace PipeInfo
                     Editor ed = doc.MdiActiveDocument.Editor;
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                     BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                    List<ObjectId> spoolTexts = new List<ObjectId>(); //반환값
                     List<Point3d> text_Positions_Li = new List<Point3d>();
+                    List<ObjectId> spoolTexts = new List<ObjectId>(); //반환값
+                    Point3d line_finalPoint = new Point3d();
                     try
                     {
                         // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
@@ -2648,148 +2649,229 @@ namespace PipeInfo
                     {
                         MessageBox.Show(ex.ToString());
                     }
-                    Point3d line_finalPoint = new Point3d();
 
 
-                    //라인의 백터 방향 처리
-                    int vec_X_count = 0;
-                    int vec_Y_count = 0;
-                    int vec_Z_count = 0;
-                    string line_vectors = "";
-                    //라인의 벡터방향 같은지 확인
-                    foreach (var vec in vec_li)
+                    //***************************  텍스트 사이 라인그리기 *******************************
+                    try
                     {
-                        ed.WriteMessage(vec.GetNormal().Z.ToString());
-                        if (vec.X.ToString() == "1" || vec.GetNormal().X == -1)
+                        int vec_X_count = 0;
+                        int vec_Y_count = 0;
+                        int vec_Z_count = 0;
+                        string line_vectors = "";
+                        //라인의 벡터방향 같은지 확인
+                        foreach (var vec in vec_li)
                         {
-                            vec_X_count += 1;
-                        }
-                        else if (vec.Y == 1 || vec.Y == -1)
-                        {
-                            vec_Y_count += 1;
-                        }
-                        else if (vec.GetNormal().Z == 1 || vec.GetNormal().Z == -1)
-                        {
-                           vec_Z_count += 1;
-                        }
-                    }
-                  
-                    if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
-                    {
-                        line_vectors = "X";
-                    }
-                    else if (vec_Y_count > vec_X_count && vec_Y_count > vec_Z_count)
-                    {
-                        line_vectors = "Y";
-                    }
-                    else if (vec_Z_count > vec_X_count && vec_Z_count > vec_Y_count)
-                    {
-                        line_vectors = "Z";
-                    }
-
-                    // 텍스트 사이 간격에 라인을 그려준다.
-                    // 먼저 스풀 방향(파이프 방향x)을 구해서 좌표를 정렬해준다.
-
-                    if (groupVecstr == "X")
-                    {
-                        text_Positions_Li.OrderBy(pos => pos.X);
-                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X,text_Positions_Li[text_Positions_Li.Count - 1].Y-20,text_Positions_Li[text_Positions_Li.Count - 1].Z);
-                    }
-                    else if(groupVecstr == "Y")
-                    {
-                        text_Positions_Li.OrderBy(pos => pos.Y);
-                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X-20, text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z);
-                    }
-                    else if(groupVecstr == "Z")
-                    {
-                        text_Positions_Li.OrderBy(pos => pos.Z);
-                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X,text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z);
-                    }
-                    Line li = new Line();
-                    Point3d start_point = new Point3d();
-                    Point3d end_point = new Point3d();
-                    for (int i = 0; i < text_Positions_Li.Count; i += 1)
-                    {
-                        if (i > 0)
-                        {
-                            //라인끝점과 텍스트 위치와의 상관관계를 구하는 공식 새로 만들 필요.
-                            // 벡터 말고 그냥 조건별로 좌표를 빼서 진행하자. 
-                            Vector3d vec = text_Positions_Li[i].GetVectorTo(line_finalPoint);
-                            Point3d sub = new Point3d(text_Positions_Li[i].X - line_finalPoint.X, text_Positions_Li[i].Y - line_finalPoint.Y, text_Positions_Li[i].Z - line_finalPoint.Z);
-                            //ed.WriteMessage(sub.ToString() + "\n");
-
-                            if (line_vectors != "Z")
+                            if (vec.X.ToString() == "1" || vec.GetNormal().X == -1)
                             {
-                                if (Math.Round(vec.GetNormal().Y, 1) > 0 && groupVecstr == "X")
-                                {
-                                    ed.WriteMessage("1ㅇㅇ");
-                                    start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 5, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 20, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-
-                                }
-                                else if (Math.Round(vec.GetNormal().X, 1) < 0 && groupVecstr == "X")
-                                {
-                                    // 벡터가 마이너스일때는 마이너스부터 시작해야하니 숫자를 빼주는 것도 뒤집어줘야한다.
-                                    start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 20, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 5, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-                                }
-                                else if (Math.Round(vec.GetNormal().X, 1) > 0 && groupVecstr == "Y")
-                                {
-                                    start_point = new Point3d(text_Positions_Li[i].X + 20, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-                                }
-                                else if (Math.Round(vec.GetNormal().X, 1) < 0 && groupVecstr == "Y")
-                                {
-                                    // 파이프의 진행 경우의 수 
-                                    // 그룹벡터가 X,Y일때 Z는 0(수평)
-                                    // 그룹벡터가 X,Y일때 Z는 1(수직)
-                                    // 그룹벡터가 Z일때 X,Y
-                                    start_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X - 20, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-                                }
-                                else if (Math.Round(vec.GetNormal().X, 1) < 0 && groupVecstr == "Z")
-                                {
-                                    start_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X - 20, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-                                }
-                                else if (Math.Round(vec.GetNormal().X, 1) < 0 && groupVecstr == "Z")
-                                {
-                                    start_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    end_point = new Point3d(text_Positions_Li[i].X - 20, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
-                                    li = new Line(start_point, end_point);
-                                }
+                                vec_X_count += 1;
                             }
-                            else
+                            else if (vec.Y == 1 || vec.Y == -1)
                             {
-                                 if (vec.Z < 0)
-                                {
-                                    ed.WriteMessage("작다");
-                                    start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z+20);
-                                    end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z+5);
-                                    li = new Line(start_point, end_point);
-                                }
-                                if (vec.Z >= 0)
-                                {
-                                    ed.WriteMessage("크다", vec.Z.ToString());
-                                    start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 20);
-                                    end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
-                                    li = new Line(start_point, end_point);
-                                }
+                                vec_Y_count += 1;
                             }
-                            acBlkRec.AppendEntity(li);
-                            acTrans.AddNewlyCreatedDBObject(li, true);
+                            else if (vec.GetNormal().Z == 1 || vec.GetNormal().Z == -1)
+                            {
+                                vec_Z_count += 1;
+                            }
                         }
+                        // 라인의 벡터 중에 가장 많은 벡터가 무엇인지 판단.
+                        if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
+                        {
+                            line_vectors = "X";
+                        }
+                        else if (vec_Y_count > vec_X_count && vec_Y_count > vec_Z_count)
+                        {
+                            line_vectors = "Y";
+                        }
+                        else if (vec_Z_count > vec_X_count && vec_Z_count > vec_Y_count)
+                        {
+                            line_vectors = "Z";
+                        }
+                        else
+                        {
+                            ed.WriteMessage("라인의 스풀 방향을 알 수 없습니다. 같은 방향의 스풀을 선택해 주세요.");
+                        }
+
+
+                        Vector3d line_vec = line.StartPoint - line.EndPoint;
+                        // 이 Vector가 부호의 기준이 된다.
+
+                        // 1. 지시선의 벡터 방향.
+                        Line li = new Line();
+                        Point3d start_point = new Point3d();
+                        Point3d end_point = new Point3d();
+
+                        if (text_Positions_Li.Count > 1)
+                        {
+                            for (int i = 0; i < text_Positions_Li.Count; i += 1)
+                            {
+
+                                Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
+                                // 텍스트 사이의 라인을 하나씩 그려준다. 반개씩 -- 한쪽이 없으면 안그려주기 위함.
+                                if (line_vectors == "X" && groupVecstr == "Y")
+                                {
+                                    // 가운데 긴 라인 표시 (라인벡터의 vec의 부호를 이용해)
+                                    text_Positions_Li.OrderBy(pos => pos.Y);
+                                    /* 2. 라인의 끝점잡기
+                                    * 그룹 벡터에 따라 텍스트 좌표를 정렬해준다.
+                                    * 라인의 끝점에서 사이 간격인 40/2를 해줘 정중앙을 잡게함.
+                                    * 라인의 벡터가 +면 텍스트의 가장 뒷 좌표. - 이면 첫 좌표를 끝점으로 잡는다. 정렬을 반대로하는 방식으로 가도 되는데 잘 안됨.
+                                    * */
+                                    if (line_vec.Y > 0)
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X - (20 * line_vec.GetNormal().Y), text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z);
+                                    }
+                                    else
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X - (20 * line_vec.GetNormal().Y), text_Positions_Li[0].Y, text_Positions_Li[0].Z);
+                                    }
+                                    // 사이 라인 표시
+                                    /* 3. 텍스트 사이 선 그리기.
+                                    * 라인 방향과 라입 스풀 방향별로 그리기를 구현.
+                                    * 지시선의 좌우로 Vector방향을 찾아서 텍스트의 포지션부터 지시선까지 라인을 그린다. 5는 글씨좌표에서 살짝 떨어져 라인을 그리기 위함.
+                                    * */
+                                    if (lineTo_Text_vec.X > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.X < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                }
+                                //위 코드 반복(더해주는 위치만 바꾸면서) => 함수로 만들어서 진행 필요 23.12.01
+                                else if (line_vectors == "Y" && groupVecstr == "X")
+                                {
+                                    // 가운데 긴 라인 표시
+                                    text_Positions_Li.OrderBy(pos => pos.X);
+                                    if (line_vec.X > 0)
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y + (20 * line_vec.GetNormal().X), text_Positions_Li[text_Positions_Li.Count - 1].Z);
+                                    }
+                                    else
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y + (20 * line_vec.GetNormal().X), text_Positions_Li[0].Z);
+                                    }
+
+                                    // 사이 라인 표시
+                                    if (lineTo_Text_vec.Y > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 5, text_Positions_Li[i].Z);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Y < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 5, text_Positions_Li[i].Z);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Z" && groupVecstr == "Y")
+                                {
+                                    text_Positions_Li.OrderBy(pos => pos.Z);
+                                    if (line_vec.Y > 0)
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z - (20 * line_vec.GetNormal().Y));
+                                    }
+                                    else
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y, text_Positions_Li[0].Z - (20 * line_vec.GetNormal().Y));
+                                    }
+                                    // 가운데 긴 라인 표시
+                                    text_Positions_Li.OrderBy(pos => pos.Y);
+
+                                    if (lineTo_Text_vec.Z > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Z < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Z" && groupVecstr == "X")
+                                {
+                                    text_Positions_Li.OrderBy(pos => pos.Z);
+                                    if (line_vec.X > 0)
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z - (20 * line_vec.GetNormal().Y));
+                                    }
+                                    else
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y, text_Positions_Li[0].Z - (20 * line_vec.GetNormal().Y));
+                                    }
+                                    // 가운데 긴 라인 표시
+                                    text_Positions_Li.OrderBy(pos => pos.X);
+
+                                    if (lineTo_Text_vec.Z > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Z < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Y" && groupVecstr == "Z") //진행하기 전
+                                {
+                                    // 가운데 긴 라인 표시
+                                    text_Positions_Li.OrderBy(pos => pos.Y);
+                                    if (line_vec.Z > 0)
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y - (20 * line_vec.GetNormal().Z), text_Positions_Li[text_Positions_Li.Count - 1].Z );
+                                    }
+                                    else
+                                    {
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y - (20 * line_vec.GetNormal().Z), text_Positions_Li[0].Z );
+                                    }
+                                    text_Positions_Li.OrderBy(pos => pos.Z);
+
+                                    if (lineTo_Text_vec.Y > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Y < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else
+                                {
+                                    ed.WriteMessage("스풀의 진행방향을 찾지 못했습니다.");
+                                }
+                                acBlkRec.AppendEntity(li);
+                                acTrans.AddNewlyCreatedDBObject(li, true);
+
+                            }
+                            Line text_Line = new Line(line.EndPoint, line_finalPoint);
+                            acBlkRec.AppendEntity(text_Line);
+                            acTrans.AddNewlyCreatedDBObject(text_Line, true);
+                        }
+                            acTrans.Commit();
+                            acTrans.Dispose();
                     }
-                    Line text_Line = new Line(line.EndPoint, line_finalPoint);
-                    acBlkRec.AppendEntity(text_Line);
-                    acTrans.AddNewlyCreatedDBObject(text_Line, true);
-                    acTrans.Commit();
-                    acTrans.Dispose();
+                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
+                    {
+                        MessageBox.Show(ex.ToString());
+                    }
+                
                     return spoolTexts;
                 }
             }
