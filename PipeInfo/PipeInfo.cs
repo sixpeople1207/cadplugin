@@ -13,7 +13,7 @@ using System.Drawing;
 using System.Reflection;
 using Microsoft.Office.Interop.Excel;
 
-using AutoCAD;
+//using AutoCAD;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 using Excel = Microsoft.Office.Interop.Excel;
@@ -226,8 +226,9 @@ namespace PipeInfo
          */
         public void zoomAll()
         {
-            AcadApplication app = (AcadApplication)Application.AcadApplication;
-            app.ZoomExtents();
+            //AUTOCAD.DLL이 없어서 주석처리함. 231206 본사에서 확인 필요
+            //AcadApplication app = (AcadApplication)Application.AcadApplication;
+            //app.ZoomExtents();
         }
         [CommandMethod("bb")]
         public void pipeBetween_Distance()
@@ -2803,11 +2804,13 @@ namespace PipeInfo
                                     text_Positions_Li.OrderBy(pos => pos.Z);
                                     if (line_vec.X > 0)
                                     {
-                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z - (20 * line_vec.GetNormal().Y));
+                                        ed.WriteMessage("A");
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y, text_Positions_Li[text_Positions_Li.Count - 1].Z - (20 * line_vec.GetNormal().X));
                                     }
                                     else
                                     {
-                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y, text_Positions_Li[0].Z - (20 * line_vec.GetNormal().Y));
+                                        ed.WriteMessage(line_vec.GetNormal().X.ToString());
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y, text_Positions_Li[0].Z - (20 * line_vec.GetNormal().X));
                                     }
                                     // 가운데 긴 라인 표시
                                     text_Positions_Li.OrderBy(pos => pos.X);
@@ -2831,24 +2834,24 @@ namespace PipeInfo
                                     text_Positions_Li.OrderBy(pos => pos.Y);
                                     if (line_vec.Z > 0)
                                     {
-                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y - (20 * line_vec.GetNormal().Z), text_Positions_Li[text_Positions_Li.Count - 1].Z );
+                                        line_finalPoint = new Point3d(text_Positions_Li[text_Positions_Li.Count - 1].X, text_Positions_Li[text_Positions_Li.Count - 1].Y + (20 * line_vec.GetNormal().Z), text_Positions_Li[text_Positions_Li.Count - 1].Z );
                                     }
                                     else
                                     {
-                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y - (20 * line_vec.GetNormal().Z), text_Positions_Li[0].Z );
+                                        line_finalPoint = new Point3d(text_Positions_Li[0].X, text_Positions_Li[0].Y + (20 * line_vec.GetNormal().Z), text_Positions_Li[0].Z );
                                     }
                                     text_Positions_Li.OrderBy(pos => pos.Z);
 
                                     if (lineTo_Text_vec.Y > 0)
                                     {
                                         start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y-5, text_Positions_Li[i].Z);
                                         li = new Line(start_point, end_point);
                                     }
                                     else if (lineTo_Text_vec.Y < 0)
                                     {
                                         start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y+5    , text_Positions_Li[i].Z);
                                         li = new Line(start_point, end_point);
                                     }
                                 }
