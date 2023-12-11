@@ -13,7 +13,7 @@ using System.Drawing;
 using System.Reflection;
 using Microsoft.Office.Interop.Excel;
 
-using AutoCAD;
+//using AutoCAD;
 using Polyline = Autodesk.AutoCAD.DatabaseServices.Polyline;
 
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -228,9 +228,9 @@ namespace PipeInfo
          */
         public void zoomAll()
         {
-            //AUTOCAD.DLL이 없어서 주석처리함. 231206 본사에서 확인 필요
-            AcadApplication app = (AcadApplication)Application.AcadApplication;
-            app.ZoomExtents();
+            ////AUTOCAD.DLL이 없어서 주석처리함. 231206 본사에서 확인 필요
+            //AcadApplication app = (AcadApplication)Application.AcadApplication;
+            //app.ZoomExtents();
         }
         [CommandMethod("bb")]
         public void pipeBetween_Distance()
@@ -1709,6 +1709,7 @@ namespace PipeInfo
                     else if (lineVecs[0].Z == -1) { lineVecStr = "Z"; vecTrans = new Vector3d(1, 1, 0); }
 
                     Vector3d vecSum = new Vector3d(0, 0, 0);
+                    int text_Height = 12;
                     foreach (var vec in groupVecs)
                     {
                         vecSum += vec;
@@ -1729,51 +1730,66 @@ namespace PipeInfo
                     if (vecXYZ == 0) { gorupVecStr = "X"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.X).ToList(); }
                     else if (vecXYZ == 1) { gorupVecStr = "Y"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Y).ToList(); }
                     else if (vecXYZ == 2) { gorupVecStr = "Z"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Z).ToList(); }
-
-                    //차례대로 쓰기.
+                    
+                    // 차례대로 쓰기.
+                    // 라인을 하나씩 돌면서 중간지점을 찾는다. 
+                    // 치수의 크기와 방향을 지정한다. 
+                    // Middle Point 위치에 치수를 적는다. 
                     if (groupVecs.Count == lines_Point.Count - 1)
                     {
                         for (int i = 1; i < lines_Point.Count; i++)
                         {
                             DBText text = new DBText();
 
-                            Point3d midlePoint = new Point3d(
+                            // 훅업 라인의 시작점과 끝점을 나누어 라인의 중간지점을 찾는다.  
+                            // 중간 지점이 곧 치수의 위치가 됨. 
+                            Point3d dimText_Postion = new Point3d(
                                  lines_Point[0].StartPoint.X + lineVecs[0].X * Math.Abs(lines_Point[0].StartPoint.X - lines_Point[0].EndPoint.X) / 2,
                                  lines_Point[0].StartPoint.Y + lineVecs[0].Y * Math.Abs(lines_Point[0].StartPoint.Y - lines_Point[0].EndPoint.Y) / 2,
                                  lines_Point[0].StartPoint.Z + lineVecs[0].Z * Math.Abs(lines_Point[0].StartPoint.Z - lines_Point[0].EndPoint.Z) / 2);
 
+                            // 치수의 크기와 회전을 지정.
                             text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
-                            text.Height = 12;
+                            text.Height = text_Height;
+
+                            // 라인 사이 간격 (빼는 순서 바꿈. 전 객체에서 현재 겍체를 빼주는게 더 정확함) 23.12.11
+                            double distance = Math.Round(lines_Point[i - 1].StartPoint.Y - lines_Point[i].StartPoint.Y, 1);
+                            Vector3d dis_Vector = (lines_Point[i - 1].StartPoint - lines_Point[i].StartPoint).GetNormal();
+                            ed.WriteMessage(dis_Vector.Y.ToString());
+
+                            // 사이 간격 치수의 위치를 라인의 벡터에 따라 지정한다. 
                             //gouprvecstr X LineVec Y일때 정확히 맞음.
                             if (gorupVecStr == "X" && lineVecStr == "Z")
                             {
                                 text.Position = new Point3d(
                                 lines_Point[i].StartPoint.X + (groupVecs[0].X * 20.0),
                                 lines_Point[i].StartPoint.Y,
-                                midlePoint.Z);
+                                dimText_Postion.Z);
                                 text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.X - lines_Point[i - 1].StartPoint.X, 1)).ToString();
                             }
                             else if (gorupVecStr == "X" && lineVecStr == "Y")
                             {
                                 text.Position = new Point3d(
-                                lines_Point[i].StartPoint.X + (groupVecs[0].X * 20.0),
-                                midlePoint.Y,
+                                lines_Point[i].StartPoint.X -(Math.Round(dis_Vector.Y, 1) * (distance / 2)) + (text_Height / 2),
+                                dimText_Postion.Y, 
                                 lines_Point[i].StartPoint.Z);
-                                text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.X - lines_Point[i - 1].StartPoint.X, 1)).ToString();
+                                text.TextString = Math.Abs(distance).ToString();
                             }
                             else if (gorupVecStr == "Y" && lineVecStr == "Z")
                             {
                                 text.Position = new Point3d(
-                                lines_Point[i].StartPoint.X + (groupVecs[0].X * 20.0),
-                                lines_Point[i].StartPoint.Y,
-                                 midlePoint.Z
+                                lines_Point[i].StartPoint.X,
+                                // 그룹 벡터의 반대 방향이니 -마이너스를 적용. 그룹 벡터는 ABS적용해서 무조건 양수 마이너스 방향이 필요함으로 linevecs를 사용.
+                                // 라인의 간격에 바로 배치하면 글씨크기가 적용이 되지 않기 때문에 Text의 크기와 라인 사이를 더해서 /2를 해준다. 그래야 정중앙으로 배치된 것 처럼 보임. 
+                                lines_Point[i].StartPoint.Y - (Math.Round(dis_Vector.Y,1) * (distance/2)) + (text_Height/2), 
+                                 dimText_Postion.Z
                                 );
-                                text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Y - lines_Point[i - 1].StartPoint.Y, 1)).ToString();
+                                text.TextString = Math.Abs(distance).ToString();
                             }
                             else if (gorupVecStr == "Y" && lineVecStr == "X")
                             {
                                 text.Position = new Point3d(
-                                 midlePoint.X,
+                                 dimText_Postion.X,
                                 lines_Point[i].StartPoint.Y,
                                 lines_Point[i].StartPoint.Z
                                 );
@@ -1783,14 +1799,14 @@ namespace PipeInfo
                             {
                                 text.Position = new Point3d(
                                 lines_Point[i].StartPoint.X,
-                                midlePoint.Y,
+                                dimText_Postion.Y,
                                 lines_Point[i].StartPoint.Z);
                                 text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Z - lines_Point[i - 1].StartPoint.Z, 1)).ToString();
                             }
                             else if (gorupVecStr == "Z" && lineVecStr == "X")
                             {
                                 text.Position = new Point3d(
-                                    midlePoint.X,
+                                    dimText_Postion.X,
                                 lines_Point[i].StartPoint.Y,
                                 lines_Point[i].StartPoint.Z);
                                 text.TextString = Math.Abs(Math.Round(lines_Point[i].StartPoint.Z - lines_Point[i - 1].StartPoint.Z, 1)).ToString();
