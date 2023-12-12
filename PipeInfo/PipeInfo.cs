@@ -13,7 +13,7 @@ using System.Drawing;
 using System.Reflection;
 using Microsoft.Office.Interop.Excel;
 
-//using AutoCAD;
+using AutoCAD;
 using Polyline = Autodesk.AutoCAD.DatabaseServices.Polyline;
 
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -49,6 +49,8 @@ using System.Linq.Expressions;
 using Autodesk.AutoCAD.Windows.Data;
 using System.Security.Cryptography;
 using System.Net;
+using System.Data.Entity.Infrastructure;
+using static PipeInfo.PipeInfo;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -228,9 +230,9 @@ namespace PipeInfo
          */
         public void zoomAll()
         {
-            ////AUTOCAD.DLL이 없어서 주석처리함. 231206 본사에서 확인 필요
-            //AcadApplication app = (AcadApplication)Application.AcadApplication;
-            //app.ZoomExtents();
+            //AUTOCAD.DLL이 없어서 주석처리함. 231206 본사에서 확인 필요
+            AcadApplication app = (AcadApplication)Application.AcadApplication;
+            app.ZoomExtents();
         }
         [CommandMethod("bb")]
         public void pipeBetween_Distance()
@@ -742,14 +744,62 @@ namespace PipeInfo
                         if (weldPoints.Count > 0)
                         {
                             Vector3d groupVec = new Vector3d(0, 0, 0);
+
                             // 23.6.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
                             List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(weldPoints);
+                            // 마지막 객체 위치와 Object Ids반환(중간 객체와 분리를 위해서 반환)
+                            (List<Point3d> final_poc_pos, List<string> final_poc_str) = ddworks_Database.Get_Final_POC_Instance_Ids();
+                            // 용접포인트의 GroupVector방향을 알아내고 포인트들을 정렬시킨다. 
+                            // 만약 단일 배관들은 gourpVecstr값이 ""이 나올 수 있기때문에 이는 Text를 그려줄때(Draw_Text_WeldPoints) Line의 백터값을 따르기로 한다.
                             (List<Point3d> orderPoints, string groupVecstr) = Points.orderWeldPoints_By_GroupVector(weldPoints, vec);
+
+                            using (Transaction tr = db.TransactionManager.StartTransaction())
+                            {
+                                BlockTable blk = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                                BlockTableRecord blkRec = tr.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                                  
+                                Line lid = new Line();
+                                //마지막 객체들을 처리해준다. 
+                                pFaceMeshPoints = pFaceMeshPoints.OrderBy(p=>p.X).ToList();
+                                Point3d minPos = pFaceMeshPoints[0];
+                                Point3d maxPos = pFaceMeshPoints[pFaceMeshPoints.Count-1];
+                                
+                                foreach (var final_poc in final_poc_pos)
+                                {
+                                    //if (minPos.X < final_poc.X && maxPos.X > final_poc.X)
+                                    //{
+                                        //ed.WriteMessage(Math.Truncate(final_poc.X).ToString()+'\n');
+                                        foreach (var points in pFaceMeshPoints)
+                                        {
+                                            if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Y) == Math.Truncate(points.Y))
+                                            {
+                                                ed.WriteMessage("마지막 객체 포함 XY{0}", points);
+                                            }
+                                            else if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
+                                            {
+                                                ed.WriteMessage("마지막 객체 포함 XZ");
+                                            }
+                                            else if (Math.Truncate(final_poc.Y) == Math.Truncate(points.Y) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
+                                            {
+                                                ed.WriteMessage("마지막 객체 포함 YZ{0}", points);
+                                            }
+                                        }
+                                    //}
+                                    // 마지막 객체 확인용 라인
+                                    //lid = new Line(new Point3d(final_poc.X, final_poc.Y, final_poc.Z), new Point3d(final_poc.X, final_poc.Y, final_poc.Z + 50));
+                                    //blkRec.AppendEntity(lid);
+                                    //tr.AddNewlyCreatedDBObject(lid,true);
+                                }
+                                //tr.Commit();
+                                //tr.Dispose();
+                            }
+
                             // SpoolTexts Base PolyLine
-                            // weldPoints.의 중간지점
+                            // weldPoints.의 중간지점을 잡아 지시선 라인을 그려준다. 
                             double averX = weldPoints.Average(p => p.X);
                             double averY = weldPoints.Average(p => p.Y);
                             double averZ = weldPoints.Average(p => p.Z);
+
                             Point3d averPoint = new Point3d(averX, averY, averZ);
                             string commandLine = String.Format("{0},{1},{2}", averPoint.X, averPoint.Y, averPoint.Z);
                             ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.");
@@ -761,7 +811,7 @@ namespace PipeInfo
                             // Cmd5(averPoint);
                             using (Transaction tr = db.TransactionManager.StartTransaction())
                             {
-                                //마지막 그린 객체를 반환. Line만 필터
+                                //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
                                 Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
                                 Type type = ent.GetType();
                                 ed.WriteMessage(type.Name.ToString());
@@ -780,7 +830,9 @@ namespace PipeInfo
                             if (isSpoolLine == true)
                             {
                                 ed.WriteMessage("\n Spool정보 Text 회전 : G , 취소 : Esc");
+                                //정렬된 용접포인트를 받아 Database에서 스풀 리스트를 가져온다. 
                                 (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
+                                //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
                                 List<ObjectId> spoolTexts = tControl.Draw_Text_WeldPoints(li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
                                 keyFilter keyFilter = new keyFilter();
                                 
@@ -2699,7 +2751,7 @@ namespace PipeInfo
                                 vec_Z_count += 1;
                             }
                         }
-                        // 라인의 벡터 중에 가장 많은 벡터가 무엇인지 판단.
+                        // 배관 라인의 벡터 중에 가장 많은 벡터가 무엇인지 판단.
                         if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
                         {
                             line_vectors = "X";
@@ -2717,6 +2769,7 @@ namespace PipeInfo
                             ed.WriteMessage("라인의 스풀 방향을 알 수 없습니다. 같은 방향의 스풀을 선택해 주세요.");
                         }
 
+                      
 
                         Vector3d line_vec = line.StartPoint - line.EndPoint;
                         // 이 Vector가 부호의 기준이 된다.
@@ -2731,12 +2784,29 @@ namespace PipeInfo
 
                         if (text_Positions_Li.Count > 1) // TEXT가 하나 이상일때 적용
                         {
-                            //최대값으로 정렬
+                            //최대값으로 정렬 필요. 
                             text_Positions_Li = text_Positions_Li.OrderBy(p => p.Y).OrderBy(p => p.X).OrderBy(p => p.Z).ToList();
+                            
+                            //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
+                            if (groupVecstr == "")
+                            {
+                                if(line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
+                                {
+                                    groupVecstr = "X";
+                                }
+                                if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
+                                {
+                                    groupVecstr = "Y";
+                                }
+                                if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
+                                {
+                                    groupVecstr = "Z";
+                                }
+                            }
+                            
                             for (int i = 0; i < text_Positions_Li.Count; i += 1)
                             {
                                 Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
-
                                 // 텍스트 사이의 라인을 하나씩 그려준다. 반개씩 -- 한쪽이 없으면 안그려주기 위함.
                                 // 라인 끝점 구하는 알고리즘은 반복문에서 빼줘도 될 것 같다. 23.12.07
                                 if (line_vectors == "X" && groupVecstr == "Y")
@@ -2828,6 +2898,7 @@ namespace PipeInfo
                                 else
                                 {
                                     ed.WriteMessage("\n스풀의 진행방향을 찾지 못했습니다.");
+                                    break;
                                 }
                                 acBlkRec.AppendEntity(text_between_li);
                                 acTrans.AddNewlyCreatedDBObject(text_between_li, true);
@@ -3167,7 +3238,7 @@ namespace PipeInfo
             * 기능 설명 : PIPE의 마지막 POC.
             * 관련 테이블 : TB_POCINSTANCES.
             * 입력 타입 : 없음.(DB에서 바로 검색).
-            * 반환 값 : List(Point3d:POC의 위치), List(string:마지막 객체의 OWNER_INSTANCE_ID). <- 앞뒤객체를 검색해서 Pipe 앞뒤로 배치가능.
+            * 반환 값 : List(Point3d:마지막 POC의 위치), List(string:마지막 객체의 OWNER_INSTANCE_ID). <- 앞뒤객체를 검색해서 Pipe 앞뒤로 배치가능.
             */
             public (List<Point3d>, List<string>) Get_Final_POC_Instance_Ids()
             {
@@ -3220,10 +3291,6 @@ namespace PipeInfo
                         conn.Close();
                     }
 
-                    foreach (var final_obj in final_objs_Pos)
-                    {
-                        db_ed.WriteMessage("마지막객체: " + final_obj.ToString() + "\n");
-                    }
                 }
                 return (final_objs_Pos, final_objs_ID);
             }
@@ -3245,9 +3312,9 @@ namespace PipeInfo
                     conn.Open();
                     SQLiteCommand comm = new SQLiteCommand(sql, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
+
                     while (rdr.Read())
                     {
-                        db_ed.WriteMessage("오너 아이디" + BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", ""));
                         prev_poc_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
                     }
                     conn.Close();
@@ -3422,9 +3489,11 @@ namespace PipeInfo
                         List<int> index_li = new List<int>(); // 최종적으로 맞대기 용접 index를 저장해서 weldGroup에서 좌표를 더해준다.
                         foreach (var point in weldGroup)
                         {
+                            //POC Instances 가져오는 SQL문 작성해서 반환. 
                             string sql = SqlStr_TB_POCINSTANCES_By_Point(point);
                             SQLiteCommand command = new SQLiteCommand(sql, conn);
                             SQLiteDataReader rdr = command.ExecuteReader();
+
                             int count = 0; //파이프객체가 몇개인지 카운트.
                             while (rdr.Read())
                             {
@@ -3434,10 +3503,9 @@ namespace PipeInfo
                                     count++;
                                     List<Point3d> points = new List<Point3d>();
                                     string instance_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
-
                                     string sql_ins = SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(instance_id);
                                     spool_info_li.Add(Get_Pipe_Spool_Info_By_OwnerInsId(instance_id));
-
+                                    
                                     //Get_Pipe_Spool_Info_By_OwnerInsId 로 스풀정보.
                                     SQLiteCommand command_1 = new SQLiteCommand(sql_ins, conn);
                                     SQLiteDataReader rdr_1 = command_1.ExecuteReader();
