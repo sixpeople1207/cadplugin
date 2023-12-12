@@ -975,6 +975,8 @@ namespace PipeInfo
             }
 
         }
+
+        //미사용 삭제 예정
         public async void Cmd5(Point3d point)
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -3725,7 +3727,6 @@ namespace PipeInfo
           _palette.ui();
         }
 
-   
     }
 }
 
