@@ -2501,6 +2501,25 @@ namespace PipeInfo
                             int group_index = 0;
                             if (newPoints.Count > 1)
                             {
+                                Vector3d line_vec = line.StartPoint - line.EndPoint;
+
+                                //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
+                                if (groupVecstr == "")
+                                {
+                                    if (line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
+                                    {
+                                        groupVecstr = "X";
+                                    }
+                                    if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
+                                    {
+                                        groupVecstr = "Y";
+                                    }
+                                    if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
+                                    {
+                                        groupVecstr = "Z";
+                                    }
+                                }
+
                                 near_Points.Add(new Tuple<int, Point3d>(group_index, newPoints[0]));
                                 for (int i = 0; i < newPoints.Count; i++)
                                 {
@@ -2769,9 +2788,7 @@ namespace PipeInfo
                             ed.WriteMessage("라인의 스풀 방향을 알 수 없습니다. 같은 방향의 스풀을 선택해 주세요.");
                         }
 
-                      
 
-                        Vector3d line_vec = line.StartPoint - line.EndPoint;
                         // 이 Vector가 부호의 기준이 된다.
 
                         // 1. 지시선의 벡터 방향.
@@ -2787,23 +2804,7 @@ namespace PipeInfo
                             //최대값으로 정렬 필요. 
                             text_Positions_Li = text_Positions_Li.OrderBy(p => p.Y).OrderBy(p => p.X).OrderBy(p => p.Z).ToList();
                             
-                            //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
-                            if (groupVecstr == "")
-                            {
-                                if(line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
-                                {
-                                    groupVecstr = "X";
-                                }
-                                if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
-                                {
-                                    groupVecstr = "Y";
-                                }
-                                if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
-                                {
-                                    groupVecstr = "Z";
-                                }
-                            }
-                            
+                       
                             for (int i = 0; i < text_Positions_Li.Count; i += 1)
                             {
                                 Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
