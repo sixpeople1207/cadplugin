@@ -748,7 +748,7 @@ namespace PipeInfo
 
                             // 23.6.23 함수 추가 Get_Pipe_Vector_By_SpoolList와 거의 동일.. 조금 수정해야할 것 같다. 함수안에 함수로. Get_Pipe_Info하고 -> Vector, Spool, WELD맞대기좌표추가한 리스트 반환기능 등
                             List<Vector3d> vec = ddworks_Database.Get_Pipe_Vector_By_Points(weldPoints_Filtered);
-                            // 마지막 객체 위치와 Object Ids반환(중간 객체와 분리를 위해서 반환)
+                            // 마지막 POC 객체 위치와 Object Ids반환(중간 객체와 분리를 위해서 반환)
                             (List<Point3d> final_poc_pos, List<string> final_poc_str) = ddworks_Database.Get_Final_POC_Instance_Ids();
 
                             // 마지막 객체의 삭제
@@ -761,6 +761,7 @@ namespace PipeInfo
                                 //{
                                 //ed.WriteMessage(Math.Truncate(final_poc.X).ToString()+'\n');
                                 // Filter가 적용된 후의 값인 weldPoints의 값을 진행(pFaceMeshPoints -> weldPoints_Filtered)
+                                // 버림을 하다보니 다른 좌표와 혼동되는 경우 발생한듯.. 하다. 3번째 자리까지 올림할까? 디버깅 필요. ESTPH53_PCW  231215 일
                                 foreach (var points in weldPoints_Filtered)
                                 {
                                     if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Y) == Math.Truncate(points.Y))
@@ -783,8 +784,9 @@ namespace PipeInfo
                                 //tr.AddNewlyCreatedDBObject(lid,true);
                             }
 
-                        ed.WriteMessage("지울애들 {0}", remove_Pos_Li.Count);
+                            ed.WriteMessage("지울애들 {0}", remove_Pos_Li.Count);
                             // weldPoints도 지워줘야한다.
+                            // 마지막 POC 객체만 있을때는 지우지 않는다.
                             if (remove_Pos_Li.Count != weldPoints_Filtered.Count) { 
                             foreach (var pos in remove_Pos_Li)
                             {
@@ -1015,7 +1017,7 @@ namespace PipeInfo
                         }
                         else
                         {
-                            ed.WriteMessage("\nError :라인이 그려지지 않았습니다.");
+                            ed.WriteMessage("\nError :weldPoints_Filtered에서 값이 0입니다.");
                         }
                     }
                     else
