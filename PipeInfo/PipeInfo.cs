@@ -773,7 +773,7 @@ namespace PipeInfo
                                     //    remove_Pos_Li.Add(points);
                                     //}
                                     //else if (Math.Truncate(final_poc.Y) == Math.Truncate(points.Y) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
-                                    //{
+                                    //{/
                                     //    remove_Pos_Li.Add(points);
                                     //}
                                     if (Math.Abs(final_poc.X - points.X) < 1 && Math.Abs(final_poc.Y - points.Y) < 1 && Math.Abs(final_poc.Z - points.Z) < 1)
