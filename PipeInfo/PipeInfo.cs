@@ -764,17 +764,21 @@ namespace PipeInfo
                                 // 버림을 하다보니 다른 좌표와 혼동되는 경우 발생한듯.. 하다. 3번째 자리까지 올림할까? 디버깅 필요. ESTPH53_PCW  231215 일
                                 foreach (var points in weldPoints_Filtered)
                                 {
-                                    if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Y) == Math.Truncate(points.Y))
+                                    //if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Y) == Math.Truncate(points.Y))
+                                    //{
+                                    //    remove_Pos_Li.Add(points);
+                                    //}
+                                    //else if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
+                                    //{
+                                    //    remove_Pos_Li.Add(points);
+                                    //}
+                                    //else if (Math.Truncate(final_poc.Y) == Math.Truncate(points.Y) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
+                                    //{
+                                    //    remove_Pos_Li.Add(points);
+                                    //}
+                                    if (Math.Abs(final_poc.X - points.X) < 1 && Math.Abs(final_poc.Y - points.Y) < 1 && Math.Abs(final_poc.Z - points.Z) < 1)
                                     {
-                                        remove_Pos_Li.Add(points);
-                                    }
-                                    else if (Math.Truncate(final_poc.X) == Math.Truncate(points.X) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
-                                    {
-                                        remove_Pos_Li.Add(points);
-                                    }
-                                    else if (Math.Truncate(final_poc.Y) == Math.Truncate(points.Y) && Math.Truncate(final_poc.Z) == Math.Truncate(points.Z))
-                                    {
-                                        remove_Pos_Li.Add(points);
+                                        if (remove_Pos_Li.Contains(points) == false) remove_Pos_Li.Add(points);
                                     }
                                 }
                                 //}
