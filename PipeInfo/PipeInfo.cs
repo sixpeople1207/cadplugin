@@ -2783,15 +2783,15 @@ namespace PipeInfo
                         //라인의 벡터방향 같은지 확인
                         foreach (var vec in vec_li)
                         {
-                            if (vec.X.ToString() == "1" || vec.GetNormal().X == -1)
+                            if (Math.Round(vec.GetNormal().X,1) == 1 || Math.Round(vec.GetNormal().X,1) == -1)
                             {
                                 vec_X_count += 1;
                             }
-                            else if (vec.Y == 1 || vec.Y == -1)
+                            else if (Math.Round(vec.GetNormal().Y,1) == 1 || Math.Round(vec.GetNormal().Y,1) == -1)
                             {
                                 vec_Y_count += 1;
                             }
-                            else if (vec.GetNormal().Z == 1 || vec.GetNormal().Z == -1)
+                            else if (Math.Round(vec.GetNormal().Z,1) == 1 || Math.Round(vec.GetNormal().Z,1) == -1)
                             {
                                 vec_Z_count += 1;
                             }
@@ -2812,6 +2812,7 @@ namespace PipeInfo
                         else
                         {
                             ed.WriteMessage("라인의 스풀 방향을 알 수 없습니다. 같은 방향의 스풀을 선택해 주세요.");
+                            ed.WriteMessage("X{0} Y{1} Z{2}", vec_X_count, vec_Y_count, vec_Z_count);
                         }
 
 
