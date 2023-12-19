@@ -813,21 +813,22 @@ namespace PipeInfo
                                 Point3d averPoint = new Point3d(averX, averY, averZ);
                                 string commandLine = String.Format("{0},{1},{2}", averPoint.X, averPoint.Y, averPoint.Z);
                                 ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.\nnet");
-                                ed.Command("_.PLINE", commandLine);
+                                // 23.12.19 pline에서 3dpoly로 변경
+                                ed.Command("_.3dpoly", commandLine);
 
                                 bool isSpoolLine = false;
-                                Polyline li = new Polyline();
-
+                                Polyline3d po_li = new Polyline3d();
+                                Line li = new Line();
                                 // Cmd5(averPoint);
                                 using (Transaction tr = db.TransactionManager.StartTransaction())
                                 {
                                     //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
                                     Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
                                     Type type = ent.GetType();
-                                    ed.WriteMessage(type.Name.ToString());
-                                    if (type.Name.ToString() == "Polyline")
+                                    
+                                    if (type.Name.ToString() == "Polyline3d")
                                     {
-                                        li = (Polyline)ent;
+                                        po_li = (Polyline3d)ent;
                                         isSpoolLine = true;
                                     }
                                     else
@@ -843,7 +844,7 @@ namespace PipeInfo
                                     //정렬된 용접포인트를 받아 Database에서 스풀 리스트를 가져온다. 
                                     (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
                                     //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
-                                    List<ObjectId> spoolTexts = tControl.Draw_Text_WeldPoints(li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
+                                    List<ObjectId> spoolTexts = tControl.Draw_Text_WeldPoints(po_li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
                                     keyFilter keyFilter = new keyFilter();
 
                                     //23.7.25
@@ -1778,7 +1779,7 @@ namespace PipeInfo
                     else if (lineVecs[0].Z == -1) { lineVecStr = "Z"; vecTrans = new Vector3d(1, 1, 0); }
 
                     Vector3d vecSum = new Vector3d(0, 0, 0);
-                    int text_Height = 12;
+                    int text_Height = 18;
                     foreach (var vec in groupVecs)
                     {
                         vecSum += vec;
@@ -2490,7 +2491,7 @@ namespace PipeInfo
 
             // 기능 설명 : 지시선과 스플정보들을 배치하고, 스풀정보들 사이에 지시선과 연장선을 그린다.
             // line의 속성을 Line에서 Polyline으로 변경(23.12.07) 
-            public List<ObjectId> Draw_Text_WeldPoints(Polyline line, List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints, string groupVecstr)
+            public List<ObjectId> Draw_Text_WeldPoints(Polyline3d line, List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints, string groupVecstr)
             {
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
@@ -2591,8 +2592,11 @@ namespace PipeInfo
 
                                 Vector3d lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
                                 lineVec = new Vector3d(Math.Round(lineVec.X, 1), Math.Round(lineVec.Y,1), Math.Round(lineVec.Z,1));
-                                int text_SideBetween_Dis = 20;
-                                int text_TopDownBetween_Dis = 25;
+
+                                ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
+
+                                int text_SideBetween_Dis = 40;
+                                int text_TopDownBetween_Dis = 30;
                                 int textTrans_Ang = 90;
                                 Point3d befor_TextPosition = new Point3d();
                                
@@ -2610,7 +2614,7 @@ namespace PipeInfo
                                     else basePoint = line.EndPoint.Y + (50 * lineVec.Y);
                                 }
                                 else
-                                {
+                                { 
                                     if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
                                     else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
                                 }
@@ -2645,7 +2649,7 @@ namespace PipeInfo
                                         text.TextString = spoolInfo_li[k].ToString();
                                         text.Normal = Vector3d.YAxis;
                                         //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
-                                        text.Height = 12.0;
+                                        text.Height = 18.0;
                                         int nCnt = 0;
                                        
                                         Point3d textPosition = new Point3d();
@@ -2654,9 +2658,16 @@ namespace PipeInfo
                                         {
                                             string[] beforeText = spoolInfo_li[k - 1].Split('_');
                                             string[] afterText = spoolInfo_li[k].Split('_');
-                                            if (beforeText[beforeText.Count()-2] != afterText[beforeText.Count() - 2])
+                                            if (beforeText.Count() > 2 && afterText.Count() > 2)
                                             {
-                                                basePoint -= text_TopDownBetween_Dis;
+                                                if (beforeText[beforeText.Count() - 2] != afterText[beforeText.Count() - 2])
+                                                {
+                                                    basePoint -= text_TopDownBetween_Dis;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                ed.WriteMessage("\n스풀 정보에 끝단 객체가 포함되어 있습니다.");
                                             }
                                         }
 
@@ -2722,6 +2733,7 @@ namespace PipeInfo
                                             }
 
                                         }
+
                                         if (textPosition.IsEqualTo(befor_TextPosition))
                                         {
                                             if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z); 
@@ -2822,6 +2834,7 @@ namespace PipeInfo
                             for (int i = 0; i < text_Positions_Li.Count; i += 1)
                             {
                                 Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
+
                                 // 텍스트 사이의 라인을 하나씩 그려준다. 반개씩 -- 한쪽이 없으면 안그려주기 위함.
                                 // 라인 끝점 구하는 알고리즘은 반복문에서 빼줘도 될 것 같다. 23.12.07
                                 if (line_vectors == "X" && groupVecstr == "Y")
@@ -2910,14 +2923,32 @@ namespace PipeInfo
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                 }
+                                else if (line_vectors == "X" && groupVecstr == "Z")
+                                {
+
+                                    if (lineTo_Text_vec.X > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.X < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
                                 else
                                 {
                                     ed.WriteMessage("\n스풀의 진행방향을 찾지 못했습니다.");
                                     break;
                                 }
+
                                 acBlkRec.AppendEntity(text_between_li);
                                 acTrans.AddNewlyCreatedDBObject(text_between_li, true);
 
+                                // 텍스트 중앙 지시선을 그리고 사용자가 그려준 마지막 라인과 조인해서 한 객체로 만든다. 
                                 if (i == 0)
                                 {
                                     center_line = new Line(line.EndPoint, text_between_li.StartPoint);
@@ -2925,7 +2956,7 @@ namespace PipeInfo
                                     en.UpgradeOpen();
                                     en.JoinEntity(center_line);
                                 }
-                                else if(i== text_Positions_Li.Count - 1)
+                                else if(i == text_Positions_Li.Count - 1)
                                 {
                                     center_line = new Line(line.EndPoint, text_between_li.StartPoint);
                                     Entity en = acTrans.GetObject(line.ObjectId, OpenMode.ForWrite) as Entity;
