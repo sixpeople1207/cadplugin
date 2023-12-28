@@ -744,7 +744,7 @@ namespace PipeInfo
                         // -> 필터 적용. 7.24 등등
                         // 선택한 용접포인트의 위치가 필터에 해당한다면 Point를 삭제.
                         List<Point3d> weldPoints_Filtered = ddworks_Database.FilterWeldGroup_By_ComponentType(pFaceMeshPoints, filter);
-                        
+
                         if (weldPoints_Filtered.Count > 0)
                         {
                             Vector3d groupVec = new Vector3d(0, 0, 0);
@@ -822,11 +822,14 @@ namespace PipeInfo
                                 bool isSpoolLine = false;
                                 Polyline3d po_li = new Polyline3d();
                                 Line li = new Line();
+
                                 // Cmd5(averPoint);
                                 using (Transaction tr = db.TransactionManager.StartTransaction())
                                 {
                                     //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
+                                    
                                     Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
+                                    //마지막 그린 라인의 버텍스를 잡아내서 Vector를 알아낸다.
                                     Type type = ent.GetType();
                                     
                                     if (type.Name.ToString() == "Polyline3d")
@@ -1011,15 +1014,8 @@ namespace PipeInfo
                                                 //}
 
                                                 // 마지막 그린 라인의 벡터 23.12.27작업중.. 
-                                                List<Point3d> li_point = new List<Point3d>();
-                                                foreach (Point3d po in po_li)
-                                                {
-                                                    li_point.Add(po);
-                                                }
-                                                if (li_point.Count > 0)
-                                                {
-                                                    Vector3d vec = li_point[li_point.Count] - li_point[li_point.Count - 1];
-                                                }
+                                                Vector3d poli_vec = po_li.EndPoint - po_li.StartPoint;
+
 
                                                 for (int i = 0; i < spoolTexts.Count; i += 1)
                                                 {
@@ -1029,7 +1025,7 @@ namespace PipeInfo
                                                     Point3d min = bound.MinPoint;
                                                     Point3d max = bound.MaxPoint;
 
-                                                    ed.WriteMessage("\nmin : {0}\nmax :{1}", min,max);
+                                                    //ed.WriteMessage("\nmin : {0}\nmax :{1}", min,max);
 
                                                     Point3d posA = textA.Position;
                                                     Point3d aligA = textA.AlignmentPoint;
@@ -1038,7 +1034,7 @@ namespace PipeInfo
                                                     {
                                                         aligA = min;
                                                     }
-
+                                                    
                                                     TextHorizontalMode horA = textA.HorizontalMode;
                                                     AttachmentPoint justifyA = textA.Justify;
 
@@ -1056,44 +1052,69 @@ namespace PipeInfo
                                                    
                                                     }
 
-                                                  
+                                                    // Text의 Min Max와 TextHeight의 오차가 존재함으로 오차 값을 구해서 TextHeight값에 적용.
+                                                    double textTerm_X = Math.Abs((max.X - min.X)- text_height);
+                                                    double textTerm_Y = Math.Abs((max.Y - min.Y) - text_height);
+                                                    double textTerm_Z = Math.Abs((max.Z - min.Z) - text_height);
 
+                                                    ed.WriteMessage(textTerm_X.ToString());
+                                                    
+                                                    // 그룹 벡터에 따른 글씨의 회전값 적용. 
+                                                    // 글씨의 Flip 할때 글씨의 좌표값을 Bound에 Max로 적용시 Bound바깥으로 넘어가기때문에 글씨 크기만큼 빼준다.(1017에서 부호 결정)
+                                                    if (groupVecstr == "X")
+                                                    {
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                        max = new Point3d(max.X - (text_height - textTerm_X), max.Y , max.Z);
+                                                    }
+                                                    else if (groupVecstr == "Y")
+                                                    {
+                                                        max = new Point3d(max.X, max.Y - (text_height - textTerm_Y), max.Z);
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                    }
+                                                    else if (groupVecstr == "Z")
+                                                    {
+                                                        max = new Point3d(max.X, max.Y, max.Z - (text_height - textTerm_Z));
+                                                        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                                    }
                                                     // 배관의 Spool Vector에 따라 기준점 바꾸기.
+                                                    // 글씨의 회전값 적용
                                                     // 라인의 끝점부터 그리기.
-                                                    if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
-                                                    {
-                                                        if (groupVecstr == "Y")
-                                                        {
-                                                            max = new Point3d(max.X , max.Y-text_height, max.Z);
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
-                                                        }
-                                                        else if (groupVecstr == "Z")
-                                                        {
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
-                                                        }
-                                                    }
-                                                    else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
-                                                    {
-                                                        if (groupVecstr == "Z")
-                                                        {
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
-                                                        }
-                                                        else if (groupVecstr == "X")
-                                                        {
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
-                                                        }
-                                                    }
-                                                    else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
-                                                    {
-                                                        if (groupVecstr == "X")
-                                                        {
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
-                                                        }
-                                                        else if (groupVecstr == "Y")
-                                                        {
-                                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
-                                                        }
-                                                    }
+                                                    // 텍스트의 Max Bound 값에서 글씨 값을 빼주거나(지시선 Vec가 +) 더해주거나(지시선 Vec -) 진행.
+                                                    //if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
+                                                    //{
+
+                                                    //    if (groupVecstr == "Y")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                    //    }
+                                                    //    else if (groupVecstr == "Z")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                                    //    }
+                                                    //}
+                                                    //else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
+                                                    //{
+
+                                                    //    if (groupVecstr == "Z")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                                    //    }
+                                                    //    else if (groupVecstr == "X")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                    //    }
+                                                    //}
+                                                    //else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
+                                                    //{
+                                                    //    if (groupVecstr == "X")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                    //    }
+                                                    //    else if (groupVecstr == "Y")
+                                                    //    {
+                                                    //        textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                                    //    }
+                                                    //}
 
                                                     if (textFlip_Count % 2 == 0)
                                                     {
@@ -1116,7 +1137,6 @@ namespace PipeInfo
                                                         {
                                                             textA.Position = max;
                                                         }
-
                                                     }
 
                                                 }

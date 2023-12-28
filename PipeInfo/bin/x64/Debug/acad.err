@@ -1,14 +1,10 @@
 
 
-INTERNAL ERROR:  !dbobji.cpp@8627: eNotOpenForWrite
+FATAL ERROR:  Unhandled Access Violation Reading 0x0000 Exception at A262264Ah
 
-11/29/2023 at 13:19:38.000  Drawing: D:\프로젝트_제작도면\도면\CSAIH01_MAIN\CSAIH01_MAIN.dxf
+12/28/2023 at 09:08:12.000  Drawing: D:\프로젝트_제작도면\도면\231215 입수 - CAD-Retouch CASE\23.10.05 (P3-3) ESTPH53(상부)\ESTPH53_상부.dxf
 -------------
-1_MAIN.dxf
--------------
-.DWG
--------------
- Access Violation Reading 0x0000 Exception at c480b53h
+x0000 Exception at c480b53h
 
 06/28/2023 at 23:56:50.000  Drawing: Drawing1.dwg
 -------------
