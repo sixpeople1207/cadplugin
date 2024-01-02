@@ -133,7 +133,7 @@ namespace PipeInfo
             sourceDb.Dispose();
         }
 
-        //[CommandMethod("ff")]
+        [CommandMethod("ff")]
         public void selectFence()
         {
             if (db_path != "")
@@ -161,10 +161,12 @@ namespace PipeInfo
                         BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                         Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
-                        foreach (var point in pointCollection)
-                        {
-                            ed.WriteMessage(point.ToString());
-                        }
+
+                        //foreach (var point in pointCollection)
+                        //{
+                        //    ed.WriteMessage(point.ToString());
+                        //}
+
                         blkRec.AppendEntity(line);
                         acTrans.AddNewlyCreatedDBObject(line, true);
                         acTrans.Commit();
@@ -209,6 +211,11 @@ namespace PipeInfo
                     var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
                     draw_Text.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
                     // draw_Text.ed_Draw_Text(pipe_Information_li_2, finale_POC_points, 25, 12); <- 마지막 POC 단 글씨
+                    //스페이스바로 글씨 회전. 배관 진행방향.
+
+                    // FF (Fnece Selection) 모드에서도 글씨 회전 기능 추가
+                    // FF (Fnece Selection) 모드에서는 끝단 객체일 가능성이 크기 때문에 라인 벡트의 반대 방향으로 글씨를 배치해서 끝단에 자연스럽게 배치한다.
+                   
                 }
                 else
                 {
@@ -791,7 +798,7 @@ namespace PipeInfo
                                 //tr.AddNewlyCreatedDBObject(lid,true);
                             }
 
-                            ed.WriteMessage("지울애들 {0}", remove_Pos_Li.Count);
+                            //ed.WriteMessage("지울애들 {0}", remove_Pos_Li.Count);
                             // weldPoints도 지워줘야한다.
                             // 마지막 POC 객체만 있을때는 지우지 않는다.
                             if (remove_Pos_Li.Count != weldPoints_Filtered.Count) { 
@@ -850,6 +857,25 @@ namespace PipeInfo
                                     //정렬된 용접포인트를 받아 Database에서 스풀 리스트를 가져온다. 
                                     (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
                                     //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
+
+                                    // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
+                                    if(groupVecstr == "")
+                                    {
+                                        Point3d po_start_point = po_li.StartPoint;
+                                        Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
+                                        if(Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
+                                        {
+                                            groupVecstr = "X";
+                                        }
+                                        if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
+                                        {
+                                            groupVecstr = "Y";
+                                        }
+                                        if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
+                                        {
+                                            groupVecstr = "Z";
+                                        }
+                                    }
                                     List<ObjectId> spoolTexts = tControl.Draw_Text_WeldPoints(po_li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
                                     keyFilter keyFilter = new keyFilter();
 
@@ -2162,6 +2188,7 @@ namespace PipeInfo
                     if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
                     {
                         orderPoints = oldPoints.OrderByDescending(p => p.X).ToList();
+                        
                         for (int i = 0; i < oldPoints.Count; i++)
                         {
                             //7.12추가
@@ -3694,7 +3721,7 @@ namespace PipeInfo
                                     string instance_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
                                     string sql_ins = SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(instance_id);
                                     string spool_info = Get_Pipe_Spool_Info_By_OwnerInsId(instance_id);
-                                    if(spool_info != null) { spool_info_li.Add(spool_info); };
+                                    if(spool_info != null && spool_info != "") { spool_info_li.Add(spool_info); };
                                     
                                     //Get_Pipe_Spool_Info_By_OwnerInsId 로 스풀정보.
                                     SQLiteCommand command_1 = new SQLiteCommand(sql_ins, conn);
