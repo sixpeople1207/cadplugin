@@ -151,26 +151,63 @@ namespace PipeInfo
                 //ribbonControl.Tabs.Add(Tab);
 
                 //클릭할 좌표점을 계속해서 입력받아 3D Collection으로 반환
-                Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
-                PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
+                //Point3dCollection pointCollection = InteractivePolyLine.CollectPointsInteractive();
+                //PromptSelectionResult prSelRes = ed.SelectFence(pointCollection);
+                //Point3dCollection pc = new Point3dCollection();
+                //TypedValue[] filter = { new TypedValue(0, "Polyline") };
+                //SelectionFilter selFilter = new SelectionFilter(filter);
+                PromptSelectionResult prSelRes = ed.GetSelection();
+
                 List<Vector3d> vec_li = new List<Vector3d>(); // 파이프 라인의 진행방향.
 
                 if (prSelRes.Status == PromptStatus.OK)
                 {
+                    Point3dCollection pointCollection = new Point3dCollection();
+                    bool isSpoolLine = false;
+                    Polyline3d po_li = new Polyline3d();
+                    Line li = new Line();
+                    List<string> spoolInfo_li = new List<string>();
+                    List<ObjectId> spoolTexts_objIDs = new List<ObjectId>();
+
                     using (Transaction acTrans = db.TransactionManager.StartTransaction())
                     {
                         BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                        Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
+                        ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.\n");
+                        // 23.12.19 pline에서 3dpoly로 변경
+                        ed.Command("_.3dpoly");
+
+                        using (Transaction tr = db.TransactionManager.StartTransaction())
+                        {
+                            //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
+
+                            Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
+                            //마지막 그린 라인의 버텍스를 잡아내서 Vector를 알아낸다.
+                            Type type = ent.GetType();
+
+                            if (type.Name.ToString() == "Polyline3d")
+                            {
+                                po_li = (Polyline3d)ent;
+                                isSpoolLine = true;
+                                pointCollection.Add(po_li.StartPoint);
+                                pointCollection.Add(po_li.EndPoint);
+                            }
+                            else
+                            {
+                                ed.WriteMessage("error : 마지막 객체가 'Polyline'이 아닙니다.");
+                            }
+                            tr.Commit();
+                        }
+                        //Polyline3d line = new Polyline3d(Poly3dType.SimplePoly, pointCollection, false);
 
                         //foreach (var point in pointCollection)
                         //{
                         //    ed.WriteMessage(point.ToString());
                         //}
 
-                        blkRec.AppendEntity(line);
-                        acTrans.AddNewlyCreatedDBObject(line, true);
-                       
+                        //blkRec.AppendEntity(line);
+                        //acTrans.AddNewlyCreatedDBObject(line, true);
+
                         // 24.1.2 추가 그룹 백터는 이제 지시선 벡터로 대체.
                         // 1. 라인들의 진행방향을 vec_li에 저장.
                         SelectionSet ss = prSelRes.Value;
@@ -183,15 +220,31 @@ namespace PipeInfo
                                 //좌표 가져와서 벡터 vecli에 저장.
                                 li_PolyLines.Add(poly);
                         }
+                        Vector3d line_vec = new Vector3d();
                         if (li_PolyLines.Count > 0)
                         {
                             foreach (Polyline3d polyLine in li_PolyLines)
                             {
-                                vec_li.Add(polyLine.StartPoint.GetVectorTo(polyLine.EndPoint).GetNormal());
+                                line_vec = polyLine.StartPoint.GetVectorTo(polyLine.EndPoint).GetNormal();
+                                if (Math.Round(line_vec.GetNormal().X, 1) == 1 || Math.Round(line_vec.GetNormal().X, 1) == -1)
+                                {
+                                    vec_li.Add(new Vector3d(Math.Round(line_vec.GetNormal().X, 1),0,0));
+                                }
+                                if (Math.Round(line_vec.GetNormal().Y, 1) == 1 || Math.Round(line_vec.GetNormal().Y, 1) == -1)
+                                {
+                                    vec_li.Add(new Vector3d(0,Math.Round(line_vec.GetNormal().Y, 1), 0));
+
+                                }
+                                if (Math.Round(line_vec.GetNormal().Z, 1) == 1 || Math.Round(line_vec.GetNormal().Z, 1) == -1)
+                                {
+                                    vec_li.Add(new Vector3d(0, 0, Math.Round(line_vec.GetNormal().Z, 1)));
+                                }
                             }
                         }
                         acTrans.Commit();
                     }
+
+                    if(isSpoolLine == true) { 
                     /*-----------------------------------------DataBase Scope--------------------------------------------------
                      * 1. DB객체 생성 [O]
                      * 2. OBJ IDs (Fence to Selection return objIds) [O]
@@ -217,7 +270,11 @@ namespace PipeInfo
                      * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
                      * 9. Text내용을 Excel로 Export하기. []
                      ----------------------------------------------------------------------------------------------------------*/
-
+                    // 스풀 정보만 추출
+                    foreach (var info in pipe_Information_li)
+                    {
+                        spoolInfo_li.Add(info.Item2);
+                    }
                     List<Point3d> final_Point = new List<Point3d>();
                     //Fence Select 의 마지막 Point를 기준으로 Text
                     foreach (Point3d point in pointCollection)
@@ -229,251 +286,225 @@ namespace PipeInfo
                     var pipe = new Pipe();
                     //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
                     var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
-                    List<ObjectId> spoolTexts_objIDs = tControl.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
-                    // draw_Text.ed_Draw_Text(pipe_Information_li_2, finale_POC_points, 25, 12); <- 마지막 POC 단 글씨
-                    //스페이스바로 글씨 회전. 배관 진행방향.
-                    
-                    // FF (Fnece Selection) 모드에서도 글씨 회전 기능 추가
+                    //spoolTexts_objIDs = tControl.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
+
+                    string groupVecstr = "";
+                    // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
+                  
+                    // 텍스트 중간 지시선
+                    Point3d po_start_point = po_li.StartPoint;
+                    Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
+                    if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
+                    {
+                        groupVecstr = "X";
+                    }
+                    if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
+                    {
+                        groupVecstr = "Y";
+                    }
+                    if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
+                    {
+                        groupVecstr = "Z";
+                    }
+                    spoolTexts_objIDs = tControl.Draw_Text_WeldPoints_2(po_li, spoolInfo_li, vec_li, groupVecstr); // 라인 끝점을 입력받음.
+
                     // FF (Fnece Selection) 모드에서는 끝단 객체일 가능성이 크기 때문에 라인 벡트의 반대 방향으로 글씨를 배치해서 끝단에 자연스럽게 배치한다.
 
                     /************************************************* SS 기능 코드 부분 추가 *******************************************
                      start--*/
                     int textFlip_Count = 0; // Z키를 누르면 텍스트를 뒤집는데 이를 카운트.
                     int text_height = 20;
-                    ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.\n");
-                    // 23.12.19 pline에서 3dpoly로 변경
-                    ed.Command("_.3dpoly");
 
-                    bool isSpoolLine = false;
-                    Polyline3d po_li = new Polyline3d();
-                    Line li = new Line();
-
-                    using (Transaction tr = db.TransactionManager.StartTransaction())
-                    {
-                        //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
-
-                        Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
-                        //마지막 그린 라인의 버텍스를 잡아내서 Vector를 알아낸다.
-                        Type type = ent.GetType();
-
-                        if (type.Name.ToString() == "Polyline3d")
+                        if (isSpoolLine == true)
                         {
-                            po_li = (Polyline3d)ent;
-                            isSpoolLine = true;
+                            ed.WriteMessage("\n Spool정보 Text 회전 : G , 취소 : Esc");
+                            //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
+
+                            keyFilter keyFilter = new keyFilter();
+
+                            //24.1.2 tControl에서 ObjectIds만 가져올 수 있게 만들면 됨.
+                            System.Windows.Forms.Application.AddMessageFilter(keyFilter);
+                            while (true)
+                            {
+                                // 메세지 처리 문제는 나중에 진행.
+                                // Check for user input events
+                                System.Windows.Forms.Application.DoEvents();
+                                // Check whether the filter has set the flag
+                                if (keyFilter.bCanceled == true)
+                                {
+                                    break;
+                                }
+                                if (keyFilter.bEntered == true)
+                                {
+                                    using (Transaction actras = db.TransactionManager.StartTransaction())
+                                    {
+                                        foreach (var id in spoolTexts_objIDs)
+                                        {
+                                            DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
+                                            Point3d pos = text.Position;
+                                            Point3d alig = text.AlignmentPoint;
+                                            TextHorizontalMode hor = text.HorizontalMode;
+                                            text.SetDatabaseDefaults();
+                                            // 배관의 Spool Vector에 따라 기준점 바꾸기.
+                                            // 라인의 끝점부터 그리기.
+                                            if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
+                                            {
+                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
+                                            }
+                                            else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
+                                            {
+                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
+                                            }
+                                            else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
+                                            {
+                                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
+                                            }
+                                            text.Position = pos;
+                                            if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                            {
+                                                text.AlignmentPoint = alig;
+                                            }
+                                        }
+                                        ed.Regen();
+                                        actras.Commit();
+                                        // acText.Normal = Vector3d.ZAxis;
+                                        // acText.Justify = AttachmentPoint.BaseLeft;
+                                        keyFilter.bEntered = false;
+                                    }
+                                }
+                                // 글씨 좌우 뒤집기 
+                                if (keyFilter.bZaxis == true)
+                                {
+                                    using (Transaction actras = db.TransactionManager.StartTransaction())
+                                    {
+                                        DBText text = actras.GetObject(spoolTexts_objIDs[0], OpenMode.ForWrite) as DBText;
+                                        List<Point3d> textPositions = new List<Point3d>();
+
+                                        // Text의 위치를 가져온다.
+                                        // AutoCAD에서는 Left정렬일때는 AlignmentPoint에 좌표를 저장 나머지는 Position에서 저장.
+                                        for (int i = 0; i < pipe_instance_IDs.Count; i++)
+                                        {
+                                            DBText textA = actras.GetObject(spoolTexts_objIDs[i], OpenMode.ForWrite) as DBText;
+                                            if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
+                                            {
+                                                textPositions.Add(textA.AlignmentPoint);
+                                            }
+                                            else
+                                            {
+                                                textPositions.Add(textA.Position);
+                                            }
+                                        }
+
+                                        // 마지막 그린 라인의 벡터 23.12.27작업중.. 
+                                        Vector3d poli_vec = po_li.EndPoint - po_li.StartPoint;
+
+
+                                        for (int i = 0; i < spoolTexts_objIDs.Count; i += 1)
+                                        {
+                                            DBText textA = actras.GetObject(spoolTexts_objIDs[i], OpenMode.ForWrite) as DBText;
+
+                                            Extents3d bound = textA.Bounds.Value;
+                                            Point3d min = bound.MinPoint;
+                                            Point3d max = bound.MaxPoint;
+
+                                            //ed.WriteMessage("\nmin : {0}\nmax :{1}", min,max);
+
+                                            Point3d posA = textA.Position;
+                                            Point3d aligA = textA.AlignmentPoint;
+
+                                            if (aligA.X == 0 || aligA.Y == 0 || aligA.Z == 0)
+                                            {
+                                                aligA = min;
+                                            }
+
+                                            TextHorizontalMode horA = textA.HorizontalMode;
+                                            AttachmentPoint justifyA = textA.Justify;
+
+                                            textA.SetDatabaseDefaults();
+                                            if (textFlip_Count % 2 == 0)
+                                            {
+                                                if (textA.HorizontalMode == TextHorizontalMode.TextRight)
+                                                {
+                                                    textA.Justify = AttachmentPoint.BaseLeft;
+                                                }
+                                                else
+                                                {
+                                                    textA.Justify = AttachmentPoint.BaseRight;
+                                                }
+
+                                            }
+
+                                            // Text의 Min Max와 TextHeight의 오차가 존재함으로 오차 값을 구해서 TextHeight값에 적용.
+                                            double textTerm_X = Math.Abs((max.X - min.X) - text_height);
+                                            double textTerm_Y = Math.Abs((max.Y - min.Y) - text_height);
+                                            double textTerm_Z = Math.Abs((max.Z - min.Z) - text_height);
+
+                                            ed.WriteMessage(textTerm_X.ToString());
+
+                                            // 그룹 벡터에 따른 글씨의 회전값 적용. 
+                                            // 글씨의 Flip 할때 글씨의 좌표값을 Bound에 Max로 적용시 Bound바깥으로 넘어가기때문에 글씨 크기만큼 빼준다.(1017에서 부호 결정)
+                                            if (groupVecstr == "X")
+                                            {
+                                                textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
+                                                max = new Point3d(max.X - (text_height - textTerm_X), max.Y, max.Z);
+                                            }
+                                            else if (groupVecstr == "Y")
+                                            {
+                                                max = new Point3d(max.X, max.Y - (text_height - textTerm_Y), max.Z);
+                                                textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                            }
+                                            else if (groupVecstr == "Z")
+                                            {
+                                                max = new Point3d(max.X, max.Y, max.Z - (text_height - textTerm_Z));
+                                                textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
+                                            }
+
+                                            if (textFlip_Count % 2 == 0)
+                                            {
+                                                if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                {
+                                                    textA.AlignmentPoint = max; //Right일때만 AligmentPoint에 Min값을
+                                                }
+                                                else
+                                                {
+                                                    textA.Position = min;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
+                                                {
+                                                    textA.AlignmentPoint = min; //Right일때만 AligmentPoint에 Min값을
+                                                }
+                                                else
+                                                {
+                                                    textA.Position = max;
+                                                }
+                                            }
+
+                                        }
+
+                                        ed.Regen();
+                                        actras.Commit();
+                                        keyFilter.bZaxis = false;
+                                        textFlip_Count += 1;
+                                    }
+                                }
+                            }
+                            // We're done - remove the message filter
+                            System.Windows.Forms.Application.RemoveMessageFilter(keyFilter);
                         }
                         else
                         {
-                            ed.WriteMessage("error : 마지막 객체가 'Polyline'이 아닙니다.");
+                            ed.WriteMessage("\n라인이 그려지지 않았습니다.");
                         }
-                        tr.Commit();
-                    }
-                    if (isSpoolLine == true)
-                    {
-                        ed.WriteMessage("\n Spool정보 Text 회전 : G , 취소 : Esc");
-                        //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
-                        string groupVecstr = "";
-                        // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
-                        if (groupVecstr == "")
-                        {
-                            Point3d po_start_point = po_li.StartPoint;
-                            Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
-                            if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
-                            {
-                                groupVecstr = "X";
-                            }
-                            if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
-                            {
-                                groupVecstr = "Y";
-                            }
-                            if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
-                            {
-                                groupVecstr = "Z";
-                            }
-                        }
-                        keyFilter keyFilter = new keyFilter();
-                        //List<ObjectId> spoolTexts_objIDs = tControl.Draw_Text_WeldPoints(po_li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
-
-                        //24.1.2 tControl에서 ObjectIds만 가져올 수 있게 만들면 됨.
-                        System.Windows.Forms.Application.AddMessageFilter(keyFilter);
-                        while (true)
-                        {
-                            //메세지 처리 문제는 나중에 진행.
-                            // Check for user input events
-                            System.Windows.Forms.Application.DoEvents();
-                            // Check whether the filter has set the flag
-                            if (keyFilter.bCanceled == true)
-                            {
-                                break;
-                            }
-                            if (keyFilter.bEntered == true)
-                            {
-                                using (Transaction actras = db.TransactionManager.StartTransaction())
-                                {
-                                    foreach (var id in spoolTexts_objIDs)
-                                    {
-                                        DBText text = actras.GetObject(id, OpenMode.ForWrite) as DBText;
-                                        Point3d pos = text.Position;
-                                        Point3d alig = text.AlignmentPoint;
-                                        TextHorizontalMode hor = text.HorizontalMode;
-                                        text.SetDatabaseDefaults();
-                                        // 배관의 Spool Vector에 따라 기준점 바꾸기.
-                                        // 라인의 끝점부터 그리기.
-                                        if (Math.Round(vec_li[0].GetNormal().X, 1) == 1 || Math.Round(vec_li[0].GetNormal().X, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.XAxis, Point3d.Origin));
-                                        }
-                                        else if (Math.Round(vec_li[0].GetNormal().Y, 1) == 1 || Math.Round(vec_li[0].GetNormal().Y, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.YAxis, Point3d.Origin));
-                                        }
-                                        else if (Math.Round(vec_li[0].GetNormal().Z, 1) == 1 || Math.Round(vec_li[0].GetNormal().Z, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 90, Vector3d.ZAxis, Point3d.Origin));
-                                        }
-                                        text.Position = pos;
-                                        if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                        {
-                                            text.AlignmentPoint = alig;
-                                        }
-                                    }
-                                    ed.Regen();
-                                    actras.Commit();
-                                    // acText.Normal = Vector3d.ZAxis;
-                                    // acText.Justify = AttachmentPoint.BaseLeft;
-                                    keyFilter.bEntered = false;
-                                }
-                            }
-
-                            // 글씨 좌우 뒤집기 
-                            if (keyFilter.bZaxis == true)
-                            {
-                                using (Transaction actras = db.TransactionManager.StartTransaction())
-                                {
-                                    DBText text = actras.GetObject(spoolTexts_objIDs[0], OpenMode.ForWrite) as DBText;
-                                    List<Point3d> textPositions = new List<Point3d>();
-
-                                    // Text의 위치를 가져온다.
-                                    // AutoCAD에서는 Left정렬일때는 AlignmentPoint에 좌표를 저장 나머지는 Position에서 저장.
-                                    for (int i = 0; i < pipe_instance_IDs.Count; i++)
-                                    {
-                                        DBText textA = actras.GetObject(spoolTexts_objIDs[i], OpenMode.ForWrite) as DBText;
-                                        if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
-                                        {
-                                            textPositions.Add(textA.AlignmentPoint);
-                                        }
-                                        else
-                                        {
-                                            textPositions.Add(textA.Position);
-                                        }
-                                    }
-
-                                    // 마지막 그린 라인의 벡터 23.12.27작업중.. 
-                                    Vector3d poli_vec = po_li.EndPoint - po_li.StartPoint;
-
-
-                                    for (int i = 0; i < spoolTexts_objIDs.Count; i += 1)
-                                    {
-                                        DBText textA = actras.GetObject(spoolTexts_objIDs[i], OpenMode.ForWrite) as DBText;
-
-                                        Extents3d bound = textA.Bounds.Value;
-                                        Point3d min = bound.MinPoint;
-                                        Point3d max = bound.MaxPoint;
-
-                                        //ed.WriteMessage("\nmin : {0}\nmax :{1}", min,max);
-
-                                        Point3d posA = textA.Position;
-                                        Point3d aligA = textA.AlignmentPoint;
-
-                                        if (aligA.X == 0 || aligA.Y == 0 || aligA.Z == 0)
-                                        {
-                                            aligA = min;
-                                        }
-
-                                        TextHorizontalMode horA = textA.HorizontalMode;
-                                        AttachmentPoint justifyA = textA.Justify;
-
-                                        textA.SetDatabaseDefaults();
-                                        if (textFlip_Count % 2 == 0)
-                                        {
-                                            if (textA.HorizontalMode == TextHorizontalMode.TextRight)
-                                            {
-                                                textA.Justify = AttachmentPoint.BaseLeft;
-                                            }
-                                            else
-                                            {
-                                                textA.Justify = AttachmentPoint.BaseRight;
-                                            }
-
-                                        }
-
-                                        // Text의 Min Max와 TextHeight의 오차가 존재함으로 오차 값을 구해서 TextHeight값에 적용.
-                                        double textTerm_X = Math.Abs((max.X - min.X) - text_height);
-                                        double textTerm_Y = Math.Abs((max.Y - min.Y) - text_height);
-                                        double textTerm_Z = Math.Abs((max.Z - min.Z) - text_height);
-
-                                        ed.WriteMessage(textTerm_X.ToString());
-
-                                        // 그룹 벡터에 따른 글씨의 회전값 적용. 
-                                        // 글씨의 Flip 할때 글씨의 좌표값을 Bound에 Max로 적용시 Bound바깥으로 넘어가기때문에 글씨 크기만큼 빼준다.(1017에서 부호 결정)
-                                        if (groupVecstr == "X")
-                                        {
-                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
-                                            max = new Point3d(max.X - (text_height - textTerm_X), max.Y, max.Z);
-                                        }
-                                        else if (groupVecstr == "Y")
-                                        {
-                                            max = new Point3d(max.X, max.Y - (text_height - textTerm_Y), max.Z);
-                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
-                                        }
-                                        else if (groupVecstr == "Z")
-                                        {
-                                            max = new Point3d(max.X, max.Y, max.Z - (text_height - textTerm_Z));
-                                            textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.ZAxis, Point3d.Origin));
-                                        }
-                           
-                                        if (textFlip_Count % 2 == 0)
-                                        {
-                                            if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
-                                            {
-                                                textA.AlignmentPoint = max; //Right일때만 AligmentPoint에 Min값을
-                                            }
-                                            else
-                                            {
-                                                textA.Position = min;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (textA.HorizontalMode != TextHorizontalMode.TextLeft)
-                                            {
-                                                textA.AlignmentPoint = min; //Right일때만 AligmentPoint에 Min값을
-                                            }
-                                            else
-                                            {
-                                                textA.Position = max;
-                                            }
-                                        }
-
-                                    }
-
-                                    ed.Regen();
-                                    actras.Commit();
-                                    keyFilter.bZaxis = false;
-                                    textFlip_Count += 1;
-                                }
-                            }
-                        }
-                        // We're done - remove the message filter
-                        System.Windows.Forms.Application.RemoveMessageFilter(keyFilter);
                     }
                     else
                     {
                         ed.WriteMessage("\n라인이 그려지지 않았습니다.");
                     }
-
                     /************************************************* SS 기능 코드 부분 추가 *******************************************
                      end --- */ 
-
                 }
                 else
                 {
@@ -580,7 +611,7 @@ namespace PipeInfo
                                 List<Extents3d> titleBoardPosLi = new List<Extents3d>();
                                 List<string> weldNumber = new List<string>();
                                 List<Point3d> cirPosLi = new List<Point3d>();
-                                TypedValue[] typeValue = { new TypedValue(0, "TEXT,CIRCLE") };
+                                TypedValue[] typeValue = { new TypedValue(0, "Polyline") };
                                 List<DBText> textAllLi = new List<DBText>();
                                 SelectionFilter selFilter = new SelectionFilter(typeValue);
                                 List<string> header = new List<string>()
@@ -1139,10 +1170,9 @@ namespace PipeInfo
                                     List<ObjectId> spoolTexts_objIDs = tControl.Draw_Text_WeldPoints(po_li, spoolInfo_li, vec_li, newPoints, groupVecstr); // 라인 끝점을 입력받음.
                                     keyFilter keyFilter = new keyFilter();
 
-                                    //23.7.25
+                                    //23.7.25 키를 입력받아 텍스트 회전
                                     //현재 뷰에 따라 디폴트값 정해야함
                                     //엔터키로 돌리고 SpoolGroup 방향 기준
-                                    //스페이스바로 글씨 회전. 배관 진행방향.
                                     System.Windows.Forms.Application.AddMessageFilter(keyFilter);
                                     while (true)
                                     {
@@ -3025,7 +3055,7 @@ namespace PipeInfo
                                 Vector3d lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
                                 lineVec = new Vector3d(Math.Round(lineVec.X, 1), Math.Round(lineVec.Y,1), Math.Round(lineVec.Z,1));
 
-                                ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
+                                //ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
 
                                 int text_SideBetween_Dis = 40;
                                 int text_TopDownBetween_Dis = 30;
@@ -3409,6 +3439,444 @@ namespace PipeInfo
                         MessageBox.Show(ex.ToString());
                     }
                 
+                    return drawText_spoolTexts_objIDs;
+                }
+            }
+            public List<ObjectId> Draw_Text_WeldPoints_2(Polyline3d line, List<string> spoolInfo_li, List<Vector3d> vec_li,  string groupVecstr)
+            {
+                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                {
+                    DocumentCollection doc = Application.DocumentManager;
+                    Editor ed = doc.MdiActiveDocument.Editor;
+                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                    List<Point3d> text_Positions_Li = new List<Point3d>();
+                    List<ObjectId> drawText_spoolTexts_objIDs = new List<ObjectId>(); //반환값
+                    try
+                    {
+                        // 웰딩 포인트에 연결된 파이프를 찾아 Vector방향을 알아낸다.
+                        // Spool 정보도 같이 불러온다. (맞대기 용접은 좌표를 더해서 반환)
+                        //(List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
+                        // WeldPoint들과 최소 거리에 있는 (현재는 300) WeldPoint들을 모두 그룹으로 묶는다.
+                        
+                            List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
+                            List<Point3d> point_Groups = new List<Point3d>();
+                            List<int> key = new List<int>();
+
+                       
+                                Vector3d line_vec = line.StartPoint - line.EndPoint;
+
+                                //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
+                                if (groupVecstr == "")
+                                {
+                                    if (line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
+                                    {
+                                        groupVecstr = "X";
+                                    }
+                                    if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
+                                    {
+                                        groupVecstr = "Y";
+                                    }
+                                    if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
+                                    {
+                                        groupVecstr = "Z";
+                                    }
+                                }
+
+                              
+                                List<Point3d> group = new List<Point3d>();
+                                double aver_X = 0.0;
+                                double aver_Y = 0.0;
+                                double aver_Z = 0.0;
+
+                                int group_count = 0;
+                                for (int j = 0; j < near_Points.Count; j++)
+                                    if (near_Points[j].Item1 == 0)
+                                    {
+                                        group_count++;
+                                        group.Add(near_Points[j].Item2);
+                                        aver_X += near_Points[j].Item2.X;
+                                        aver_Y += near_Points[j].Item2.Y;
+                                        aver_Z += near_Points[j].Item2.Z;
+                                    }
+                                aver_X = aver_X / group_count;
+                                aver_Y = aver_Y / group_count;
+                                aver_Z = aver_Z / group_count;
+
+                                double basePoint = 0;
+
+                                // ****************** 스풀 정보의 베이스 포인트 지정 **********************
+                                //입력 받은 라인 끝점과 Spool포인트의 Vec에 따라 음수이면 그대로.
+                                //양수이면 Spool Line의 글씨 갯수/2 * 15 해서 플러스
+
+                                Vector3d lineVec = new Vector3d();
+                                lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
+
+                                //ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
+
+                                int text_SideBetween_Dis = 40;
+                                int text_TopDownBetween_Dis = 30;
+                                int textTrans_Ang = 90;
+                                Point3d befor_TextPosition = new Point3d();
+
+                                //스풀의 그룹방향에 따른 글씨의 베이스 포인트 
+                                if (groupVecstr == "X")
+                                {
+                                    // 스풀 지시선 벡터가 양수일때는 스풀정보 전체 크기를 계산해 반영.
+                                    // Spool 순서가 섞이면 안되기 때문에 그대로 반영하기 위함.
+                                    if (lineVec.X == 1) basePoint = line.EndPoint.X + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                                    else basePoint = line.EndPoint.X + (50 * lineVec.X); // 이 값을 조정
+                                }
+                                else if (groupVecstr == "Y")
+                                {
+                                    if (lineVec.Y == 1) basePoint = line.EndPoint.Y + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                                    else basePoint = line.EndPoint.Y + (50 * lineVec.Y);
+                                }
+                                else
+                                {
+                                    if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                                    else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
+                                }
+
+                               
+                                    // Vector 에 따른 TEXT의 회전값과 정렬.
+                                    // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
+                                    // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
+                                    for (int k = 0; k < spoolInfo_li.Count; k++)
+                                    {
+                                        string[] textString = new string[3];
+                                        textString[0] = "Left";
+                                        textString[1] = "Center";
+                                        textString[2] = "Right";
+
+                                        int[] textAlign = new int[3];
+                                        textAlign[0] = (int)TextHorizontalMode.TextLeft;
+                                        textAlign[1] = (int)TextHorizontalMode.TextCenter;
+                                        textAlign[2] = (int)TextHorizontalMode.TextRight;
+
+                                        DBText text = new DBText();
+                                        text.SetDatabaseDefaults();
+
+                                        //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
+                                        text.TextString = spoolInfo_li[k].ToString();
+                                        text.Normal = Vector3d.YAxis;
+                                        //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
+                                        text.Height = 20.0;
+                                        int nCnt = 0;
+
+                                        Point3d textPosition = new Point3d();
+
+                                        if (k > 0)
+                                        {
+                                            //string[] beforeText = spoolInfo_li[k - 1].Split('_');
+                                            //string[] afterText = spoolInfo_li[k].Split('_');
+                                            //if (beforeText.Count() > 2 && afterText.Count() > 2)
+                                            //{
+                                            //    if (beforeText[beforeText.Count() - 2] != afterText[beforeText.Count() - 2])
+                                            //    {
+                                                    basePoint -= text_TopDownBetween_Dis;
+                                            //    }
+                                            //}
+                                            //else
+                                            //{
+                                            //    ed.WriteMessage("\n스풀 정보에 끝단 객체가 포함되어 있습니다.");
+                                            //}
+                                        }
+
+                                            //if (k % 2 != 0 && k != 0)
+                                            //{
+                                            //    basePoint -= text_TopDownBetween_Dis;
+                                            //}
+
+                                        if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
+                                        {
+                                            //벡터가 양수이면 오른쪽 배치
+                                            nCnt = 2;
+                                        }
+                                        else
+                                        {
+                                            //백터가 음수이면 왼쪽 배치
+                                            nCnt = 0;
+                                        }
+
+                                        if (Math.Round(vec_li[k].GetNormal().X, 1) == 1 || Math.Round(vec_li[k].GetNormal().X, 1) == -1)
+                                        {
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.XAxis, Point3d.Origin));
+                                            if (nCnt == 2)
+                                            {
+                                                textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, basePoint, line.EndPoint.Z);
+                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, line.EndPoint.Y, basePoint);
+                                            }
+                                            else if (nCnt == 0)
+                                            {
+                                                textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, basePoint, line.EndPoint.Z);
+                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, line.EndPoint.Y, basePoint);
+                                            }
+                                        }
+                                        if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1 || Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
+                                        {
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.ZAxis, Point3d.Origin));
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                            if (nCnt == 2)
+                                            {
+                                                textPosition = new Point3d(basePoint, line.EndPoint.Y + text_SideBetween_Dis, line.EndPoint.Z);
+                                                //그룹 벡터가 Z일때 조건
+                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y + text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                            }
+                                            else if (nCnt == 0)
+                                            {
+                                                textPosition = new Point3d(basePoint, line.EndPoint.Y - text_SideBetween_Dis, line.EndPoint.Z);
+                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y - text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                            }
+                                        }
+                                        if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
+                                        {
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                            if (nCnt == 0)
+                                            {
+                                                if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z - text_SideBetween_Dis);
+                                                else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z - text_SideBetween_Dis);
+                                            }
+                                            else if (nCnt == 2)
+                                            {
+                                                if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
+                                                else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
+                                            }
+
+                                        }
+
+                                        if (textPosition.IsEqualTo(befor_TextPosition))
+                                        {
+                                            if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z);
+                                            else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
+                                            else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z - text_TopDownBetween_Dis);
+                                        }
+
+                                        //Text 위치 저장을 위해 TextPosition도 리스트에 넣어준다.
+                                        text.Position = textPosition;
+
+                                        befor_TextPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z);
+                                        text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                                        if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                                        {
+                                            text.AlignmentPoint = textPosition;
+                                        }
+                                        text_Positions_Li.Add(textPosition);
+                                        acBlkRec.AppendEntity(text);
+                                        drawText_spoolTexts_objIDs.Add(text.ObjectId);
+                                        acTrans.AddNewlyCreatedDBObject(text, true);
+                                    }
+                                
+                         
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
+                    {
+                        MessageBox.Show(ex.ToString());
+                    }
+
+                    //***************************  텍스트 사이 라인그리기 *******************************
+                    try
+                    {
+                        int vec_X_count = 0;
+                        int vec_Y_count = 0;
+                        int vec_Z_count = 0;
+                        string line_vectors = "";
+
+                        //라인의 벡터방향 같은지 확인
+                        foreach (var vec in vec_li)
+                        {
+                            if (Math.Round(vec.GetNormal().X, 1) == 1 || Math.Round(vec.GetNormal().X, 1) == -1)
+                            {
+                                vec_X_count += 1;
+                            }
+                            else if (Math.Round(vec.GetNormal().Y, 1) == 1 || Math.Round(vec.GetNormal().Y, 1) == -1)
+                            {
+                                vec_Y_count += 1;
+                            }
+                            else if (Math.Round(vec.GetNormal().Z, 1) == 1 || Math.Round(vec.GetNormal().Z, 1) == -1)
+                            {
+                                vec_Z_count += 1;
+                            }
+                        }
+                        // 배관 라인의 벡터 중에 가장 많은 벡터가 무엇인지 판단.
+                        if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
+                        {
+                            line_vectors = "X";
+                        }
+                        else if (vec_Y_count > vec_X_count && vec_Y_count > vec_Z_count)
+                        {
+                            line_vectors = "Y";
+                        }
+                        else if (vec_Z_count > vec_X_count && vec_Z_count > vec_Y_count)
+                        {
+                            line_vectors = "Z";
+                        }
+                        else
+                        {
+                            ed.WriteMessage("라인의 스풀 방향을 알 수 없습니다. 같은 방향의 스풀을 선택해 주세요.");
+                            ed.WriteMessage("X{0} Y{1} Z{2}", vec_X_count, vec_Y_count, vec_Z_count);
+                        }
+
+
+                        // 이 Vector가 부호의 기준이 된다.
+
+                        // 1. 지시선의 벡터 방향.
+                        Line text_between_li = new Line();
+                        Point3d start_point = new Point3d();
+                        Point3d end_point = new Point3d();
+                        int text_start_dis = 5; // 텍스트와 텍스트사이 라인과 거리
+                        Line center_line = new Line();
+
+
+                        if (text_Positions_Li.Count > 1) // TEXT가 하나 이상일때 적용
+                        {
+                            //최대값으로 정렬 필요. 
+                            text_Positions_Li = text_Positions_Li.OrderBy(p => p.Y).OrderBy(p => p.X).OrderBy(p => p.Z).ToList();
+
+
+                            for (int i = 0; i < text_Positions_Li.Count; i += 1)
+                            {
+                                Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
+
+                                // 텍스트 사이의 라인을 하나씩 그려준다. 반개씩 -- 한쪽이 없으면 안그려주기 위함.
+                                // 라인 끝점 구하는 알고리즘은 반복문에서 빼줘도 될 것 같다. 23.12.07
+                                if (line_vectors == "X" && groupVecstr == "Y")
+                                {
+                                    // 사이 라인 표시
+                                    /* 3. 텍스트 사이 선 그리기.
+                                    * 라인 방향과 라입 스풀 방향별로 그리기를 구현.
+                                    * 지시선의 좌우로 Vector방향을 찾아서 텍스트의 포지션부터 지시선까지 라인을 그린다. 5는 글씨좌표에서 살짝 떨어져 라인을 그리기 위함.
+                                    * */
+                                    if (lineTo_Text_vec.X > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X - text_start_dis, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.X < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X + text_start_dis, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                //위 코드 반복(더해주는 위치만 바꾸면서) => 함수로 만들어서 진행 필요 23.12.01
+                                else if (line_vectors == "Y" && groupVecstr == "X")
+                                {
+                                    // 사이 라인 표시
+                                    if (lineTo_Text_vec.Y > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 5, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Y < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 5, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Z" && groupVecstr == "Y")
+                                {
+
+                                    if (lineTo_Text_vec.Z > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Z < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Z" && groupVecstr == "X")
+                                {
+                                    if (lineTo_Text_vec.Z > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - 5);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Z < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z - lineTo_Text_vec.Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y, text_Positions_Li[i].Z + 5);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "Y" && groupVecstr == "Z")
+                                {
+
+                                    if (lineTo_Text_vec.Y > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 5, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.Y < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 5, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else if (line_vectors == "X" && groupVecstr == "Z")
+                                {
+
+                                    if (lineTo_Text_vec.X > 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                    else if (lineTo_Text_vec.X < 0)
+                                    {
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        text_between_li = new Line(start_point, end_point);
+                                    }
+                                }
+                                else
+                                {
+                                    ed.WriteMessage("\n스풀의 진행방향을 찾지 못했습니다.");
+                                    break;
+                                }
+
+                                acBlkRec.AppendEntity(text_between_li);
+                                acTrans.AddNewlyCreatedDBObject(text_between_li, true);
+
+                                // 텍스트 중앙 지시선을 그리고 사용자가 그려준 마지막 라인과 조인해서 한 객체로 만든다. 
+                                if (i == 0)
+                                {
+                                    center_line = new Line(line.EndPoint, text_between_li.StartPoint);
+                                    Entity en = acTrans.GetObject(line.ObjectId, OpenMode.ForWrite) as Entity;
+                                    en.UpgradeOpen();
+                                    en.JoinEntity(center_line);
+                                }
+                                else if (i == text_Positions_Li.Count - 1)
+                                {
+                                    center_line = new Line(line.EndPoint, text_between_li.StartPoint);
+                                    Entity en = acTrans.GetObject(line.ObjectId, OpenMode.ForWrite) as Entity;
+                                    en.UpgradeOpen();
+                                    en.JoinEntity(center_line);
+                                }
+                            }
+                            //마지막 그리는 라인은 바로 전 라인(인풋으로 들어온 라인)과 조인해준다.
+
+                        }
+                        acTrans.Commit();
+                        acTrans.Dispose();
+                    }
+                    catch (Autodesk.AutoCAD.Runtime.Exception ex)
+                    {
+                        MessageBox.Show(ex.ToString());
+                    }
+
                     return drawText_spoolTexts_objIDs;
                 }
             }
