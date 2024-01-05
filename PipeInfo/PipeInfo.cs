@@ -3478,7 +3478,6 @@ namespace PipeInfo
                         List<Point3d> point_Groups = new List<Point3d>();
                         List<int> key = new List<int>();
 
-
                         Vector3d line_vec = line.StartPoint - line.EndPoint;
 
                         //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
@@ -3498,13 +3497,12 @@ namespace PipeInfo
                             }
                         }
 
-
                         List<Point3d> group = new List<Point3d>();
                         double aver_X = 0.0;
                         double aver_Y = 0.0;
                         double aver_Z = 0.0;
-
                         int group_count = 0;
+
                         for (int j = 0; j < near_Points.Count; j++)
                             if (near_Points[j].Item1 == 0)
                             {
@@ -3552,8 +3550,6 @@ namespace PipeInfo
                             if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
                             else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
                         }
-
-
                         // Vector 에 따른 TEXT의 회전값과 정렬.
                         // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
                         // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
@@ -3658,7 +3654,6 @@ namespace PipeInfo
                                     if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
                                     else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
                                 }
-
                             }
 
                             if (textPosition.IsEqualTo(befor_TextPosition))
@@ -3667,7 +3662,6 @@ namespace PipeInfo
                                 else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
                                 else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z - text_TopDownBetween_Dis);
                             }
-
                             //Text 위치 저장을 위해 TextPosition도 리스트에 넣어준다.
                             text.Position = textPosition;
 
