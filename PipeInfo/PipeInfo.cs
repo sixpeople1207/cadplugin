@@ -86,7 +86,7 @@ namespace PipeInfo
                 sourceFileName =
                 ed.GetString("\nEnter the name of the source drawing: ");
                 // Read the DWG into a side database
-                sourceDb.ReadDwgFile(sourceFileName.StringResult,System.IO.FileShare.Read,true,"");
+                sourceDb.ReadDwgFile(sourceFileName.StringResult, System.IO.FileShare.Read, true, "");
                 ObjectIdCollection blockIds = new ObjectIdCollection();
                 Autodesk.AutoCAD.DatabaseServices.TransactionManager tm =
                 sourceDb.TransactionManager;
@@ -101,7 +101,7 @@ namespace PipeInfo
                     foreach (ObjectId btrId in bt)
                     {
                         BlockTableRecord btr =
-                          (BlockTableRecord)tm.GetObject(btrId,OpenMode.ForRead,false);
+                          (BlockTableRecord)tm.GetObject(btrId, OpenMode.ForRead, false);
                         // Only add named & non-layout blocks to the copy list
                         if (!btr.IsAnonymous && !btr.IsLayout)
                             blockIds.Add(btrId);
@@ -120,13 +120,13 @@ namespace PipeInfo
                                 + " block definitions from "
                                 + sourceFileName.StringResult
                                 + " to the current drawing.");
-                
-                foreach(var id in blockIds)
+
+                foreach (var id in blockIds)
                 {
-                    ed.WriteMessage(id.ToString());         
+                    ed.WriteMessage(id.ToString());
                 }
             }
-            catch(Autodesk.AutoCAD.Runtime.Exception ex)
+            catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
                 ed.WriteMessage("\nError during copy: " + ex.Message);
             }
@@ -160,7 +160,7 @@ namespace PipeInfo
 
                 List<Vector3d> vec_li = new List<Vector3d>(); // 파이프 라인의 진행방향.
 
-                if (prSelRes.Status == PromptStatus.OK)
+                if(prSelRes.Status == PromptStatus.OK)
                 {
                     Point3dCollection pointCollection = new Point3dCollection();
                     bool isSpoolLine = false;
@@ -173,13 +173,14 @@ namespace PipeInfo
                     {
                         BlockTable blk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord blkRec = acTrans.GetObject(blk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
                         ed.WriteMessage("[Spool Information] Spool정보 기준라인을 그려주세요.\n");
                         // 23.12.19 pline에서 3dpoly로 변경
                         ed.Command("_.3dpoly");
 
                         using (Transaction tr = db.TransactionManager.StartTransaction())
                         {
-                            //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
+                            //마지막 그린 객체 결정. 텍스트의 지시라인 폴리라인만 필터해서 잡아냄. 
 
                             Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
                             //마지막 그린 라인의 버텍스를 잡아내서 Vector를 알아낸다.
@@ -208,7 +209,8 @@ namespace PipeInfo
                         //blkRec.AppendEntity(line);
                         //acTrans.AddNewlyCreatedDBObject(line, true);
 
-                        // 24.1.2 추가 그룹 백터는 이제 지시선 벡터로 대체.
+                        // 선택한 파이프 라인들의 처리 
+                        // 24.1.2 추가 그룹 백터는 이제 지시선 벡터로 대체. 
                         // 1. 라인들의 진행방향을 vec_li에 저장.
                         SelectionSet ss = prSelRes.Value;
                         ObjectId[] ss_ObjIds = ss.GetObjectIds();
@@ -216,10 +218,18 @@ namespace PipeInfo
                         // if 문 polyline3d이면 추가 필요.
                         foreach (ObjectId objId in ss_ObjIds)
                         {
-                                Polyline3d poly = acTrans.GetObject(objId, OpenMode.ForRead) as Polyline3d;
-                                //좌표 가져와서 벡터 vecli에 저장.
-                                li_PolyLines.Add(poly);
+                            Entity ent_2 = (Entity)acTrans.GetObject(objId, OpenMode.ForRead);
+                            Type type_2 = ent_2.GetType();
+                            Polyline3d po_li_2 = new Polyline3d();
+                            if(type_2.Name.ToString() == "Polyline3d")
+                            {
+                                po_li_2 = (Polyline3d)ent_2;
+                                li_PolyLines.Add(po_li_2);
+                            }
+                            //좌표 가져와서 벡터 vecli에 저장.
                         }
+
+                        // 배관의 백터는 일반화하여 절대값으로 넣어준다. 벡터에 따라 텍스트의 방향이 결정된다.
                         Vector3d line_vec = new Vector3d();
                         if (li_PolyLines.Count > 0)
                         {
@@ -228,92 +238,94 @@ namespace PipeInfo
                                 line_vec = polyLine.StartPoint.GetVectorTo(polyLine.EndPoint).GetNormal();
                                 if (Math.Round(line_vec.GetNormal().X, 1) == 1 || Math.Round(line_vec.GetNormal().X, 1) == -1)
                                 {
-                                    vec_li.Add(new Vector3d(Math.Round(line_vec.GetNormal().X, 1),0,0));
+                                    vec_li.Add(new Vector3d(Math.Abs(line_vec.GetNormal().X), 0, 0));
                                 }
                                 if (Math.Round(line_vec.GetNormal().Y, 1) == 1 || Math.Round(line_vec.GetNormal().Y, 1) == -1)
                                 {
-                                    vec_li.Add(new Vector3d(0,Math.Round(line_vec.GetNormal().Y, 1), 0));
-
+                                    vec_li.Add(new Vector3d(0, Math.Abs(line_vec.GetNormal().Y), 0));
                                 }
                                 if (Math.Round(line_vec.GetNormal().Z, 1) == 1 || Math.Round(line_vec.GetNormal().Z, 1) == -1)
                                 {
-                                    vec_li.Add(new Vector3d(0, 0, Math.Round(line_vec.GetNormal().Z, 1)));
+                                    vec_li.Add(new Vector3d(0, 0, Math.Abs(line_vec.GetNormal().Z)));
                                 }
                             }
                         }
                         acTrans.Commit();
                     }
 
-                    if(isSpoolLine == true) { 
-                    /*-----------------------------------------DataBase Scope--------------------------------------------------
-                     * 1. DB객체 생성 [O]
-                     * 2. OBJ IDs (Fence to Selection return objIds) [O]
-                     * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용) [O]
-                     * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
-                     * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
-                     ----------------------------------------------------------------------------------------------------------*/
-                    var pipeInfo_cls = new DDWorks_Database(db_path);
-                    List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(prSelRes, pointCollection);
-                    List<Tuple<string, string>> pipe_Information_li = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(pipe_instance_IDs);
-                    //(var finale_POC_points,  var final_ids) = pipeInfo_cls.Get_Final_POC_Instance_Ids(); <- 마지막 POC 단 기능
-                    //List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(final_ids); <- 마지막 POC 단 기능
-                    //ed.WriteMessage(pipe_Information_li_2[0].Item1); <- 마지막 POC 단 기능
-
-                    /*-------------------------------------------Editor Scope----------------------------------------------------
-                     * 1. Prev 객체를 넣을건지 Next객체를 표현할지 입력. []
-                     * 2. End Pipe 객체를 넣을 건지 옵션. []
-                     * 3. Valve 객체를 찾아서 길이를 줄이기. []
-                     * 4. Text를 그리는 기능(라인 포함) []
-                     * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
-                     * 6. ICON 과 버튼 적용.  []
-                     * 7. SetUp 파일.  []^
-                     * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
-                     * 9. Text내용을 Excel로 Export하기. []
-                     ----------------------------------------------------------------------------------------------------------*/
-                    // 스풀 정보만 추출
-                    foreach (var info in pipe_Information_li)
+                    if (isSpoolLine == true)
                     {
-                        spoolInfo_li.Add(info.Item2);
-                    }
-                    List<Point3d> final_Point = new List<Point3d>();
-                    //Fence Select 의 마지막 Point를 기준으로 Text
-                    foreach (Point3d point in pointCollection)
-                    {
-                        final_Point.Add(point);
-                    }
+                        /*-----------------------------------------DataBase Scope--------------------------------------------------
+                         * 1. DB객체 생성 [O]
+                         * 2. OBJ IDs (Fence to Selection return objIds) [O]
+                         * 3. OBJ IDs to DB_Information(튜플로 DB InstanceID 적용) [O]
+                         * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
+                         * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
+                         ----------------------------------------------------------------------------------------------------------*/
+                        var pipeInfo_cls = new DDWorks_Database(db_path);
+                        List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(prSelRes, pointCollection);
+                        List<Tuple<string, string>> pipe_Information_li = new List<Tuple<string, string>>();
+                        List<string> pipeInfo_NotFind_Li = new List<string>();
+                         (pipe_Information_li, pipeInfo_NotFind_Li) = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(pipe_instance_IDs);
+                        //(var finale_POC_points,  var final_ids) = pipeInfo_cls.Get_Final_POC_Instance_Ids(); <- 마지막 POC 단 기능
+                        //List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(final_ids); <- 마지막 POC 단 기능
+                        //ed.WriteMessage(pipe_Information_li_2[0].Item1); <- 마지막 POC 단 기능
 
-                    var tControl = new TextControl();
-                    var pipe = new Pipe();
-                    //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
-                    var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
-                    //spoolTexts_objIDs = tControl.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
+                        /*-------------------------------------------Editor Scope----------------------------------------------------
+                         * 1. Prev 객체를 넣을건지 Next객체를 표현할지 입력. []
+                         * 2. End Pipe 객체를 넣을 건지 옵션. []
+                         * 3. Valve 객체를 찾아서 길이를 줄이기. []
+                         * 4. Text를 그리는 기능(라인 포함) []
+                         * 5. 배관 Group의 Vector를 파악.  [] -> 6.15
+                         * 6. ICON 과 버튼 적용.  []
+                         * 7. SetUp 파일.  []^
+                         * 8. Get Two Point 내부에 Text 객체내용 가져오기. []
+                         * 9. Text내용을 Excel로 Export하기. []
+                         ----------------------------------------------------------------------------------------------------------*/
+                        // 스풀 정보만 추출
+                        foreach (var info in pipe_Information_li)
+                        {
+                            spoolInfo_li.Add(info.Item2);
+                        }
+                        List<Point3d> final_Point = new List<Point3d>();
+                        //Fence Select 의 마지막 Point를 기준으로 Text
+                        foreach (Point3d point in pointCollection)
+                        {
+                            final_Point.Add(point);
+                        }
 
-                    string groupVecstr = "";
-                    // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
-                  
-                    // 텍스트 중간 지시선
-                    Point3d po_start_point = po_li.StartPoint;
-                    Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
-                    if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
-                    {
-                        groupVecstr = "X";
-                    }
-                    if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
-                    {
-                        groupVecstr = "Y";
-                    }
-                    if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
-                    {
-                        groupVecstr = "Z";
-                    }
-                    spoolTexts_objIDs = tControl.Draw_Text_WeldPoints_2(po_li, spoolInfo_li, vec_li, groupVecstr); // 라인 끝점을 입력받음.
+                        var tControl = new TextControl();
+                        var pipe = new Pipe();
+                        //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
+                        var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
+                        //spoolTexts_objIDs = tControl.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
 
-                    // FF (Fnece Selection) 모드에서는 끝단 객체일 가능성이 크기 때문에 라인 벡트의 반대 방향으로 글씨를 배치해서 끝단에 자연스럽게 배치한다.
+                        string groupVecstr = "";
+                        // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
 
-                    /************************************************* SS 기능 코드 부분 추가 *******************************************
-                     start--*/
-                    int textFlip_Count = 0; // Z키를 누르면 텍스트를 뒤집는데 이를 카운트.
-                    int text_height = 20;
+                        // 텍스트 중간 지시선
+                        Point3d po_start_point = po_li.StartPoint;
+                        Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
+                        if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
+                        {
+                            groupVecstr = "X";
+                        }
+                        if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
+                        {
+                            groupVecstr = "Y";
+                        }
+                        if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
+                        {
+                            groupVecstr = "Z";
+                        }
+                        spoolTexts_objIDs = tControl.Draw_Text_WeldPoints_2(po_li, spoolInfo_li, vec_li, groupVecstr); // 라인 끝점을 입력받음.
+
+                        // FF (Fnece Selection) 모드에서는 끝단 객체일 가능성이 크기 때문에 라인 벡트의 반대 방향으로 글씨를 배치해서 끝단에 자연스럽게 배치한다.
+
+                        /************************************************* SS 기능 코드 부분 추가 *******************************************
+                         start--*/
+                        int textFlip_Count = 0; // Z키를 누르면 텍스트를 뒤집는데 이를 카운트.
+                        int text_height = 20;
 
                         if (isSpoolLine == true)
                         {
@@ -504,7 +516,7 @@ namespace PipeInfo
                         ed.WriteMessage("\n라인이 그려지지 않았습니다.");
                     }
                     /************************************************* SS 기능 코드 부분 추가 *******************************************
-                     end --- */ 
+                     end --- */
                 }
                 else
                 {
@@ -560,7 +572,7 @@ namespace PipeInfo
                     }
                 }
             }
-            catch(System.Exception ex)
+            catch (System.Exception ex)
             {
                 ed.WriteMessage(ex.ToString());
             }
@@ -1028,7 +1040,7 @@ namespace PipeInfo
                     Document acDoc = Application.DocumentManager.MdiActiveDocument;
                     Database db = acDoc.Database;
                     TextControl tControl = new TextControl();
-                    
+
                     int textFlip_Count = 0; // Z키를 누르면 텍스트를 뒤집는데 이를 카운트.
                     int text_height = 20;
 
@@ -1036,7 +1048,7 @@ namespace PipeInfo
                     List<Point3d> pFaceMeshPoints = Select.selectPolyFaceMeshToPoints();
                     if (pFaceMeshPoints.Count > 0)
                     {
-                        string[] filter = { "Tee", "Reducer", "Reducing" ,"End Cap", "Regulator"};
+                        string[] filter = { "Tee", "Reducer", "Reducing", "End Cap", "Regulator" };
                         var ddworks_Database = new DDWorks_Database(db_path);
                         // -> 필터 적용. 7.24 등등
                         // 선택한 용접포인트의 위치가 필터에 해당한다면 Point를 삭제.
@@ -1091,13 +1103,14 @@ namespace PipeInfo
                             //ed.WriteMessage("지울애들 {0}", remove_Pos_Li.Count);
                             // weldPoints도 지워줘야한다.
                             // 마지막 POC 객체만 있을때는 지우지 않는다.
-                            if (remove_Pos_Li.Count != weldPoints_Filtered.Count) { 
-                            foreach (var pos in remove_Pos_Li)
+                            if (remove_Pos_Li.Count != weldPoints_Filtered.Count)
                             {
-                                pFaceMeshPoints.Remove(pos);
-                                weldPoints_Filtered.Remove(pos);
+                                foreach (var pos in remove_Pos_Li)
+                                {
+                                    pFaceMeshPoints.Remove(pos);
+                                    weldPoints_Filtered.Remove(pos);
+                                }
                             }
-                        }
                             if (weldPoints_Filtered.Count != 0)
                             {
                                 // 용접포인트의 GroupVector방향을 알아내고 포인트들을 정렬시킨다. 
@@ -1125,11 +1138,11 @@ namespace PipeInfo
                                 using (Transaction tr = db.TransactionManager.StartTransaction())
                                 {
                                     //마지막 그린 객체 결정. 폴리라인만 필터해서 잡아냄. 
-                                    
+
                                     Entity ent = (Entity)tr.GetObject(Utils.EntLast(), OpenMode.ForRead);
                                     //마지막 그린 라인의 버텍스를 잡아내서 Vector를 알아낸다.
                                     Type type = ent.GetType();
-                                    
+
                                     if (type.Name.ToString() == "Polyline3d")
                                     {
                                         po_li = (Polyline3d)ent;
@@ -1150,11 +1163,11 @@ namespace PipeInfo
                                     //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
 
                                     // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
-                                    if(groupVecstr == "")
+                                    if (groupVecstr == "")
                                     {
                                         Point3d po_start_point = po_li.StartPoint;
                                         Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
-                                        if(Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
+                                        if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
                                         {
                                             groupVecstr = "X";
                                         }
@@ -1336,8 +1349,8 @@ namespace PipeInfo
                                                 for (int i = 0; i < spoolTexts_objIDs.Count; i += 1)
                                                 {
                                                     DBText textA = actras.GetObject(spoolTexts_objIDs[i], OpenMode.ForWrite) as DBText;
-                                                    
-                                                    Extents3d bound =  textA.Bounds.Value;
+
+                                                    Extents3d bound = textA.Bounds.Value;
                                                     Point3d min = bound.MinPoint;
                                                     Point3d max = bound.MaxPoint;
 
@@ -1350,7 +1363,7 @@ namespace PipeInfo
                                                     {
                                                         aligA = min;
                                                     }
-                                                    
+
                                                     TextHorizontalMode horA = textA.HorizontalMode;
                                                     AttachmentPoint justifyA = textA.Justify;
 
@@ -1365,22 +1378,22 @@ namespace PipeInfo
                                                         {
                                                             textA.Justify = AttachmentPoint.BaseRight;
                                                         }
-                                                   
+
                                                     }
 
                                                     // Text의 Min Max와 TextHeight의 오차가 존재함으로 오차 값을 구해서 TextHeight값에 적용.
-                                                    double textTerm_X = Math.Abs((max.X - min.X)- text_height);
+                                                    double textTerm_X = Math.Abs((max.X - min.X) - text_height);
                                                     double textTerm_Y = Math.Abs((max.Y - min.Y) - text_height);
                                                     double textTerm_Z = Math.Abs((max.Z - min.Z) - text_height);
 
                                                     ed.WriteMessage(textTerm_X.ToString());
-                                                    
+
                                                     // 그룹 벡터에 따른 글씨의 회전값 적용. 
                                                     // 글씨의 Flip 할때 글씨의 좌표값을 Bound에 Max로 적용시 Bound바깥으로 넘어가기때문에 글씨 크기만큼 빼준다.(1017에서 부호 결정)
                                                     if (groupVecstr == "X")
                                                     {
                                                         textA.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.XAxis, Point3d.Origin));
-                                                        max = new Point3d(max.X - (text_height - textTerm_X), max.Y , max.Z);
+                                                        max = new Point3d(max.X - (text_height - textTerm_X), max.Y, max.Z);
                                                     }
                                                     else if (groupVecstr == "Y")
                                                     {
@@ -1779,7 +1792,7 @@ namespace PipeInfo
             button.CommandParameter = "LineChecked";
             button.CommandHandler = new RibbonCommandHandler();
             panelSpool_Sor.Items.Add(button);
-            
+
             RibbonButton button2 = new RibbonButton();
             button2.Orientation = Orientation.Vertical;
             button2.Size = RibbonItemSize.Large;
@@ -1815,7 +1828,7 @@ namespace PipeInfo
 
             panel.Source = panelSpool_Sor;
             tab.Panels.Add(panel);
-            panel_wir.Source = panelWir_Sor;  
+            panel_wir.Source = panelWir_Sor;
             //panel_Setting.Source = panelSetting_Sor;
             panel_mes.Source = panelMES_Sor;
             tab.Panels.Add(panel_Setting);
@@ -1838,7 +1851,7 @@ namespace PipeInfo
             {
                 PromptSelectionOptions poOpt = new PromptSelectionOptions();
                 PromptSelectionResult poRes = ed.GetSelection(poOpt);
-               
+
                 if (poRes.Status == PromptStatus.OK)
                 {
                     SelectionSet ss = poRes.Value;
@@ -1847,7 +1860,7 @@ namespace PipeInfo
                     {
                         Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
                         Type type = en.GetType();
-                        ed.WriteMessage("오브젝트 아이디 : {0}\n오브젝트 타입 : {1}\n타입 이름 : {2}\n",id, type, type.Name);
+                        ed.WriteMessage("오브젝트 아이디 : {0}\n오브젝트 타입 : {1}\n타입 이름 : {2}\n", id, type, type.Name);
 
                     }
                 }
@@ -1901,9 +1914,9 @@ namespace PipeInfo
                 // DB 기자재 위치와 도면 블록 위치 찾는 기능
                 foreach (Point3d point in component_Positions)
                 {
-                    foreach(Extents3d bd in blk_Positions)
+                    foreach (Extents3d bd in blk_Positions)
                     {
-                        if(bd.MinPoint.X < point.X && bd.MinPoint.Y < point.Y && bd.MinPoint.Z < point.Z && bd.MaxPoint.X > point.X && bd.MaxPoint.Y > point.Y && bd.MaxPoint.Z > point.Z)
+                        if (bd.MinPoint.X < point.X && bd.MinPoint.Y < point.Y && bd.MinPoint.Z < point.Z && bd.MaxPoint.X > point.X && bd.MaxPoint.Y > point.Y && bd.MaxPoint.Z > point.Z)
                         {
                             Zoom(bd.MinPoint, bd.MaxPoint, point, 1.0);
                             ed.WriteMessage("찾았다");
@@ -1914,7 +1927,7 @@ namespace PipeInfo
                 acTrans.Commit();
             }
         }
-     
+
         [CommandMethod("aa")]
         public void spool_Export()
         {
@@ -1965,11 +1978,13 @@ namespace PipeInfo
                             if (type.Name == "DBText" || type.Name == "MText") //Mtext일때도 진행될 수 있게 추가 필요. 23.11.27일 제작도면 
                             {
                                 string tx = "";
-                                if (type.Name == "DBText") {
+                                if (type.Name == "DBText")
+                                {
                                     DBText text = (DBText)ent;
                                     tx = text.TextString;
                                 }
-                                else if (type.Name == "MText") {
+                                else if (type.Name == "MText")
+                                {
                                     MText text = (MText)ent;
                                     tx = text.Text;
                                 }
@@ -1978,7 +1993,7 @@ namespace PipeInfo
                                 string[] underbar_split = tx.Split('_');
 
                                 // 정규식에서 "-" , "_"를 포함한 Text와 첫 시작이 사이즈 "19A"인 Text를 검출하는 방법으로 변경(23.11.28)
-                                if((underbar_split.Length > 2 && dash_split.Length == 0 || underbar_split.Length > 2 && dash_split.Length > 0) && patten_T.IsMatch(underbar_split[0]))
+                                if ((underbar_split.Length > 2 && dash_split.Length == 0 || underbar_split.Length > 2 && dash_split.Length > 0) && patten_T.IsMatch(underbar_split[0]))
                                 {
                                     excelObject.excel_InsertData(1, 1, tx, true);
                                     excel_write_count += 1;
@@ -2022,7 +2037,7 @@ namespace PipeInfo
                     RibbonButton button = parameter as RibbonButton;
                     doc.Editor.WriteMessage("\n기능: " + button.Id + "\n");
                     switch (button.Id)
-                    {                                                                                                                                                                                                          
+                    {
                         case "LineBetween_distance":
                             pi.pipeBetween_Distance();
                             break;
@@ -2070,8 +2085,8 @@ namespace PipeInfo
                 ed = Application.DocumentManager.MdiActiveDocument.Editor; ;
                 db = doc.Database;
             }
-        //파이프의 벡터 방향을 가져온다.
-        public (string[], double[]) getPipeVector(Vector3d vector, Polyline3d obj)
+            //파이프의 벡터 방향을 가져온다.
+            public (string[], double[]) getPipeVector(Vector3d vector, Polyline3d obj)
             {
                 /* Pipe 진행방향(Line)은 삽입값이나 Elbow값이 포함되어 있음. 그래서 DB에서 정확한 비교가 어렵다. 그래서 진행방향이 아닌 나머지 두 축으로 비교.
                  * 0,90,180,270,360도만 적용(직각이 아닌 라인들은 다시 지정)
@@ -2256,7 +2271,7 @@ namespace PipeInfo
                     if (vecXYZ == 0) { gorupVecStr = "X"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.X).ToList(); }
                     else if (vecXYZ == 1) { gorupVecStr = "Y"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Y).ToList(); }
                     else if (vecXYZ == 2) { gorupVecStr = "Z"; lines_Point = lines_Point.OrderBy(p => p.StartPoint.Z).ToList(); }
-                    
+
                     // 차례대로 쓰기.
                     // 라인을 하나씩 돌면서 중간지점을 찾는다. 
                     // 치수의 크기와 방향을 지정한다. 
@@ -2297,8 +2312,8 @@ namespace PipeInfo
                             else if (gorupVecStr == "X" && lineVecStr == "Y")
                             {
                                 text.Position = new Point3d(
-                                lines_Point[i].StartPoint.X -(Math.Round(dis_Vector.Y, 1) * (distance / 2)) + (text_Height / 2),
-                                dimText_Postion.Y, 
+                                lines_Point[i].StartPoint.X - (Math.Round(dis_Vector.Y, 1) * (distance / 2)) + (text_Height / 2),
+                                dimText_Postion.Y,
                                 lines_Point[i].StartPoint.Z);
                                 text.TextString = Math.Abs(distance).ToString();
                             }
@@ -2308,7 +2323,7 @@ namespace PipeInfo
                                 lines_Point[i].StartPoint.X,
                                 // 그룹 벡터의 반대 방향이니 -마이너스를 적용. 그룹 벡터는 ABS적용해서 무조건 양수 마이너스 방향이 필요함으로 linevecs를 사용.
                                 // 라인의 간격에 바로 배치하면 글씨크기가 적용이 되지 않기 때문에 Text의 크기와 라인 사이를 더해서 /2를 해준다. 그래야 정중앙으로 배치된 것 처럼 보임. 
-                                lines_Point[i].StartPoint.Y - (Math.Round(dis_Vector.Y,1) * (distance/2)) + (text_Height/2), 
+                                lines_Point[i].StartPoint.Y - (Math.Round(dis_Vector.Y, 1) * (distance / 2)) + (text_Height / 2),
                                  dimText_Postion.Z
                                 );
                                 text.TextString = Math.Abs(distance).ToString();
@@ -2375,7 +2390,7 @@ namespace PipeInfo
             public ExcelObject(List<string> header)
             {
                 //list를 받아서 넣는것 하나 만들고 아예 헤더가 없는것도 하나 해야할 것 같다 23.10.25
-                
+
                 excelApp = new Excel.Application();
                 excelApp.Visible = false;
                 wb = excelApp.Workbooks.Add();
@@ -2428,7 +2443,7 @@ namespace PipeInfo
                         excelApp.Quit();
                     }
                 }
-                catch(Exception exc)
+                catch (Exception exc)
                 {
                     MessageBox.Show(exc.Message);
                 }
@@ -2478,7 +2493,7 @@ namespace PipeInfo
                     if (Math.Round(vec[0].GetNormal().X, 1) == 1 || Math.Round(vec[0].GetNormal().X, 1) == -1)
                     {
                         orderPoints = oldPoints.OrderByDescending(p => p.X).ToList();
-                        
+
                         for (int i = 0; i < oldPoints.Count; i++)
                         {
                             //7.12추가
@@ -3034,14 +3049,14 @@ namespace PipeInfo
 
                                 int group_count = 0;
                                 for (int j = 0; j < near_Points.Count; j++)
-                                if (near_Points[j].Item1 == 0)
-                                {
-                                    group_count++;
-                                    group.Add(near_Points[j].Item2);
-                                    aver_X += near_Points[j].Item2.X;
-                                    aver_Y += near_Points[j].Item2.Y;
-                                    aver_Z += near_Points[j].Item2.Z;
-                                }
+                                    if (near_Points[j].Item1 == 0)
+                                    {
+                                        group_count++;
+                                        group.Add(near_Points[j].Item2);
+                                        aver_X += near_Points[j].Item2.X;
+                                        aver_Y += near_Points[j].Item2.Y;
+                                        aver_Z += near_Points[j].Item2.Z;
+                                    }
                                 aver_X = aver_X / group_count;
                                 aver_Y = aver_Y / group_count;
                                 aver_Z = aver_Z / group_count;
@@ -3053,7 +3068,7 @@ namespace PipeInfo
                                 //양수이면 Spool Line의 글씨 갯수/2 * 15 해서 플러스
 
                                 Vector3d lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
-                                lineVec = new Vector3d(Math.Round(lineVec.X, 1), Math.Round(lineVec.Y,1), Math.Round(lineVec.Z,1));
+                                lineVec = new Vector3d(Math.Round(lineVec.X, 1), Math.Round(lineVec.Y, 1), Math.Round(lineVec.Z, 1));
 
                                 //ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
 
@@ -3061,7 +3076,7 @@ namespace PipeInfo
                                 int text_TopDownBetween_Dis = 30;
                                 int textTrans_Ang = 90;
                                 Point3d befor_TextPosition = new Point3d();
-                               
+
                                 //스풀의 그룹방향
                                 if (groupVecstr == "X")
                                 {
@@ -3076,7 +3091,7 @@ namespace PipeInfo
                                     else basePoint = line.EndPoint.Y + (50 * lineVec.Y);
                                 }
                                 else
-                                { 
+                                {
                                     if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
                                     else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
                                 }
@@ -3113,7 +3128,7 @@ namespace PipeInfo
                                         //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
                                         text.Height = 20.0;
                                         int nCnt = 0;
-                                       
+
                                         Point3d textPosition = new Point3d();
 
                                         if (k > 0)
@@ -3198,11 +3213,11 @@ namespace PipeInfo
 
                                         if (textPosition.IsEqualTo(befor_TextPosition))
                                         {
-                                            if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z); 
+                                            if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z);
                                             else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
-                                            else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y , textPosition.Z - text_TopDownBetween_Dis);
+                                            else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z - text_TopDownBetween_Dis);
                                         }
-                                        
+
                                         //Text 위치 저장을 위해 TextPosition도 리스트에 넣어준다.
                                         text.Position = textPosition;
 
@@ -3212,7 +3227,7 @@ namespace PipeInfo
                                         {
                                             text.AlignmentPoint = textPosition;
                                         }
-                                     
+
                                         text_Positions_Li.Add(textPosition);
                                         acBlkRec.AppendEntity(text);
                                         drawText_spoolTexts_objIDs.Add(text.ObjectId);
@@ -3246,15 +3261,15 @@ namespace PipeInfo
                         //라인의 벡터방향 같은지 확인
                         foreach (var vec in vec_li)
                         {
-                            if (Math.Round(vec.GetNormal().X,1) == 1 || Math.Round(vec.GetNormal().X,1) == -1)
+                            if (Math.Round(vec.GetNormal().X, 1) == 1 || Math.Round(vec.GetNormal().X, 1) == -1)
                             {
                                 vec_X_count += 1;
                             }
-                            else if (Math.Round(vec.GetNormal().Y,1) == 1 || Math.Round(vec.GetNormal().Y,1) == -1)
+                            else if (Math.Round(vec.GetNormal().Y, 1) == 1 || Math.Round(vec.GetNormal().Y, 1) == -1)
                             {
                                 vec_Y_count += 1;
                             }
-                            else if (Math.Round(vec.GetNormal().Z,1) == 1 || Math.Round(vec.GetNormal().Z,1) == -1)
+                            else if (Math.Round(vec.GetNormal().Z, 1) == 1 || Math.Round(vec.GetNormal().Z, 1) == -1)
                             {
                                 vec_Z_count += 1;
                             }
@@ -3293,8 +3308,8 @@ namespace PipeInfo
                         {
                             //최대값으로 정렬 필요. 
                             text_Positions_Li = text_Positions_Li.OrderBy(p => p.Y).OrderBy(p => p.X).OrderBy(p => p.Z).ToList();
-                            
-                       
+
+
                             for (int i = 0; i < text_Positions_Li.Count; i += 1)
                             {
                                 Vector3d lineTo_Text_vec = text_Positions_Li[i] - line.EndPoint;
@@ -3371,19 +3386,19 @@ namespace PipeInfo
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                 }
-                                else if (line_vectors == "Y" && groupVecstr == "Z") 
+                                else if (line_vectors == "Y" && groupVecstr == "Z")
                                 {
 
                                     if (lineTo_Text_vec.Y > 0)
                                     {
                                         start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y-5, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - 5, text_Positions_Li[i].Z);
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                     else if (lineTo_Text_vec.Y < 0)
                                     {
                                         start_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y - lineTo_Text_vec.Y, text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y+5    , text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X, text_Positions_Li[i].Y + 5, text_Positions_Li[i].Z);
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                 }
@@ -3392,14 +3407,14 @@ namespace PipeInfo
 
                                     if (lineTo_Text_vec.X > 0)
                                     {
-                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X - 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                     else if (lineTo_Text_vec.X < 0)
                                     {
-                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
-                                        end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y , text_Positions_Li[i].Z);
+                                        start_point = new Point3d(text_Positions_Li[i].X - lineTo_Text_vec.X, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
+                                        end_point = new Point3d(text_Positions_Li[i].X + 5, text_Positions_Li[i].Y, text_Positions_Li[i].Z);
                                         text_between_li = new Line(start_point, end_point);
                                     }
                                 }
@@ -3420,7 +3435,7 @@ namespace PipeInfo
                                     en.UpgradeOpen();
                                     en.JoinEntity(center_line);
                                 }
-                                else if(i == text_Positions_Li.Count - 1)
+                                else if (i == text_Positions_Li.Count - 1)
                                 {
                                     center_line = new Line(line.EndPoint, text_between_li.StartPoint);
                                     Entity en = acTrans.GetObject(line.ObjectId, OpenMode.ForWrite) as Entity;
@@ -3429,20 +3444,20 @@ namespace PipeInfo
                                 }
                             }
                             //마지막 그리는 라인은 바로 전 라인(인풋으로 들어온 라인)과 조인해준다.
-                            
+
                         }
-                            acTrans.Commit();
-                            acTrans.Dispose();
+                        acTrans.Commit();
+                        acTrans.Dispose();
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
                         MessageBox.Show(ex.ToString());
                     }
-                
+
                     return drawText_spoolTexts_objIDs;
                 }
             }
-            public List<ObjectId> Draw_Text_WeldPoints_2(Polyline3d line, List<string> spoolInfo_li, List<Vector3d> vec_li,  string groupVecstr)
+            public List<ObjectId> Draw_Text_WeldPoints_2(Polyline3d line, List<string> spoolInfo_li, List<Vector3d> vec_li, string groupVecstr)
             {
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
@@ -3458,217 +3473,217 @@ namespace PipeInfo
                         // Spool 정보도 같이 불러온다. (맞대기 용접은 좌표를 더해서 반환)
                         //(List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
                         // WeldPoint들과 최소 거리에 있는 (현재는 300) WeldPoint들을 모두 그룹으로 묶는다.
-                        
-                            List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
-                            List<Point3d> point_Groups = new List<Point3d>();
-                            List<int> key = new List<int>();
 
-                       
-                                Vector3d line_vec = line.StartPoint - line.EndPoint;
+                        List<Tuple<int, Point3d>> near_Points = new List<Tuple<int, Point3d>>();
+                        List<Point3d> point_Groups = new List<Point3d>();
+                        List<int> key = new List<int>();
 
-                                //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
-                                if (groupVecstr == "")
+
+                        Vector3d line_vec = line.StartPoint - line.EndPoint;
+
+                        //예외처리 23.12.12 groupVecstr값이 없다면 (단일배관일 경우 값이 없음) 지시선의 벡터를 따른다.
+                        if (groupVecstr == "")
+                        {
+                            if (line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
+                            {
+                                groupVecstr = "X";
+                            }
+                            if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
+                            {
+                                groupVecstr = "Y";
+                            }
+                            if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
+                            {
+                                groupVecstr = "Z";
+                            }
+                        }
+
+
+                        List<Point3d> group = new List<Point3d>();
+                        double aver_X = 0.0;
+                        double aver_Y = 0.0;
+                        double aver_Z = 0.0;
+
+                        int group_count = 0;
+                        for (int j = 0; j < near_Points.Count; j++)
+                            if (near_Points[j].Item1 == 0)
+                            {
+                                group_count++;
+                                group.Add(near_Points[j].Item2);
+                                aver_X += near_Points[j].Item2.X;
+                                aver_Y += near_Points[j].Item2.Y;
+                                aver_Z += near_Points[j].Item2.Z;
+                            }
+                        aver_X = aver_X / group_count;
+                        aver_Y = aver_Y / group_count;
+                        aver_Z = aver_Z / group_count;
+
+                        double basePoint = 0;
+
+                        // ****************** 스풀 정보의 베이스 포인트 지정 **********************
+                        //입력 받은 라인 끝점과 Spool포인트의 Vec에 따라 음수이면 그대로.
+                        //양수이면 Spool Line의 글씨 갯수/2 * 15 해서 플러스
+
+                        Vector3d lineVec = new Vector3d();
+                        lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
+
+                        //ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
+
+                        int text_SideBetween_Dis = 40;
+                        int text_TopDownBetween_Dis = 30;
+                        int textTrans_Ang = 90;
+                        Point3d befor_TextPosition = new Point3d();
+
+                        //스풀의 그룹방향에 따른 글씨의 베이스 포인트 
+                        if (groupVecstr == "X")
+                        {
+                            // 스풀 지시선 벡터가 양수일때는 스풀정보 전체 크기를 계산해 반영.
+                            // Spool 순서가 섞이면 안되기 때문에 그대로 반영하기 위함.
+                            if (lineVec.X == 1) basePoint = line.EndPoint.X + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                            else basePoint = line.EndPoint.X + (50 * lineVec.X); // 이 값을 조정
+                        }
+                        else if (groupVecstr == "Y")
+                        {
+                            if (lineVec.Y == 1) basePoint = line.EndPoint.Y + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                            else basePoint = line.EndPoint.Y + (50 * lineVec.Y);
+                        }
+                        else
+                        {
+                            if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
+                            else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
+                        }
+
+
+                        // Vector 에 따른 TEXT의 회전값과 정렬.
+                        // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
+                        // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
+                        for (int k = 0; k < spoolInfo_li.Count; k++) //Count와 밑에 VecLi가 같지 않을때 에러 // FF기능에서 선택된 모든 파이프의 정보를 찾아오니 중복객체 삭제 필요
+                        {
+                            string[] textString = new string[3];
+                            textString[0] = "Left";
+                            textString[1] = "Center";
+                            textString[2] = "Right";
+
+                            int[] textAlign = new int[3];
+                            textAlign[0] = (int)TextHorizontalMode.TextLeft;
+                            textAlign[1] = (int)TextHorizontalMode.TextCenter;
+                            textAlign[2] = (int)TextHorizontalMode.TextRight;
+
+                            DBText text = new DBText();
+                            text.SetDatabaseDefaults();
+
+                            //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
+                            text.TextString = spoolInfo_li[k].ToString();
+                            text.Normal = Vector3d.YAxis;
+                            //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
+                            text.Height = 20.0;
+                            int nCnt = 0;
+
+                            Point3d textPosition = new Point3d();
+
+                            if (k > 0)
+                            {
+                                //string[] beforeText = spoolInfo_li[k - 1].Split('_');
+                                //string[] afterText = spoolInfo_li[k].Split('_');
+                                //if (beforeText.Count() > 2 && afterText.Count() > 2)
+                                //{
+                                //    if (beforeText[beforeText.Count() - 2] != afterText[beforeText.Count() - 2])
+                                //    {
+                                basePoint -= text_TopDownBetween_Dis;
+                                //    }
+                                //}
+                                //else
+                                //{
+                                //    ed.WriteMessage("\n스풀 정보에 끝단 객체가 포함되어 있습니다.");
+                                //}
+                            }
+
+                            //if (k % 2 != 0 && k != 0)
+                            //{
+                            //    basePoint -= text_TopDownBetween_Dis;
+                            //}
+
+                            if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
+                            {
+                                //벡터가 양수이면 오른쪽 배치
+                                nCnt = 2;
+                            }
+                            else
+                            {
+                                //백터가 음수이면 왼쪽 배치
+                                nCnt = 0;
+                            }
+
+                            if (Math.Round(vec_li[k].GetNormal().X, 1) == 1 || Math.Round(vec_li[k].GetNormal().X, 1) == -1)
+                            {
+                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.XAxis, Point3d.Origin));
+                                if (nCnt == 2)
                                 {
-                                    if (line_vec.GetNormal().X == 1 || line_vec.GetNormal().X == -1)
-                                    {
-                                        groupVecstr = "X";
-                                    }
-                                    if (line_vec.GetNormal().Y == 1 || line_vec.GetNormal().Y == -1)
-                                    {
-                                        groupVecstr = "Y";
-                                    }
-                                    if (line_vec.GetNormal().Z == 1 || line_vec.GetNormal().Z == -1)
-                                    {
-                                        groupVecstr = "Z";
-                                    }
+                                    textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, basePoint, line.EndPoint.Z);
+                                    if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, line.EndPoint.Y, basePoint);
+                                }
+                                else if (nCnt == 0)
+                                {
+                                    textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, basePoint, line.EndPoint.Z);
+                                    if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, line.EndPoint.Y, basePoint);
+                                }
+                            }
+                            if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1 || Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
+                            {
+                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.ZAxis, Point3d.Origin));
+                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                if (nCnt == 2)
+                                {
+                                    textPosition = new Point3d(basePoint, line.EndPoint.Y + text_SideBetween_Dis, line.EndPoint.Z);
+                                    //그룹 벡터가 Z일때 조건
+                                    if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y + text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                }
+                                else if (nCnt == 0)
+                                {
+                                    textPosition = new Point3d(basePoint, line.EndPoint.Y - text_SideBetween_Dis, line.EndPoint.Z);
+                                    if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y - text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                }
+                            }
+                            if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
+                            {
+                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
+                                text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
+                                if (nCnt == 0)
+                                {
+                                    if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z - text_SideBetween_Dis);
+                                    else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z - text_SideBetween_Dis);
+                                }
+                                else if (nCnt == 2)
+                                {
+                                    if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
+                                    else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
                                 }
 
-                              
-                                List<Point3d> group = new List<Point3d>();
-                                double aver_X = 0.0;
-                                double aver_Y = 0.0;
-                                double aver_Z = 0.0;
+                            }
 
-                                int group_count = 0;
-                                for (int j = 0; j < near_Points.Count; j++)
-                                    if (near_Points[j].Item1 == 0)
-                                    {
-                                        group_count++;
-                                        group.Add(near_Points[j].Item2);
-                                        aver_X += near_Points[j].Item2.X;
-                                        aver_Y += near_Points[j].Item2.Y;
-                                        aver_Z += near_Points[j].Item2.Z;
-                                    }
-                                aver_X = aver_X / group_count;
-                                aver_Y = aver_Y / group_count;
-                                aver_Z = aver_Z / group_count;
+                            if (textPosition.IsEqualTo(befor_TextPosition))
+                            {
+                                if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z);
+                                else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
+                                else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z - text_TopDownBetween_Dis);
+                            }
 
-                                double basePoint = 0;
+                            //Text 위치 저장을 위해 TextPosition도 리스트에 넣어준다.
+                            text.Position = textPosition;
 
-                                // ****************** 스풀 정보의 베이스 포인트 지정 **********************
-                                //입력 받은 라인 끝점과 Spool포인트의 Vec에 따라 음수이면 그대로.
-                                //양수이면 Spool Line의 글씨 갯수/2 * 15 해서 플러스
+                            befor_TextPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z);
+                            text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
+                            if (text.HorizontalMode != TextHorizontalMode.TextLeft)
+                            {
+                                text.AlignmentPoint = textPosition;
+                            }
+                            text_Positions_Li.Add(textPosition);
+                            acBlkRec.AppendEntity(text);
+                            drawText_spoolTexts_objIDs.Add(text.ObjectId);
+                            acTrans.AddNewlyCreatedDBObject(text, true);
+                        }
 
-                                Vector3d lineVec = new Vector3d();
-                                lineVec = line.StartPoint.GetVectorTo(line.EndPoint).GetNormal();
 
-                                //ed.WriteMessage("\n라인 벡터의 방향{0}", line_vec);
-
-                                int text_SideBetween_Dis = 40;
-                                int text_TopDownBetween_Dis = 30;
-                                int textTrans_Ang = 90;
-                                Point3d befor_TextPosition = new Point3d();
-
-                                //스풀의 그룹방향에 따른 글씨의 베이스 포인트 
-                                if (groupVecstr == "X")
-                                {
-                                    // 스풀 지시선 벡터가 양수일때는 스풀정보 전체 크기를 계산해 반영.
-                                    // Spool 순서가 섞이면 안되기 때문에 그대로 반영하기 위함.
-                                    if (lineVec.X == 1) basePoint = line.EndPoint.X + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
-                                    else basePoint = line.EndPoint.X + (50 * lineVec.X); // 이 값을 조정
-                                }
-                                else if (groupVecstr == "Y")
-                                {
-                                    if (lineVec.Y == 1) basePoint = line.EndPoint.Y + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
-                                    else basePoint = line.EndPoint.Y + (50 * lineVec.Y);
-                                }
-                                else
-                                {
-                                    if (lineVec.Z == 1) basePoint = line.EndPoint.Z + (spoolInfo_li.Count / 2) * text_TopDownBetween_Dis;
-                                    else basePoint = line.EndPoint.Z + (50 * lineVec.Z);
-                                }
-
-                               
-                                    // Vector 에 따른 TEXT의 회전값과 정렬.
-                                    // 유의 : text.Normal = Vector3d.ZAxis; 은 꼭 text.Position 앞에 지정을 한다. 
-                                    // 이아래 기능을 Text Control Class에 들어가야한다. DrawText_BY_Vector로..Veclist와 PointList
-                                    for (int k = 0; k < spoolInfo_li.Count; k++)
-                                    {
-                                        string[] textString = new string[3];
-                                        textString[0] = "Left";
-                                        textString[1] = "Center";
-                                        textString[2] = "Right";
-
-                                        int[] textAlign = new int[3];
-                                        textAlign[0] = (int)TextHorizontalMode.TextLeft;
-                                        textAlign[1] = (int)TextHorizontalMode.TextCenter;
-                                        textAlign[2] = (int)TextHorizontalMode.TextRight;
-
-                                        DBText text = new DBText();
-                                        text.SetDatabaseDefaults();
-
-                                        //K와 SpoolInfo가 숫자가 다르면 들어가면 에러. 체크필요.
-                                        text.TextString = spoolInfo_li[k].ToString();
-                                        text.Normal = Vector3d.YAxis;
-                                        //text.Position = new Point3d(basePoint.X, basePoint.Y - (k*15), basePoint.Z);
-                                        text.Height = 20.0;
-                                        int nCnt = 0;
-
-                                        Point3d textPosition = new Point3d();
-
-                                        if (k > 0)
-                                        {
-                                            //string[] beforeText = spoolInfo_li[k - 1].Split('_');
-                                            //string[] afterText = spoolInfo_li[k].Split('_');
-                                            //if (beforeText.Count() > 2 && afterText.Count() > 2)
-                                            //{
-                                            //    if (beforeText[beforeText.Count() - 2] != afterText[beforeText.Count() - 2])
-                                            //    {
-                                                    basePoint -= text_TopDownBetween_Dis;
-                                            //    }
-                                            //}
-                                            //else
-                                            //{
-                                            //    ed.WriteMessage("\n스풀 정보에 끝단 객체가 포함되어 있습니다.");
-                                            //}
-                                        }
-
-                                            //if (k % 2 != 0 && k != 0)
-                                            //{
-                                            //    basePoint -= text_TopDownBetween_Dis;
-                                            //}
-
-                                        if (Math.Round(vec_li[k].GetNormal().X, 1) + Math.Round(vec_li[k].GetNormal().Y, 1) + Math.Round(vec_li[k].GetNormal().Z, 1) > 0)
-                                        {
-                                            //벡터가 양수이면 오른쪽 배치
-                                            nCnt = 2;
-                                        }
-                                        else
-                                        {
-                                            //백터가 음수이면 왼쪽 배치
-                                            nCnt = 0;
-                                        }
-
-                                        if (Math.Round(vec_li[k].GetNormal().X, 1) == 1 || Math.Round(vec_li[k].GetNormal().X, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.XAxis, Point3d.Origin));
-                                            if (nCnt == 2)
-                                            {
-                                                textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, basePoint, line.EndPoint.Z);
-                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X + text_SideBetween_Dis, line.EndPoint.Y, basePoint);
-                                            }
-                                            else if (nCnt == 0)
-                                            {
-                                                textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, basePoint, line.EndPoint.Z);
-                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X - text_SideBetween_Dis, line.EndPoint.Y, basePoint);
-                                            }
-                                        }
-                                        if (Math.Round(vec_li[k].GetNormal().Y, 1) == 1 || Math.Round(vec_li[k].GetNormal().Y, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.ZAxis, Point3d.Origin));
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
-                                            if (nCnt == 2)
-                                            {
-                                                textPosition = new Point3d(basePoint, line.EndPoint.Y + text_SideBetween_Dis, line.EndPoint.Z);
-                                                //그룹 벡터가 Z일때 조건
-                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y + text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
-                                            }
-                                            else if (nCnt == 0)
-                                            {
-                                                textPosition = new Point3d(basePoint, line.EndPoint.Y - text_SideBetween_Dis, line.EndPoint.Z);
-                                                if (groupVecstr == "Z") textPosition = new Point3d(line.EndPoint.X, line.EndPoint.Y - text_SideBetween_Dis, basePoint); text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * -textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
-                                            }
-                                        }
-                                        if (Math.Round(vec_li[k].GetNormal().Z, 1) == 1 || Math.Round(vec_li[k].GetNormal().Z, 1) == -1)
-                                        {
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * 180, Vector3d.YAxis, Point3d.Origin));
-                                            text.TransformBy(Matrix3d.Rotation(Math.PI / 180 * textTrans_Ang, Vector3d.YAxis, Point3d.Origin));
-                                            if (nCnt == 0)
-                                            {
-                                                if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z - text_SideBetween_Dis);
-                                                else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z - text_SideBetween_Dis);
-                                            }
-                                            else if (nCnt == 2)
-                                            {
-                                                if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
-                                                else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
-                                            }
-
-                                        }
-
-                                        if (textPosition.IsEqualTo(befor_TextPosition))
-                                        {
-                                            if (groupVecstr == "X") textPosition = new Point3d(textPosition.X - text_TopDownBetween_Dis, textPosition.Y, textPosition.Z);
-                                            else if (groupVecstr == "Y") textPosition = new Point3d(textPosition.X, textPosition.Y - text_TopDownBetween_Dis, textPosition.Z);
-                                            else if (groupVecstr == "Z") textPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z - text_TopDownBetween_Dis);
-                                        }
-
-                                        //Text 위치 저장을 위해 TextPosition도 리스트에 넣어준다.
-                                        text.Position = textPosition;
-
-                                        befor_TextPosition = new Point3d(textPosition.X, textPosition.Y, textPosition.Z);
-                                        text.HorizontalMode = (TextHorizontalMode)textAlign[nCnt];
-                                        if (text.HorizontalMode != TextHorizontalMode.TextLeft)
-                                        {
-                                            text.AlignmentPoint = textPosition;
-                                        }
-                                        text_Positions_Li.Add(textPosition);
-                                        acBlkRec.AppendEntity(text);
-                                        drawText_spoolTexts_objIDs.Add(text.ObjectId);
-                                        acTrans.AddNewlyCreatedDBObject(text, true);
-                                    }
-                                
-                         
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
@@ -4071,9 +4086,11 @@ namespace PipeInfo
             * 반환 값 : Tuple<OwnerId, Spool정보>
             * 비고 : 삭제  -> Get_Pipe_Spool_Info_By_OwnerInsId로 대체.
             */
-            public List<Tuple<string, string>> Get_Spool_Infomation_By_ObjIds(List<string> pipe_InstanceIDS)
+            public (List<Tuple<string, string>>,List<string>) Get_Spool_Infomation_By_ObjIds(List<string> pipe_InstanceIDS)
             {
                 List<Tuple<string, string>> production_Info = new List<Tuple<string, string>>();
+                List<string> pipeInfo_NotFind_li = new List<string>();
+
                 using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
                 {
                     string db_COL_Production_Group_NM = "PRODUCTION_DRAWING_GROUP_NM";
@@ -4172,13 +4189,20 @@ namespace PipeInfo
                                 {
                                     str_pipe_Info += "_" + reader[0].ToString();
                                 }
-                                production_Info.Add(new Tuple<string, string>(obj, str_pipe_Info));
+                                if (str_pipe_Info != "")
+                                {
+                                    production_Info.Add(new Tuple<string, string>(obj, str_pipe_Info));
+                                }
+                                else
+                                {
+                                    pipeInfo_NotFind_li.Add(obj);
+                                }
                             }
                             conn.Close();
                         }
                     }
                 }
-                return production_Info;
+                return (production_Info, pipeInfo_NotFind_li);
             }
 
             /*
@@ -4453,8 +4477,8 @@ namespace PipeInfo
                                     string instance_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
                                     string sql_ins = SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(instance_id);
                                     string spool_info = Get_Pipe_Spool_Info_By_OwnerInsId(instance_id);
-                                    if(spool_info != null && spool_info != "") { spool_info_li.Add(spool_info); };
-                                    
+                                    if (spool_info != null && spool_info != "") { spool_info_li.Add(spool_info); };
+
                                     //Get_Pipe_Spool_Info_By_OwnerInsId 로 스풀정보.
                                     SQLiteCommand command_1 = new SQLiteCommand(sql_ins, conn);
                                     SQLiteDataReader rdr_1 = command_1.ExecuteReader();
@@ -4501,7 +4525,7 @@ namespace PipeInfo
                                     }
 
                                 }
-                            // WeldGroup의 좌표를 받아서 Group 중간점 구하기 파이프의 Vector의 방향대로 글자를 배치.
+                                // WeldGroup의 좌표를 받아서 Group 중간점 구하기 파이프의 Vector의 방향대로 글자를 배치.
                             }
                         }
                         if (weldGroup.Count < spool_info_li.Count)
@@ -4640,18 +4664,18 @@ namespace PipeInfo
             * */
             public List<Point3d> Get_Components_Positions()
             {
-                List<Point3d> vavle_Positions = new List<Point3d> ();
+                List<Point3d> vavle_Positions = new List<Point3d>();
                 string connstr = "Data Source=" + db_path;
                 using (SQLiteConnection conn = new SQLiteConnection(connstr))
                 {
                     conn.Open();
-                    string sql_command = string.Format("SELECT POSX,POSY,POSZ FROM TB_MODELTEMPLATES "+
-                        "INNER JOIN TB_MODELINSTANCES on TB_MODELTEMPLATES.MODEL_TEMPLATE_ID "+
+                    string sql_command = string.Format("SELECT POSX,POSY,POSZ FROM TB_MODELTEMPLATES " +
+                        "INNER JOIN TB_MODELINSTANCES on TB_MODELTEMPLATES.MODEL_TEMPLATE_ID " +
                         "= TB_MODELINSTANCES.MODEL_TEMPLATE_ID;");
                     SQLiteCommand comm = new SQLiteCommand(sql_command, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
 
-                    while(rdr.Read())
+                    while (rdr.Read())
                     {
                         vavle_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
                     }
@@ -4661,51 +4685,51 @@ namespace PipeInfo
                 return vavle_Positions;
             }
 
-           //기능 설명 : Valve와 연결된 파이프를 찾아 삽입값을 빼준다.
-           //Valve INSTANCE_ID에 연결된 파이프위치들을 반환한다.
-           //CAD에서 밸브와 연결된 파이프를 찾아 MidPoint에 있는 Text의 값을(PolyLine의 길이조정).
-           public List<Point3d> Get_PipePoints_By_WithValve()
-           {
-               List<Point3d> pipePoints = new List<Point3d>();
-               List<string> connectd_Poc_Id = new List<string>();
-               string connstr = "Data Source=" + db_path;
-               using (SQLiteConnection conn = new SQLiteConnection(connstr))
-               {
-                   conn.Open();
-                   string sql_ConId = String.Format(
-                       "SELECT CONNECTED_POC_ID " +
-                       "FROM TB_POCTEMPLATES as PT " +
-                       "INNER JOIN TB_POCINSTANCES as PI " +
-                       "on PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID " +
-                       "AND OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%';", ownerType_Component, valveType);
-                   SQLiteCommand comm = new SQLiteCommand(sql_ConId, conn);
-                   SQLiteDataReader rdr = comm.ExecuteReader();
-                   while (rdr.Read())
-                   {
-                       connectd_Poc_Id.Add(BitConverter.ToString((byte[])rdr["CONNECTED_POC_ID"]).Replace("-", ""));
-                   }
+            //기능 설명 : Valve와 연결된 파이프를 찾아 삽입값을 빼준다.
+            //Valve INSTANCE_ID에 연결된 파이프위치들을 반환한다.
+            //CAD에서 밸브와 연결된 파이프를 찾아 MidPoint에 있는 Text의 값을(PolyLine의 길이조정).
+            public List<Point3d> Get_PipePoints_By_WithValve()
+            {
+                List<Point3d> pipePoints = new List<Point3d>();
+                List<string> connectd_Poc_Id = new List<string>();
+                string connstr = "Data Source=" + db_path;
+                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                {
+                    conn.Open();
+                    string sql_ConId = String.Format(
+                        "SELECT CONNECTED_POC_ID " +
+                        "FROM TB_POCTEMPLATES as PT " +
+                        "INNER JOIN TB_POCINSTANCES as PI " +
+                        "on PT.POC_TEMPLATE_ID = PI.POC_TEMPLATE_ID " +
+                        "AND OWNER_TYPE = '{0}' AND POC_TEMPLATE_NM like '%{1}%';", ownerType_Component, valveType);
+                    SQLiteCommand comm = new SQLiteCommand(sql_ConId, conn);
+                    SQLiteDataReader rdr = comm.ExecuteReader();
+                    while (rdr.Read())
+                    {
+                        connectd_Poc_Id.Add(BitConverter.ToString((byte[])rdr["CONNECTED_POC_ID"]).Replace("-", ""));
+                    }
 
-                   foreach (var id in connectd_Poc_Id)
-                   {
-                       string sql_Pos = string.Format("SELECT POSX,POSY,POSZ FROM TB_POCINSTANCES WHERE OWNER_INSTANCE_ID=(SELECT OWNER_INSTANCE_ID FROM TB_POCINSTANCES WHERE hex(INSTANCE_ID) = '{0}');", id);
-                       SQLiteCommand comm_Conn = new SQLiteCommand(sql_Pos, conn);
-                       SQLiteDataReader rdr_ins = comm_Conn.ExecuteReader();
-                       while (rdr_ins.Read())
-                       {
-                           Point3d point = new Point3d((double)rdr_ins["POSX"], (double)rdr_ins["POSY"], (double)rdr_ins["POSZ"]);
-                           pipePoints.Add(point);
-                       }
-                   }
-                   conn.Dispose();
-               }
-               return pipePoints;
-           }
-           // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
-           // 빈공간.. 찾기.. RAYTRAY.. 
-           // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
-           // 4방향으로 Rec 회전 알고리즘 
-           // EnterKey 누르면 거기에 파이프 정보. 
-           /* --------------- [CLASS END] -------------------*/
+                    foreach (var id in connectd_Poc_Id)
+                    {
+                        string sql_Pos = string.Format("SELECT POSX,POSY,POSZ FROM TB_POCINSTANCES WHERE OWNER_INSTANCE_ID=(SELECT OWNER_INSTANCE_ID FROM TB_POCINSTANCES WHERE hex(INSTANCE_ID) = '{0}');", id);
+                        SQLiteCommand comm_Conn = new SQLiteCommand(sql_Pos, conn);
+                        SQLiteDataReader rdr_ins = comm_Conn.ExecuteReader();
+                        while (rdr_ins.Read())
+                        {
+                            Point3d point = new Point3d((double)rdr_ins["POSX"], (double)rdr_ins["POSY"], (double)rdr_ins["POSZ"]);
+                            pipePoints.Add(point);
+                        }
+                    }
+                    conn.Dispose();
+                }
+                return pipePoints;
+            }
+            // 중간 지점 그려주기. 배관 방향과 수평되게 그려주기.. 
+            // 빈공간.. 찾기.. RAYTRAY.. 
+            // 수평되게 그려주기 된다면 네모 그려서 그룹 아이디 
+            // 4방향으로 Rec 회전 알고리즘 
+            // EnterKey 누르면 거기에 파이프 정보. 
+            /* --------------- [CLASS END] -------------------*/
 
         }
         public class keyFilter : IMessageFilter
@@ -4762,8 +4786,8 @@ namespace PipeInfo
             // Remove the event handler as it is no longer needed
             Application.Idle -= Application_Idle;
 
-          _palette = new PipeInfo();
-          _palette.ui();
+            _palette = new PipeInfo();
+            _palette.ui();
         }
 
     }
