@@ -3961,13 +3961,20 @@ namespace PipeInfo
             public string SqlStr_TB_POCINSTANCES_By_Point(Point3d point)
             {
                 //DB 테이블 요약 : POC 연결정보 연결 타입 등 
+                //string sql = string.Format(
+                //                 "SELECT * ," +
+                //                 "abs(POSX - {0})" +
+                //                 "as disx, abs(POSY - {1})" +
+                //                 "as disy, abs(POSZ - {2})" +
+                //                 "as disz FROM TB_POCINSTANCES " +
+                //                 "WHERE 1 > disx AND 1> disy AND 1 > disz ;", point.X, point.Y, point.Z);
                 string sql = string.Format(
                                  "SELECT * ," +
                                  "abs(POSX - {0})" +
-                                 "as disx, abs(POSY - {1})" +
-                                 "as disy, abs(POSZ - {2})" +
-                                 "as disz FROM TB_POCINSTANCES " +
-                                 "WHERE 1 > disx AND 1> disy AND 1 > disz ;", point.X, point.Y, point.Z);
+                                 "+ abs(POSY - {1})" +
+                                 "+ abs(POSZ - {2})" +
+                                 "as distance FROM TB_POCINSTANCES " +
+                                 "Order by distance;", point.X, point.Y, point.Z);
                 return sql;
             }
             public string SqlStr_TB_MODELINSTANCES(string owner_id, string ownerType)
