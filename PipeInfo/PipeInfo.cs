@@ -159,8 +159,9 @@ namespace PipeInfo
                 PromptSelectionResult prSelRes = ed.GetSelection();
 
                 List<Vector3d> vec_li = new List<Vector3d>(); // 파이프 라인의 진행방향.
+                List<Polyline3d> li_PolyLines = new List<Polyline3d>(); // 파이프 객체 polyline3d
 
-                if(prSelRes.Status == PromptStatus.OK)
+                if (prSelRes.Status == PromptStatus.OK)
                 {
                     Point3dCollection pointCollection = new Point3dCollection();
                     bool isSpoolLine = false;
@@ -214,7 +215,7 @@ namespace PipeInfo
                         // 1. 라인들의 진행방향을 vec_li에 저장.
                         SelectionSet ss = prSelRes.Value;
                         ObjectId[] ss_ObjIds = ss.GetObjectIds();
-                        List<Polyline3d> li_PolyLines = new List<Polyline3d>();
+                      
                         // if 문 polyline3d이면 추가 필요.
                         foreach (ObjectId objId in ss_ObjIds)
                         {
@@ -250,6 +251,7 @@ namespace PipeInfo
                                 }
                             }
                         }
+
                         acTrans.Commit();
                     }
 
@@ -262,11 +264,38 @@ namespace PipeInfo
                          * 4. acDrawText 기능 구현.(3번에서 반환된 튜플 객체를 Fence EndPoint 에서 부터 시작해서 객체를 생성) [ㅁ]
                          * 5. OBJ IDs To Connected PipeInformation 구현 예정(OBJ IDs를 입력하면 전 후 PipeInformation). []
                          ----------------------------------------------------------------------------------------------------------*/
+
+                        string groupVecstr = "";
+                        // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
+
+                        // 텍스트 중간 지시선
+                        Point3d po_start_point = po_li.StartPoint;
+                        var tControl = new TextControl();
+                        Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
+
+                        if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
+                        {
+                            groupVecstr = "X";
+                        }
+                        if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
+                        {
+                            groupVecstr = "Y";
+                        }
+                        if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
+                        {
+                            groupVecstr = "Z";
+                        }
+
+                        ed.WriteMessage("파이프의 그룹 진행 방향은 {0}축입니다. 스풀정보의 기준선을 {0}축으로 그려주세요.", groupVecstr);
+                        Order order = new Order();
+                        List<Polyline3d> li_orderPolyline = new List<Polyline3d>();
+                        li_orderPolyline = order.orderObjectByGroupVector(li_PolyLines, groupVecstr);
+
                         var pipeInfo_cls = new DDWorks_Database(db_path);
-                        List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(prSelRes, pointCollection);
+                        List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(li_orderPolyline);
                         List<Tuple<string, string>> pipe_Information_li = new List<Tuple<string, string>>();
                         List<string> pipeInfo_NotFind_Li = new List<string>();
-                         (pipe_Information_li, pipeInfo_NotFind_Li) = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(pipe_instance_IDs);
+                        spoolInfo_li = pipeInfo_cls.Get_Spool_Infomation_By_insIds(pipe_instance_IDs);
                         //(var finale_POC_points,  var final_ids) = pipeInfo_cls.Get_Final_POC_Instance_Ids(); <- 마지막 POC 단 기능
                         //List<Tuple<string, string>> pipe_Information_li_2 = pipeInfo_cls.Get_Spool_Infomation_By_ObjIds(final_ids); <- 마지막 POC 단 기능
                         //ed.WriteMessage(pipe_Information_li_2[0].Item1); <- 마지막 POC 단 기능
@@ -283,10 +312,13 @@ namespace PipeInfo
                          * 9. Text내용을 Excel로 Export하기. []
                          ----------------------------------------------------------------------------------------------------------*/
                         // 스풀 정보만 추출
-                        foreach (var info in pipe_Information_li)
-                        {
-                            spoolInfo_li.Add(info.Item2);
-                        }
+                        //foreach (var info in pipe_Information_li)
+                        //{
+                        //    spoolInfo_li.Add(info.Item2);
+                        //}
+
+                        spoolTexts_objIDs = tControl.Draw_Text_WeldPoints_2(po_li, spoolInfo_li, vec_li, groupVecstr); // 라인 끝점을 입력받음.
+
                         List<Point3d> final_Point = new List<Point3d>();
                         //Fence Select 의 마지막 Point를 기준으로 Text
                         foreach (Point3d point in pointCollection)
@@ -294,31 +326,11 @@ namespace PipeInfo
                             final_Point.Add(point);
                         }
 
-                        var tControl = new TextControl();
                         var pipe = new Pipe();
                         //배관의 Vector와 마지막 객체의 좌표도 필요. 좌표를 기준으로 Fence 좌표를 보정.
                         var pipe_Group_Vector = pipe.get_Pipe_Group_Vector(prSelRes);
                         //spoolTexts_objIDs = tControl.ed_Draw_Text_To_Line_Vector(pipe_Information_li, final_Point, 25, 12);
 
-                        string groupVecstr = "";
-                        // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
-
-                        // 텍스트 중간 지시선
-                        Point3d po_start_point = po_li.StartPoint;
-                        Vector3d po_vec = po_start_point.GetVectorTo(po_li.EndPoint).GetNormal();
-                        if (Math.Round(po_vec.GetNormal().X, 1) == 1 || Math.Round(po_vec.GetNormal().X, 1) == -1)
-                        {
-                            groupVecstr = "X";
-                        }
-                        if (Math.Round(po_vec.GetNormal().Y, 1) == 1 || Math.Round(po_vec.GetNormal().Y, 1) == -1)
-                        {
-                            groupVecstr = "Y";
-                        }
-                        if (Math.Round(po_vec.GetNormal().Z, 1) == 1 || Math.Round(po_vec.GetNormal().Z, 1) == -1)
-                        {
-                            groupVecstr = "Z";
-                        }
-                        spoolTexts_objIDs = tControl.Draw_Text_WeldPoints_2(po_li, spoolInfo_li, vec_li, groupVecstr); // 라인 끝점을 입력받음.
 
                         // FF (Fnece Selection) 모드에서는 끝단 객체일 가능성이 크기 때문에 라인 벡트의 반대 방향으로 글씨를 배치해서 끝단에 자연스럽게 배치한다.
 
@@ -907,6 +919,7 @@ namespace PipeInfo
 
                 BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                 BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForRead) as BlockTableRecord;
+                
                 foreach (var blk in acBlk)
                 {
                     var en = (BlockTable)acTrans.GetObject(db.BlockTableId, OpenMode.ForRead);
@@ -1386,7 +1399,7 @@ namespace PipeInfo
                                                     double textTerm_Y = Math.Abs((max.Y - min.Y) - text_height);
                                                     double textTerm_Z = Math.Abs((max.Z - min.Z) - text_height);
 
-                                                    ed.WriteMessage(textTerm_X.ToString());
+                                                    //ed.WriteMessage(textTerm_X.ToString());
 
                                                     // 그룹 벡터에 따른 글씨의 회전값 적용. 
                                                     // 글씨의 Flip 할때 글씨의 좌표값을 Bound에 Max로 적용시 Bound바깥으로 넘어가기때문에 글씨 크기만큼 빼준다.(1017에서 부호 결정)
@@ -2055,6 +2068,9 @@ namespace PipeInfo
             }
         }
 
+        /* --------------- [CLASS START]-------------------*/
+        
+        //이미지 관련 클래스
         public class Images
         {
             public static BitmapImage getBitmap(Bitmap image)
@@ -2069,7 +2085,30 @@ namespace PipeInfo
                 return bmp;
             }
         }
-        /* --------------- [CLASS START]-------------------*/
+
+        //객체의 순서를 정렬
+        public class Order
+        {
+
+            public List<Polyline3d> orderObjectByGroupVector(List<Polyline3d> pLine_li, string groupVector)
+            {
+                if (groupVector == "X")
+                {
+                    pLine_li = pLine_li.OrderByDescending(p => p.StartPoint.X).ToList();
+                }
+                else if (groupVector == "Y")
+                {
+                    pLine_li = pLine_li.OrderByDescending(p => p.StartPoint.Y).ToList();
+                }
+                else if (groupVector == "Z")
+                {
+                    pLine_li = pLine_li.OrderByDescending(p => p.StartPoint.Z).ToList();
+                }
+                return pLine_li;
+
+            }
+        }
+        
         /* 클래스 이름 : Pipe
          * 기능 설명 : Pipe에 관련된 기능.*/
         public class Pipe
@@ -3985,16 +4024,10 @@ namespace PipeInfo
             * 함수 이름 : Get_PipeInstanceIDs_By_ObjIDs
             * 기능 설명 : Point를 기준으로 Pipe의 Spool정보를 반환.
             */
-            public List<string> Get_PipeInstanceIDs_By_ObjIDs(PromptSelectionResult prSelRes, Point3dCollection pointCollection)
+            public List<string> Get_PipeInstanceIDs_By_ObjIDs(List<Polyline3d> pli)
             {
                 Pipe pi = new Pipe();
                 List<string> ids = new List<string>();
-                //선택한 객체가 존재할때만 명령 실행.
-                if (prSelRes.Status == PromptStatus.OK)
-                {
-                    //객체를 가져오는 순서. PromptSelectionResult -> SelectionSet -> ObjectIds
-                    SelectionSet ss = prSelRes.Value;
-                    ObjectId[] obIds = ss.GetObjectIds();
 
                     using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
                     {
@@ -4003,11 +4036,7 @@ namespace PipeInfo
                         acBlk = acTrans.GetObject(db_acDB.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord acBlkRec;
                         acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                        /* 최초 사용자가 원하는 치수 Vector
-                         + + + : 오른쪽 상단
-                         - + + : 왼쪽 상단 
-                         - - + : 오른쪽 하단 
-                         + - + : 왼쪽 하단 */
+
                         if (db_path != null)
                         {
                             string connstr = "Data Source=" + db_path;
@@ -4016,50 +4045,41 @@ namespace PipeInfo
                                 conn.Open();
                                 //오브젝트 ID를 이용해서 객체의 정보를 가져온다. 배관의 순서를 위해 배관이 놓인 순서필요.
                                 //파이프의 백터 필요.
-                                if (obIds.Length > 0)
+                                foreach (var li in pli)
                                 {
-                                    foreach (var obid in obIds)
+                                    //Line의 Vec방향.
+                                    Vector3d vec = li.StartPoint.GetVectorTo(li.EndPoint).GetNormal();
+
+                                    //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
+                                    (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, li);
+
+                                    if (db_column_name[0] != "")
                                     {
-                                        //PolyLine3d 로 형변환. 
-                                        var objd = acTrans.GetObject(obid, OpenMode.ForWrite);
-                                        if (objd.ObjectId.ObjectClass.GetRuntimeType() == typeof(Polyline3d))
+                                        //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
+                                        //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
+                                        string sql = String.Format("SELECT *,abs({0}-POSX) as disposx, abs({1}-POSY) + abs({2}-POSZ) + abs({3}-LENGTH1) as distance FROM {4} ORDER by distance;",
+                                                        li.StartPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                                        li.StartPoint.Y,
+                                                        li.StartPoint.Z,
+                                                        li.Length, 
+                                                        db_TB_PIPEINSTANCES);
+                                        SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                        SQLiteDataReader rdr = cmd.ExecuteReader();
+                                        if (rdr.HasRows)
                                         {
-                                            db_ed.WriteMessage("라인객체" + objd.ObjectId.ObjectClass.ToString());
-                                            Polyline3d obj = (Polyline3d)acTrans.GetObject(obid, OpenMode.ForWrite);
-                                            //Line의 Vec방향.
-                                            Vector3d vec = obj.StartPoint.GetVectorTo(obj.EndPoint).GetNormal();
-
-                                            //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
-                                            (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, obj);
-
-                                            if (db_column_name[0] != "")
-                                            {
-                                                //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
-                                                //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
-                                                string sql = String.Format("SELECT *,abs({0}-{3}) as disposx, abs({1}-{4}) as disposz ,abs({2}-LENGTH1) as distance FROM {5} ORDER by disposx,disposz,distance ASC;",
-                                                                Math.Round(line_trans[0], 2),//CAD소숫점은 2자리정도로 비교 
-                                                                Math.Round(line_trans[1], 2),
-                                                                obj.Length, db_column_name[0],
-                                                                db_column_name[1],
-                                                                db_TB_PIPEINSTANCES);
-                                                SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                                                SQLiteDataReader rdr = cmd.ExecuteReader();
-                                                if (rdr.HasRows)
-                                                {
-                                                    //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
-                                                    rdr.Read();
-                                                    string bitToStr_Instance_Id = BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", "");
-                                                    ids.Add(bitToStr_Instance_Id);
-                                                    //BitConverter에 '-'하이픈 Replace로 제거. 
-                                                    //db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], bitToStr_Instance_Id);
-                                                    string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
-                                                    rdr.Close();
-                                                }
-                                                else
-                                                {
-                                                    MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
-                                                }
-                                            }
+                                            //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
+                                            rdr.Read();
+                                            string bitToStr_Instance_Id = BitConverter.ToString((byte[])rdr["INSTANCE_ID"]).Replace("-", "");
+                                            ids.Add(bitToStr_Instance_Id);
+                                            //BitConverter에 '-'하이픈 Replace로 제거. 
+                                            //db_ed.WriteMessage("인스턴스 ID : {0} {1}\n", rdr["POSX"], bitToStr_Instance_Id);
+                                            string comm = String.Format("SELECT * FROM {0} WHERE hex(INSTANCE_ID) = {1}", db_TB_PIPEINSTANCES, rdr["INSTANCE_ID"]);
+                                            rdr.Close();
+                                        }
+                                        else
+                                        {
+                                            ids.Add("Undefined");
+                                            MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
                                         }
                                     }
                                 }
@@ -4067,11 +4087,6 @@ namespace PipeInfo
                         }
                         acTrans.Commit();
                     }
-                }
-                else
-                {
-                    db_ed.WriteMessage("Error : 선택한 객체가 없습니다. 배관라인을 선택하세요.");
-                }
                 return ids;
             }
             /*
@@ -4080,11 +4095,11 @@ namespace PipeInfo
             * 반환 값 : Tuple<OwnerId, Spool정보>
             * 비고 : 삭제  -> Get_Pipe_Spool_Info_By_OwnerInsId로 대체.
             */
-            public (List<Tuple<string, string>>,List<string>) Get_Spool_Infomation_By_ObjIds(List<string> pipe_InstanceIDS)
+            public List<string> Get_Spool_Infomation_By_insIds(List<string> pipe_InstanceIDS)
             {
-                List<Tuple<string, string>> production_Info = new List<Tuple<string, string>>();
-                List<string> pipeInfo_NotFind_li = new List<string>();
-
+                //List<Tuple<string, string>> production_Info = new List<Tuple<string, string>>();
+                //List<string> pipeInfo_NotFind_li = new List<string>();
+                List<string> pipeInfo_Li = new List<string>();
                 using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
                 {
                     string db_COL_Production_Group_NM = "PRODUCTION_DRAWING_GROUP_NM";
@@ -4095,8 +4110,8 @@ namespace PipeInfo
                     string db_COL_SPOOLNUM = "SPOOL_NUMBER";
                     string db_COL_UTILITY_NM = "UTILITY_NM";
                     string db_TB_UTILITIES = "TB_UTILITIES";
-
                     string[] sql_li = { "", "", "", "" };
+
                     BlockTable acBlk;
                     acBlk = acTrans.GetObject(db_acDB.BlockTableId, OpenMode.ForRead) as BlockTable;
                     BlockTableRecord acBlkRec;
@@ -4108,95 +4123,108 @@ namespace PipeInfo
                         using (SQLiteConnection conn = new SQLiteConnection(connstr))
                         {
                             conn.Open();
-                            foreach (var obj in pipe_InstanceIDS)
+                            foreach (var InstanceID in pipe_InstanceIDS)
                             {
-                                //스풀이름
-                                sql_li[0] = String.Format("SELECT {0} " +
-                                "FROM {1} " +
-                                "WHERE {2} = " +
-                                "(SELECT {3} " +
-                                "FROM {4} " +
-                                "INNER JOIN {5} " +
-                                "ON " +
-                                "{6}.INSTANCE_ID = " +
-                                "{7}.INSTANCE_ID AND " +
-                                "hex({8}.INSTANCE_ID) = '{9}');",
-                                db_COL_Production_Group_NM,
-                                db_TB_PRODUCTION_GROUP,
-                                db_COL_Production_Group_ID,
-                                db_COL_Production_Group_ID,
-                                db_TB_PIPEINSTANCES,
-                                db_TB_PRODUCTION_DRAWING,
-                                db_TB_PIPEINSTANCES,
-                                db_TB_PRODUCTION_DRAWING,
-                                db_TB_PIPEINSTANCES,
-                                obj.ToString()
-                                   );
+                                ////스풀이름
+                                //sql_li[0] = String.Format("SELECT {0} " +
+                                //"FROM {1} " +
+                                //"WHERE {2} = " +
+                                //"(SELECT {3} " +
+                                //"FROM {4} " +
+                                //"INNER JOIN {5} " +
+                                //"ON " +
+                                //"{6}.INSTANCE_ID = " +
+                                //"{7}.INSTANCE_ID AND " +
+                                //"hex({8}.INSTANCE_ID) = '{9}');",
+                                //db_COL_Production_Group_NM,
+                                //db_TB_PRODUCTION_GROUP,
+                                //db_COL_Production_Group_ID,
+                                //db_COL_Production_Group_ID,
+                                //db_TB_PIPEINSTANCES,
+                                //db_TB_PRODUCTION_DRAWING,
+                                //db_TB_PIPEINSTANCES,
+                                //db_TB_PRODUCTION_DRAWING,
+                                //db_TB_PIPEINSTANCES,
+                                //obj.ToString()
+                                //   );
 
-                                //유틸이름
-                                sql_li[1] = String.Format(
-                                "SELECT {0} " +
-                                "from {1} " +
-                                "INNER JOIN " +
-                                "{2} " +
-                                "ON " +
-                                "{3}.UTILITY_ID = " +
-                                "{4}.UTILITY_ID " +
-                                "AND " +
-                                "hex({5}.INSTANCE_ID) = '{6}';",
-                                db_COL_UTILITY_NM, db_TB_UTILITIES,
-                                db_TB_PIPEINSTANCES,
-                                db_TB_UTILITIES,
-                                db_TB_PIPEINSTANCES,
-                                db_TB_PIPEINSTANCES,
-                                obj.ToString()
-                                );
+                                ////유틸이름
+                                //sql_li[1] = String.Format(
+                                //"SELECT {0} " +
+                                //"from {1} " +
+                                //"INNER JOIN " +
+                                //"{2} " +
+                                //"ON " +
+                                //"{3}.UTILITY_ID = " +
+                                //"{4}.UTILITY_ID " +
+                                //"AND " +
+                                //"hex({5}.INSTANCE_ID) = '{6}';",
+                                //db_COL_UTILITY_NM, db_TB_UTILITIES,
+                                //db_TB_PIPEINSTANCES,
+                                //db_TB_UTILITIES,
+                                //db_TB_PIPEINSTANCES,
+                                //db_TB_PIPEINSTANCES,
+                                //obj.ToString()
+                                //);
 
-                                sql_li[2] = String.Format(
-                                    "SELECT {0} " +
-                                    "FROM {1} " +
-                                    "WHERE hex(INSTANCE_ID) = '{2}';",
-                                    db_COL_SPOOLNUM, db_TB_PRODUCTION_DRAWING, obj.ToString());
-
-                                //쿼리문 실행
-                                SQLiteCommand comm = new SQLiteCommand(sql_li[0], conn);
-                                SQLiteDataReader reader = comm.ExecuteReader();
-                                string str_pipe_Info = "";
-
-                                while (reader.Read())
+                                //sql_li[2] = String.Format(
+                                //    "SELECT {0} " +
+                                //    "FROM {1} " +
+                                //    "WHERE hex(INSTANCE_ID) = '{2}';",
+                                //    db_COL_SPOOLNUM, db_TB_PRODUCTION_DRAWING, obj.ToString());
+                                string pipeInfo = Get_Pipe_Spool_Info_By_OwnerInsId(InstanceID);
+                                if(pipeInfo != "")
                                 {
-                                    str_pipe_Info += reader[0].ToString();
+                                    pipeInfo_Li.Add(pipeInfo);
                                 }
-
-                                reader.Close();
-                                comm = new SQLiteCommand(sql_li[1], conn);
-                                reader = comm.ExecuteReader();
-                                while (reader.Read())
+                                else if(pipeInfo == "Undefined")
                                 {
-                                    str_pipe_Info += "_" + reader[0].ToString();
-                                }
-
-                                reader.Close();
-                                comm = new SQLiteCommand(sql_li[2], conn);
-                                reader = comm.ExecuteReader();
-                                while (reader.Read())
-                                {
-                                    str_pipe_Info += "_" + reader[0].ToString();
-                                }
-                                if (str_pipe_Info != "")
-                                {
-                                    production_Info.Add(new Tuple<string, string>(obj, str_pipe_Info));
+                                    pipeInfo_Li.Add("Undefined");
                                 }
                                 else
                                 {
-                                    pipeInfo_NotFind_li.Add(obj);
+                                    pipeInfo_Li.Add("[Error] PipeInfor NotFind");
                                 }
+                                //쿼리문 실행
+                                //SQLiteCommand comm = new SQLiteCommand(sql_li[0], conn);
+                                // SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                                //SQLiteDataReader reader = comm.ExecuteReader();
+
+
+                                //while (reader.Read())
+                                //{
+                                //    str_pipe_Info += reader[0].ToString();
+                                //}
+
+                                //reader.Close();
+                                //comm = new SQLiteCommand(sql_li[1], conn);
+                                //reader = comm.ExecuteReader();
+                                //while (reader.Read())
+                                //{
+                                //    str_pipe_Info += "_" + reader[0].ToString();
+                                //}
+
+                                //reader.Close();
+                                //comm = new SQLiteCommand(sql_li[2], conn);
+                                //reader = comm.ExecuteReader();
+                                //while (reader.Read())
+                                //{
+                                //    str_pipe_Info += "_" + reader[0].ToString();
+                                //}
+                                //if (str_pipe_Info != "")
+                                //{
+                                //    production_Info.Add(new Tuple<string, string>(obj, str_pipe_Info));
+                                //}
+                                //else
+                                //{
+                                //    pipeInfo_NotFind_li.Add(obj);
+                                //}
                             }
                             conn.Close();
                         }
                     }
                 }
-                return (production_Info, pipeInfo_NotFind_li);
+                return pipeInfo_Li;
             }
 
             /*
@@ -4329,22 +4357,29 @@ namespace PipeInfo
                     conn.Open();
                     SQLiteCommand comm = new SQLiteCommand(sql_InstanceGroup, conn);
                     SQLiteDataReader rdr = comm.ExecuteReader();
-                    rdr.Read();
-                    string instance_GroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
-                    rdr.Close();
-                    comm.Dispose();
-                    comm = new SQLiteCommand(sql_spoolInfo, conn);
-                    rdr = comm.ExecuteReader();
-
-                    while (rdr.Read())
+                    if (rdr.HasRows) //rdr 반환값이 있을때만 Read
                     {
-                        string rdr_instanceGroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
-                        //찾은 객체의 첫번째 항목만 불러온다. -> 7.10수정 DWG 파일 이름이 곧 INSTANCE GORUP NM이기때문에 INSTANCEGROUP ID와 동일한 SpoolNM을 가져온다.
-                        //함수 추가 필요. 파일이름 -> INSTANCE GROUP NM -> ID DB연결할때 가져와야한다.
-                        if (rdr_instanceGroupId == instance_GroupId)
+                        rdr.Read();
+                        string instance_GroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                        rdr.Close();
+                        comm.Dispose();
+                        comm = new SQLiteCommand(sql_spoolInfo, conn);
+                        rdr = comm.ExecuteReader();
+
+                        while (rdr.Read())
                         {
-                            spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                            string rdr_instanceGroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                            //찾은 객체의 첫번째 항목만 불러온다. -> 7.10수정 DWG 파일 이름이 곧 INSTANCE GORUP NM이기때문에 INSTANCEGROUP ID와 동일한 SpoolNM을 가져온다.
+                            //함수 추가 필요. 파일이름 -> INSTANCE GROUP NM -> ID DB연결할때 가져와야한다.
+                            if (rdr_instanceGroupId == instance_GroupId)
+                            {
+                                spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                            }
                         }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다. Line:4381");
                     }
                     conn.Dispose();
                 }
