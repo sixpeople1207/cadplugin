@@ -292,7 +292,7 @@ namespace PipeInfo
                         li_orderPolyline = order.orderObjectByGroupVector(li_PolyLines, groupVecstr);
 
                         var pipeInfo_cls = new DDWorks_Database(db_path);
-                        List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(li_orderPolyline);
+                        List<string> pipe_instance_IDs = pipeInfo_cls.Get_PipeInstanceIDs_By_ObjIDs(li_orderPolyline, vec_li);
                         List<Tuple<string, string>> pipe_Information_li = new List<Tuple<string, string>>();
                         List<string> pipeInfo_NotFind_Li = new List<string>();
                         spoolInfo_li = pipeInfo_cls.Get_Spool_Infomation_By_insIds(pipe_instance_IDs);
@@ -1745,7 +1745,7 @@ namespace PipeInfo
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
             //RibbonControl >> RibbonTab >> RibbonPanel >> 
             RibbonTab tab = new RibbonTab();
-            tab.Title = "DDWORKS";
+            tab.Title = "DDWORKS(ver1.4)";
             tab.Id = "Tab_ID";
 
             RibbonPanelSource panelSpool_Sor = new RibbonPanelSource();
@@ -3961,22 +3961,16 @@ namespace PipeInfo
             public string SqlStr_TB_POCINSTANCES_By_Point(Point3d point)
             {
                 //DB 테이블 요약 : POC 연결정보 연결 타입 등 
-                //string sql = string.Format(
-                //                 "SELECT * ," +
-                //                 "abs(POSX - {0})" +
-                //                 "as disx, abs(POSY - {1})" +
-                //                 "as disy, abs(POSZ - {2})" +
-                //                 "as disz FROM TB_POCINSTANCES " +
-                //                 "WHERE 1 > disx AND 1> disy AND 1 > disz ;", point.X, point.Y, point.Z);
                 string sql = string.Format(
                                  "SELECT * ," +
                                  "abs(POSX - {0})" +
-                                 "+ abs(POSY - {1})" +
-                                 "+ abs(POSZ - {2})" +
-                                 "as distance FROM TB_POCINSTANCES " +
-                                 "Order by distance;", point.X, point.Y, point.Z);
+                                 "as disx, abs(POSY - {1})" +
+                                 "as disy, abs(POSZ - {2})" +
+                                 "as disz FROM TB_POCINSTANCES " +
+                                 "WHERE 1 > disx AND 1> disy AND 1 > disz ;", point.X, point.Y, point.Z);
                 return sql;
             }
+
             public string SqlStr_TB_MODELINSTANCES(string owner_id, string ownerType)
             {
                 //DB 테이블 요약 : 
@@ -4031,20 +4025,53 @@ namespace PipeInfo
             * 함수 이름 : Get_PipeInstanceIDs_By_ObjIDs
             * 기능 설명 : Point를 기준으로 Pipe의 Spool정보를 반환.
             */
-            public List<string> Get_PipeInstanceIDs_By_ObjIDs(List<Polyline3d> pli)
+            public List<string> Get_PipeInstanceIDs_By_ObjIDs(List<Polyline3d> pli,List<Vector3d> vec_li)
             {
                 Pipe pi = new Pipe();
                 List<string> ids = new List<string>();
-
-                    using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
+                int vec_X_count = 0;
+                int vec_Y_count = 0;
+                int vec_Z_count = 0;
+                string line_vectors = "";
+                foreach (var vec in vec_li)
+                {
+                    if (Math.Round(vec.GetNormal().X, 1) == 1 || Math.Round(vec.GetNormal().X, 1) == -1)
+                    {
+                        vec_X_count += 1;
+                    }
+                    else if (Math.Round(vec.GetNormal().Y, 1) == 1 || Math.Round(vec.GetNormal().Y, 1) == -1)
+                    {
+                        vec_Y_count += 1;
+                    }
+                    else if (Math.Round(vec.GetNormal().Z, 1) == 1 || Math.Round(vec.GetNormal().Z, 1) == -1)
+                    {
+                        vec_Z_count += 1;
+                    }
+                }
+                // 배관 라인의 벡터 중에 가장 많은 벡터가 무엇인지 판단.
+                if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
+                {
+                    line_vectors = "X";
+                }
+                else if (vec_Y_count > vec_X_count && vec_Y_count > vec_Z_count)
+                {
+                    line_vectors = "Y";
+                }
+                else if (vec_Z_count > vec_X_count && vec_Z_count > vec_Y_count)
+                {
+                    line_vectors = "Z";
+                }
+                using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
                     {
                         ObjectId[] oId = { };
                         BlockTable acBlk;
                         acBlk = acTrans.GetObject(db_acDB.BlockTableId, OpenMode.ForRead) as BlockTable;
                         BlockTableRecord acBlkRec;
                         acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-
-                        if (db_path != null)
+                        DocumentCollection dm = Application.DocumentManager;
+                        Editor ed = dm.MdiActiveDocument.Editor;
+                        Database destDb = dm.MdiActiveDocument.Database;
+                    if (db_path != null)
                         {
                             string connstr = "Data Source=" + db_path;
                             using (SQLiteConnection conn = new SQLiteConnection(connstr))
@@ -4060,18 +4087,115 @@ namespace PipeInfo
                                     //DB Select문에 사용할 Line Vector에 따른 Obj방향설정. 진행되는 Vector는 비교하지 않음.
                                     (string[] db_column_name, double[] line_trans) = pi.getPipeVector(vec, li);
 
-                                    if (db_column_name[0] != "")
+                                if (db_column_name[0] != "")
+                                {
+                                    //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
+                                    //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교.
+                                    //Line의 StartPoint와 EndPoint가 규칙적이지 않아 중간지점으로 변경(24.1.31)
+                                    
+                                    string sql = "";
+                                    double sub_distance = 0.0;
+
+                                    if (line_vectors == "X")
                                     {
-                                        //DB TB_PIPINSTANCES에서 POS에서 CAD Line좌표를 빼준 리스트에서 가장 상위 객체의 INSTANCE_ID를 가져온다.
-                                        //배관 좌표에서 가장 근접한 값을 가져오기 위해 DB좌표와 CAD 좌표를 뺀 값 중 가장 작은 값을 상위에 위치 시키고, 추가로 Length값도 비교. 
-                                        string sql = String.Format("SELECT *,abs({0}-POSX) as disposx, abs({1}-POSY) + abs({2}-POSZ) + abs({3}-LENGTH1) as distance FROM {4} ORDER by distance;",
+                                        sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
                                                         li.StartPoint.X,//CAD소숫점은 2자리정도로 비교 
                                                         li.StartPoint.Y,
                                                         li.StartPoint.Z,
-                                                        li.Length, 
-                                                        db_TB_PIPEINSTANCES);
+                                                        li.Length,
+                                                        db_TB_PIPEINSTANCES
+                                                        , "posx");
+                                    }
+                                    else if (line_vectors == "Y")
+                                    {
+                                        sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
+                                           li.StartPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                           li.StartPoint.Y,
+                                           li.StartPoint.Z,
+                                           li.Length,
+                                           db_TB_PIPEINSTANCES
+                                           , "posy");
+                                    }
+                                    else if (line_vectors == "Z")
+                                    {
+                                        sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
+                                           li.StartPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                           li.StartPoint.Y,
+                                           li.StartPoint.Z,
+                                           li.Length,
+                                           db_TB_PIPEINSTANCES
+                                           , "posz");
+                                    }
+                                    else
+                                    {
+                                        ed.WriteMessage("라인의 진행방향을 알 수 없어 쿼리문을 작성할 수 없습니다.");
+                                    }
+
+                                    if (sql != "")
+                                    {
                                         SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                                        SQLiteDataReader rdr = cmd.ExecuteReader();
+                                        SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                                        rdr_ready.Read();
+
+                                        // Polyline3d의 진행방향으로 뺀 값이 배관의 본래 길이만큼 길다면 길다면 Polyline3d의 Endpolint로 다시 쿼리문을 적용한다.
+                                        double dis = (double)rdr_ready["distance"];
+                                        double syb = 0.0;
+                                        if (line_vectors == "X") {
+                                            syb = (double)rdr_ready["posx"];
+                                        }
+                                        else if (line_vectors == "Y")
+                                        {
+                                            syb = (double)rdr_ready["posy"];
+                                        }
+                                        else if (line_vectors == "Z")
+                                        {
+                                            syb = (double)rdr_ready["posz"];
+                                        }
+
+                                        double li_len = li.Length;
+                                        ed.WriteMessage("거리{0}",syb.ToString());
+                                        if (li_len-1000 < syb )
+                                        {
+                                            ed.WriteMessage("들어깠ㄴ?>{0}", "들어갔음");
+
+                                            if (line_vectors == "X")
+                                            {
+                                                sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
+                                                                li.EndPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                                                li.EndPoint.Y,
+                                                                li.EndPoint.Z,
+                                                                li.Length,
+                                                                db_TB_PIPEINSTANCES
+                                                                , "posx");
+                                            }
+                                            else if (line_vectors == "Y")
+                                            {
+                                                sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
+                                                   li.EndPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                                   li.EndPoint.Y,
+                                                   li.EndPoint.Z,
+                                                   li.Length,
+                                                   db_TB_PIPEINSTANCES
+                                                   , "posy");
+                                            }
+                                            else if (line_vectors == "Z")
+                                            {
+                                                sql = String.Format("SELECT *,abs({0}-POSX) as posx, abs({1}-POSY) as posy,abs({2}-POSZ) as poz, abs({3}-LENGTH1) as distance FROM {4} ORDER by {5},distance;",
+                                                   li.EndPoint.X,//CAD소숫점은 2자리정도로 비교 
+                                                   li.EndPoint.Y,
+                                                   li.EndPoint.Z,
+                                                   li.Length,
+                                                   db_TB_PIPEINSTANCES
+                                                   , "posz");
+                                            }
+                                            else
+                                            {
+                                                ed.WriteMessage("라인의 진행방향을 알 수 없어 쿼리문을 작성할 수 없습니다.");
+                                            }
+                                        }
+                                        SQLiteCommand cmd_1 = new SQLiteCommand(sql, conn);
+                                        SQLiteDataReader rdr = cmd_1.ExecuteReader();
+
                                         if (rdr.HasRows)
                                         {
                                             //Read를 한번만 실행해서 내림차순의 가장 상위 객체를 가져온다.
@@ -4089,6 +4213,11 @@ namespace PipeInfo
                                             MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
                                         }
                                     }
+                                }
+                                else
+                                {
+                                    ed.WriteMessage("[Error] sql 쿼리가 비어있습니다. Line:4172");
+                                }
                                 }
                             }
                         }
@@ -4406,6 +4535,7 @@ namespace PipeInfo
                 {
                     List<int> indexes = new List<int>();
                     List<Point3d> filter_weldGroup = new List<Point3d>();
+
                     if (db_path != "" && weldGroup.Count > 0)
                     {
                         string connstr = "Data Source=" + db_path;
@@ -4423,6 +4553,7 @@ namespace PipeInfo
 
                                 // 좌표를 찾지 못하는 객체는 스풀정보 포함하지 않음 : Tee+Reducer 용접포인트는 DB에 POC좌표가 나오지 않음. 단관거리를 계산해서 넣어야함. 
                                 // Tee. Reducer. Reducing 객체는 제외한다.
+
                                 if (rdr.HasRows) //rdr 반환값이 있을때만 Read
                                 {
                                     while (rdr.Read())
@@ -4443,6 +4574,7 @@ namespace PipeInfo
                                                     {
                                                         if (rdr_1["MODEL_TEMPLATE_NM"].ToString().Contains(filter))
                                                         {
+                                                            MessageBox.Show(rdr_1["MODEL_TEMPLATE_NM"].ToString());
                                                             indexes.Add(i);
                                                         }
                                                     }
