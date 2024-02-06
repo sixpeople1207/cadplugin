@@ -4152,6 +4152,7 @@ namespace PipeInfo
                         comm = new SQLiteCommand(sql_spoolInfo, conn);
                         rdr = comm.ExecuteReader();
                         string material_NM = "";
+                        string spool_num = "";
                         while (rdr.Read())
                         {
                             string rdr_instanceGroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
@@ -4160,6 +4161,7 @@ namespace PipeInfo
                             if (rdr_instanceGroupId == instance_GroupId)
                             {
                                 material_NM = rdr["MATERIAL_NM"].ToString();
+                                spool_num = rdr["SPOOL_NUMBER"].ToString();
                                 if (material_NM.Contains("SUS"))
                                 {
                                     string[] split_material = material_NM.Split(' ');
@@ -4168,7 +4170,12 @@ namespace PipeInfo
                                         material_NM = split_material[1];
                                     }
                                 }
-                                spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + rdr["SPOOL_NUMBER"];
+                                if(spool_num.Length == 1)
+                                {
+                                    spool_num = "0" + spool_num;
+                                }
+
+                                spool_info = rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num;
                             }
                         }
                     }
