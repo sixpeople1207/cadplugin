@@ -20,6 +20,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Media.Imaging;
+using static System.Net.Mime.MediaTypeNames;
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -1595,6 +1596,75 @@ namespace PipeInfo
                     }
                 }
             }
+        }
+
+        [CommandMethod("STL")]
+        public void stepFile()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+
+            ObjectId objID_A = new ObjectId();
+            ObjectId objID_B = new ObjectId();
+            ObjectId objID_C = new ObjectId();
+
+            //Pipe 본체 모델링 
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
+                BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                double radius_Out = 30;
+                double height = 100;
+                Solid3d cylinder_Out = new Solid3d();
+                cylinder_Out.RecordHistory = true;
+                cylinder_Out.CreateFrustum(height, radius_Out, radius_Out, radius_Out);
+
+                double radius_In = radius_Out - 3;
+                Solid3d cylinder_In = new Solid3d();
+                cylinder_In.RecordHistory = true;
+                cylinder_In.CreateFrustum(height, radius_In, radius_In, radius_In);
+
+                double radius_takeoff = 5;
+                Solid3d takeoff_cylinder = new Solid3d();
+                takeoff_cylinder.RecordHistory = true;
+                takeoff_cylinder.CreateFrustum(radius_Out * 2, radius_takeoff, radius_takeoff, radius_takeoff);
+
+                objID_A = acBlkRec.AppendEntity(cylinder_Out);
+                acTrans.AddNewlyCreatedDBObject(cylinder_Out, true);
+                objID_B = acBlkRec.AppendEntity(cylinder_In);
+                acTrans.AddNewlyCreatedDBObject(cylinder_In, true);
+                objID_C = acBlkRec.AppendEntity(takeoff_cylinder);
+                acTrans.AddNewlyCreatedDBObject(takeoff_cylinder, true);
+
+                acTrans.Commit();
+            }
+
+            // Take Off Cylinder 제작
+            using (Transaction acTrans = db.TransactionManager.StartTransaction())
+            {
+                var sol = acTrans.GetObject(objID_A, OpenMode.ForWrite) as Solid3d;
+                var sol_B = acTrans.GetObject(objID_B, OpenMode.ForWrite) as Solid3d;
+                var sol_C = acTrans.GetObject(objID_C, OpenMode.ForWrite) as Solid3d;
+
+                Vector3d normal = Vector3d.YAxis;
+
+                var centroid = sol_C.MassProperties.Centroid;
+                var plane = new Plane(centroid, normal);
+                sol_C.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) *
+                    Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
+                sol_C.TransformBy(Matrix3d.Displacement(new Point3d(-20, 0, 20) - Point3d.Origin));
+                sol.BooleanOperation(BooleanOperationType.BoolSubtract, sol_B);
+                sol.BooleanOperation(BooleanOperationType.BoolSubtract, sol_C);
+                acTrans.Commit();
+
+            }
+            // 
+            acDoc.SendStringToExecute("._STEPOUT all", true, false, false);
+            DocumentWindowCollection wincol = acadApp.DocumentWindowCollection;
+           // STEP 파일 자동 저장하기 위한 코드 진행중..
+                //new DocumentCollectionEventHandler(docColDocAct);
         }
 
         /* --------------- [CLASS START]-------------------*/
@@ -3655,6 +3725,9 @@ namespace PipeInfo
                 }
             }
         }
+
+     
+
         /* 클래스 이름 : DDWorks_Database
         * 기능 설명 : DDWorks_Database 에 관련된 기능.*/
         public class DDWorks_Database
