@@ -8,6 +8,7 @@ using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
 using Microsoft.Office.Interop.Excel;
+using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -1658,14 +1659,18 @@ namespace PipeInfo
                 sol.BooleanOperation(BooleanOperationType.BoolSubtract, sol_B);
                 sol.BooleanOperation(BooleanOperationType.BoolSubtract, sol_C);
                 acTrans.Commit();
-
             }
-            // 
-            acDoc.SendStringToExecute("._STEPOUT all", true, false, false);
-            DocumentWindowCollection wincol = acadApp.DocumentWindowCollection;
-           // STEP 파일 자동 저장하기 위한 코드 진행중..
-                //new DocumentCollectionEventHandler(docColDocAct);
+            
+            //CMDDIA 명령어를 창을 띄우지 않고 진행하는 시스템 명령어. 
+            acDoc.SendStringToExecute("CMDDIA 0\n", true, false, false);
+            string step_filename = "Pipe_1";
+            //STEPOUT 명령어로 STEP파일 Export
+            acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", step_filename), true, false, false);
+
+            //acDoc.SendStringToExecute("\n", true, false, false);
+
         }
+
 
         /* --------------- [CLASS START]-------------------*/
 
