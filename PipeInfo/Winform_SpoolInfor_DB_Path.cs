@@ -13,11 +13,11 @@ using System.Windows.Forms;
 namespace PipeInfo
 {
     public delegate void DataGetEventHandler(string data);
-    public partial class DB_Path_Winform : Form
+    public partial class Winform_SpoolInfor_DB_Path : Form
     {
         public DataGetEventHandler DataSendEvent;
         public string db_path;
-        public DB_Path_Winform()
+        public Winform_SpoolInfor_DB_Path()
         {
             InitializeComponent();
         }

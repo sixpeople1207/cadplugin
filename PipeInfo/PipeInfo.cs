@@ -360,7 +360,7 @@ namespace PipeInfo
             }
             else
             {
-                DB_Path_Winform win = new DB_Path_Winform();
+                Winform_SpoolInfor_DB_Path win = new Winform_SpoolInfor_DB_Path();
                 win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
                 win.Show();
             }
@@ -1046,7 +1046,7 @@ namespace PipeInfo
                 }
                 else
                 {
-                    DB_Path_Winform win = new DB_Path_Winform();
+                    Winform_SpoolInfor_DB_Path win = new Winform_SpoolInfor_DB_Path();
                     win.DataSendEvent += new DataGetEventHandler(this.DataGet);//데이터가 들어가면 실행.
                     win.Show();
                 }
@@ -1602,6 +1602,9 @@ namespace PipeInfo
         [CommandMethod("STL")]
         public void stepFile()
         {
+            WinForm_STEP winForm_STEP = new WinForm_STEP();
+            winForm_STEP.Show();
+
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;

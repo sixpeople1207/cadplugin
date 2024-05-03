@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>55</AssemblyName>
+    <AssemblyName>56</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -182,11 +182,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PipeInfo.cs" />
-    <Compile Include="DB_Path_Winform.cs">
+    <Compile Include="Winform_SpoolInfor_DB_Path.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="DB_Path_Winform.Designer.cs">
-      <DependentUpon>DB_Path_Winform.cs</DependentUpon>
+    <Compile Include="Winform_SpoolInfor_DB_Path.Designer.cs">
+      <DependentUpon>Winform_SpoolInfor_DB_Path.cs</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -194,18 +194,27 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="WinForm_STEP.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WinForm_STEP.Designer.cs">
+      <DependentUpon>WinForm_STEP.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="DB_Path_Winform.resx">
-      <DependentUpon>DB_Path_Winform.cs</DependentUpon>
+    <EmbeddedResource Include="Winform_SpoolInfor_DB_Path.resx">
+      <DependentUpon>Winform_SpoolInfor_DB_Path.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WinForm_STEP.resx">
+      <DependentUpon>WinForm_STEP.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

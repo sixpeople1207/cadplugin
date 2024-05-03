@@ -2,7 +2,7 @@
 
 namespace PipeInfo
 {
-    partial class DB_Path_Winform
+    partial class Winform_SpoolInfor_DB_Path
     {
         /// <summary>
         /// Required designer variable.
@@ -30,7 +30,7 @@ namespace PipeInfo
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DB_Path_Winform));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Winform_SpoolInfor_DB_Path));
             this.OpenFileDialog_DB = new System.Windows.Forms.OpenFileDialog();
             this.button_db_find_path = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
