@@ -1294,10 +1294,16 @@ namespace PipeInfo
             RibbonPanelSource panelSetting_Sor = new RibbonPanelSource();
             panelSetting_Sor.Title = "Setting";
 
+            RibbonPanelSource panelSetting_Step = new RibbonPanelSource();
+            panelSetting_Step.Title = "PIPES To STEP";
+
             RibbonPanel panel = new RibbonPanel();
             RibbonPanel panel_wir = new RibbonPanel();
             RibbonPanel panel_Setting = new RibbonPanel();
             RibbonPanel panel_mes = new RibbonPanel();
+            RibbonPanel panel_Step = new RibbonPanel();
+
+
 
             //RibbonTextBox textbox = new RibbonTextBox();
             //textbox.Width = 100;
@@ -1307,9 +1313,8 @@ namespace PipeInfo
             //textbox.Text = "1\" Vavle길이";
             //textbox.Size = RibbonItemSize.Standard;
             //textbox.TextValue = "40";
-            //panelSor.Items.Add(textbox);
-            //panelSor.Items.Add(new RibbonRowBreak());
-
+            //panelSetting_Step.Items.Add(textbox);
+            //panelSetting_Step.Items.Add(new RibbonRowBreak());
 
             //RibbonCombo cmd = new RibbonCombo();
             //cmd.Name = "cmd1";
@@ -1364,6 +1369,17 @@ namespace PipeInfo
             button4.CommandHandler = new RibbonCommandHandler();
             panelMES_Sor.Items.Add(button4);
 
+            RibbonButton button5 = new RibbonButton();
+            button5.Orientation = Orientation.Vertical;
+            button5.Size = RibbonItemSize.Large;
+            button5.Id = "Export To STEP";
+            button5.ShowImage = true;
+            button5.ShowText = true;
+            button5.LargeImage = Images.getBitmap(Properties.Resources.STEPICON);
+            button5.Text = "Export Pipes\n(ST)";
+            button5.CommandHandler = new RibbonCommandHandler();
+            panelSetting_Step.Items.Add(button5);
+
             //RibbonTextBox textbox1 = new RibbonTextBox();
             //textbox1.Width = 100;
             //textbox1.IsEmptyTextValid = false;
@@ -1377,10 +1393,12 @@ namespace PipeInfo
             panel.Source = panelSpool_Sor;
             panel_wir.Source = panelWir_Sor;
             panel_mes.Source = panelMES_Sor;
+            panel_Step.Source = panelSetting_Step;
 
             tab.Panels.Add(panel);
             tab.Panels.Add(panel_wir);
             tab.Panels.Add(panel_mes);
+            tab.Panels.Add(panel_Step);
             //tab.Panels.Add(panel_Setting);
             ribbonControl.Tabs.Add(tab);
         }
@@ -1597,19 +1615,25 @@ namespace PipeInfo
                         case "Export_MES":
                             pi.spool_Export();
                             break;
+                        case "Export To STEP":
+                            pi.onload_ExportWindow();
+                            break;
                     }
                 }
             }
         }
-         List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
+        List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
 
 
-        [CommandMethod("STL")]
-        public void stepFile()
+        [CommandMethod("ST")]
+        public void onload_ExportWindow()
         {
             WinForm_STEP winForm_STEP = new WinForm_STEP();
             winForm_STEP.Show();
+        }
 
+        public void export_Pipes_StepFiles(string groupName, string savepath)
+        {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;
@@ -1619,7 +1643,7 @@ namespace PipeInfo
             List<string> pipeInstances = new List<string>();
 
             //그룹이름으로 파이프 인스턴스 리스트를 받아온다.
-            pipeInstances = ddwDB.Get_PipeInstances_By_GroupName("test");
+            pipeInstances = ddwDB.Get_PipeInstances_By_GroupName(groupName);
             //CAP을 달면 중복객체 발생.
             pipeInstances = pipeInstances.Distinct().ToList();
             Pipe pipe = new Pipe();
@@ -1636,21 +1660,23 @@ namespace PipeInfo
             double takeOff_length = 50.0;
             foreach (var pipeIns in pipeInstances)
             {
+
                 // 그룹이름과 파이프 인스턴스를 이용해 파이프 사이즈 길이 등 POC의 정보를 가져온다.
-                (pipeInformation,pipePos,pipeLength,pipeDia) = ddwDB.Get_PipeInformation_By_GroupName("test", pipeIns);
+                (pipeInformation, pipePos, pipeLength, pipeDia) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
                 //ed.WriteMessage("파이프인스턴스 : "+pipeIns.ToString()+"\n");
-                if(pipeInformation.Count > 1)
+                if (pipeInformation.Count > 1)
                 {
                     // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
                     // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
-                    cylinder_ids = pipe.create_3DCylinder_Thickness(pipeLength[0], pipeDia[0]/2, 3.0);
-                    if(cylinder_ids.Count > 1)
+                    cylinder_ids = pipe.create_3DCylinder_Thickness(pipeLength[0], pipeDia[0] / 2, 3.0);
+                    if (cylinder_ids.Count > 1)
                     {
                         saveObj_ID = pipe.subtract_pipe(cylinder_ids[0], cylinder_ids[1]);
-                        if (saveObj_ID.OldId != 0) {
+                        if (saveObj_ID.OldId != 0)
+                        {
                             stepfileSave_Ids.Add(saveObj_ID);
                             //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", saveObj_ID.ToString()), true, false, false);
-                            
+
                         };
                     }
 
@@ -1661,19 +1687,19 @@ namespace PipeInfo
                     */
                     if (pipePos.Count > 2)
                     {
-
+                        acDoc.LockDocument();
                         using (Transaction acTrans = db.TransactionManager.StartTransaction())
                         {
                             BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
                             BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                             Solid3d takeoff_Cylinder = new Solid3d();
                             Solid3d base_Cylinder = new Solid3d();
-                            
+
                             for (int i = 2; i < pipePos.Count; i += 1)
                             {
                                 if (pipeDia[i] < pipeDia[0])
                                 {
-                                    cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, pipeDia[i]/2);
+                                    cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, pipeDia[i] / 2);
                                     //take off만 반영
                                     Vector3d normal = Vector3d.YAxis;
                                     takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
@@ -1698,40 +1724,40 @@ namespace PipeInfo
                                     {
                                         ed.WriteMessage("Error : Takeoff 위치를 찾을 수 없습니다.");
                                     }
-                                    
+
                                     //ed.WriteMessage(takeoff_Level.ToString());
 
                                     var centroid = takeoff_Cylinder.MassProperties.Centroid;
                                     var plane = new Plane(centroid, normal);
                                     takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) *
                                     Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
-                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(pipeDia[0]/2, 0, (-pipeLength[0] / 2) + takeoff_Level) - Point3d.Origin));
+                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(pipeDia[0] / 2, 0, (-pipeLength[0] / 2) + takeoff_Level) - Point3d.Origin));
                                     base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
                                 }
                                 //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
-                                if(saveObj_ID.OldId != 0)
+                                if (saveObj_ID.OldId != 0)
                                 {
                                     saveObj_ID = base_Cylinder.ObjectId;
-                                    stepfileSave_Ids.Add(saveObj_ID);                                
+                                    stepfileSave_Ids.Add(saveObj_ID);
                                 }
                             }
                             acTrans.Commit();
                         }
 
-                      
-                        }
+                    }
 
-                
+
                 }
             }
 
             //STEP파일 저장
             //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", "Sample"), true, false, false);
+
             if (stepfileSave_Ids.Count > 0)
             {
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
-                   
+
                     //CMDDIA 명령어를 창을 띄우지 않고 진행하는 시스템 명령어. 
                     acDoc.SendStringToExecute("CMDDIA 0\n", true, false, false);
                     ObjectId[] saveObjIDs = new ObjectId[] { };
@@ -1739,7 +1765,7 @@ namespace PipeInfo
                     {
                         if (j != 0)
                         {
-                            ed.WriteMessage(stepfileSave_Ids[j].ToString());
+                            //  ed.WriteMessage(stepfileSave_Ids[j].ToString());
                             //saveObjIDs = new ObjectId[] { stepfileSave_Ids[j] };
                             saveObjIDs.Append(stepfileSave_Ids[j]);
                         }
@@ -1752,15 +1778,15 @@ namespace PipeInfo
                         //string step_filename = "PIPE_STEP_" + j;
                         //STEPOUT 명령어로 STEP파일 Export
                         //ed.SetImpliedSelection(saveObjIDs);
-                        
                     }
                 }
-                //acDoc.SendStringToExsaveObjIDsecute(String.Format("STEPOUT D:\\{0}.STEP\n", "d"), true, false, false);
-                             
-               
+                acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
+
             }
         }
-        [CommandMethod("ST")]
+
+        //파이프 개별파일로 저장하는건 보류(한 파일로 저장해도 컷팅기에서 인식가능)
+        // [CommandMethod("ST")]
         public void sleect()
         {
 
@@ -1782,7 +1808,7 @@ namespace PipeInfo
                     if (obj.OldId != 0)
                     {
                         Solid3d cy = acTrans.GetObject(stepfileSave_Ids[j], OpenMode.ForWrite) as Solid3d;
-                        cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 100*j, 0) - Point3d.Origin));
+                        cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 100 * j, 0) - Point3d.Origin));
                     }
                 }
                 acTrans.Commit();
@@ -2158,7 +2184,9 @@ namespace PipeInfo
             }
             public List<ObjectId> create_3DCylinder_Thickness(double pipe_length, double radius_Out, double pipe_thk)
             {
-                
+                Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+                Document acDoc = Application.DocumentManager.MdiActiveDocument;
+                Database db = acDoc.Database;
                 List<ObjectId> objID_list = new List<ObjectId>();
                 Solid3d cylinder_Out = new Solid3d();
                 Solid3d cylinder_In = new Solid3d();
@@ -2167,6 +2195,7 @@ namespace PipeInfo
                 {
                     if (pipe_length > 30)
                     {
+                        acDoc.LockDocument();
                         BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
                         BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                         ObjectId pipeObID_In = new ObjectId();
@@ -2215,7 +2244,7 @@ namespace PipeInfo
 
                 return objId;
             }
-        
+
         }
         public class ExcelObject
         {
@@ -3945,9 +3974,9 @@ namespace PipeInfo
             private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
             private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
             private string pipeInsType_Pipe = "17301760"; //
-            //private string pipeInsType_TakeOff = "17301768";
-            //private string pipeInsType_Elbow = "17301771";
-      
+                                                          //private string pipeInsType_TakeOff = "17301768";
+                                                          //private string pipeInsType_Elbow = "17301771";
+
             private string valveType = "valve"; //valve타입.
             public int pipe_CompareTor = 5; // Db와 CAD 좌표를 비교할때 오차 범위
             public int vec_ComareTor = 4; // Vector List를 만들때 Db와 CAD에서 좌표 비교시 오차 범위
@@ -3987,7 +4016,7 @@ namespace PipeInfo
                 // "Order by disx ASC, disy, disz;", point.X, point.Y, point.Z);
                 return sql;
             }
-            
+
             public string SqlStr_TB_MODELINSTANCES(string owner_id, string ownerType)
             {
                 //DB 테이블 요약 : 
@@ -4038,9 +4067,9 @@ namespace PipeInfo
             /* 쿼리문 끝 */
             // STEP을 그리기 위한 그룹 이름을 기준으로 파이프 인스턴스를 가져오고
             // 파이프 인스턴스중 PIPE TYPE이 17301760인 객체만 가져와서 POC위치, 길이, 파이프 사이즈정보를 리스트로 넘겨준다.
-            public (List<string>,List<Point3d>,List<double>,List<double>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
+            public (List<string>, List<Point3d>, List<double>, List<double>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
             {
-                List<string> pipeInfor= new List<string>();
+                List<string> pipeInfor = new List<string>();
                 List<Point3d> pipePos = new List<Point3d>();
                 List<double> pipeLength = new List<double>();
                 List<double> pipeDia = new List<double>();
@@ -4092,42 +4121,51 @@ namespace PipeInfo
                     MessageBox.Show(e.ToString());
                 }
                 return (pipeInfor, pipePos, pipeLength, pipeDia);
-              
+
             }
             // 그룹에 포함된 PIPEISNTANCES를 반환.
             public List<string> Get_PipeInstances_By_GroupName(string groupName)
             {
                 List<string> pipeIns = new List<string>();
                 string connstr = "Data Source=" + db_path;
-                try { 
-                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                try
                 {
-                    string sql = string.Format("SELECT INSTANCE_ID, INSTANCE_GROUP_NM FROM TB_INSTANCEGROUPMEMBERS as IM" +
-                        " INNER JOIN TB_INSTANCEGROUPS as IG " +
-                        "ON IM.INSTANCE_GROUP_ID = IG.INSTANCE_GROUP_ID " +
-                        "WHERE INSTANCE_GROUP_NM='{0}';",groupName);
-                        
-                    conn.Open();
-                    if (sql != "")
+
+                    if (db_path != "")
                     {
-                        SQLiteCommand cmd = new SQLiteCommand(sql, conn);
-                        SQLiteDataReader rdr_ready = cmd.ExecuteReader();
-                        while (rdr_ready.Read())
+                        using (SQLiteConnection conn = new SQLiteConnection(connstr))
                         {
-                            string instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
-                            pipeIns.Add(instanceId);
+                            string sql = string.Format("SELECT INSTANCE_ID, INSTANCE_GROUP_NM FROM TB_INSTANCEGROUPMEMBERS as IM" +
+                                " INNER JOIN TB_INSTANCEGROUPS as IG " +
+                                "ON IM.INSTANCE_GROUP_ID = IG.INSTANCE_GROUP_ID " +
+                                "WHERE INSTANCE_GROUP_NM='{0}';", groupName);
+
+                            conn.Open();
+                            if (sql != "")
+                            {
+                                SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                                while (rdr_ready.Read())
+                                {
+                                    string instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                    pipeIns.Add(instanceId);
+                                }
+                            }
                         }
                     }
-                }
+                    else
+                    {
+                        MessageBox.Show("Error : DDWorks Database 파일을 로드해주세요.");
+                    }
 
-            }
+                }
                 catch (Exception e)
                 {
                     MessageBox.Show(e.ToString());
                 }
                 return pipeIns;
             }
-        
+
             /* DDWorks Database Class 함수 시작 */
             /*
             * 함수 이름 : Get_PipeInstanceIDs_By_ObjIDs
@@ -4541,7 +4579,7 @@ namespace PipeInfo
                                         material_NM = split_material[1];
                                     }
                                 }
-                                if(spool_num.Length == 1)
+                                if (spool_num.Length == 1)
                                 {
                                     spool_num = "0" + spool_num;
                                 }
@@ -4654,7 +4692,7 @@ namespace PipeInfo
             */
             public (List<string>, List<Vector3d>, List<Point3d>) Get_Pipe_Vector_By_SpoolList(List<Point3d> weldGroup)
             {
-                
+
                 List<Vector3d> vec_li = new List<Vector3d>();
                 List<string> spool_info_li = new List<string>();
 

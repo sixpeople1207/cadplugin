@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>45</AssemblyName>
+    <AssemblyName>128</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -181,6 +181,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DatabaseIO.cs" />
     <Compile Include="PipeInfo.cs" />
     <Compile Include="Winform_SpoolInfor_DB_Path.cs">
       <SubType>Form</SubType>
@@ -222,6 +223,8 @@
     <Content Include="DINNO ICON.ico" />
     <Content Include="resourceDictionary\DINNO ICON.ico" />
     <Content Include="resourceDictionary\PackageContents.xml" />
+    <Content Include="Resources\STEPICON.png" />
+    <None Include="Resources\.editorconfig" />
     <None Include="Resources\line.bmp" />
     <None Include="Resources\excel.bmp" />
     <None Include="Resources\distance.bmp" />

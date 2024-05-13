@@ -56,6 +56,11 @@ namespace PipeInfo
                 return "";
             }
             return "";
-        } 
+        }
+
+        private void Winform_SpoolInfor_DB_Path_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
