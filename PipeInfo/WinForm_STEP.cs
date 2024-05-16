@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Lifetime;
 using System.Text;
@@ -65,10 +66,13 @@ namespace PipeInfo
         public bool saveFaileDialog()
         {
             var ofd = new System.Windows.Forms.SaveFileDialog();
-            ofd.Filter = "(*.STEP) | *.STEP";
+            ofd.Filter = "(*.STP) | *.STP";
             if (ofd.ShowDialog().ToString() == "OK")
             {
                 stepFileSave_path = ofd.FileName;
+                string path_split = Path.GetDirectoryName(stepFileSave_path);
+                FileWatcher fiw = new FileWatcher();
+                fiw.initWatcher(path_split);
                 return true;
             }
             else
@@ -125,6 +129,7 @@ namespace PipeInfo
      
         private void dataGridView_GroupList_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
+
             if (dataGridView_GroupList.RowCount.ToString() != "0")
             {
                 string groupName = "";
@@ -195,11 +200,14 @@ namespace PipeInfo
                 {
                     bool is_SaveFile = false;
                     is_SaveFile = saveFaileDialog();
+                    
+
                     bool is_PathInBlank = stepFileSave_path.Contains(" ");
 
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
                         pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
+                       
                     }
                     else
                     {

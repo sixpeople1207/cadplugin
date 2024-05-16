@@ -16,6 +16,7 @@ using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -1418,6 +1419,7 @@ namespace PipeInfo
                 PromptSelectionOptions poOpt = new PromptSelectionOptions();
                 PromptSelectionResult poRes = ed.GetSelection(poOpt);
 
+
                 if (poRes.Status == PromptStatus.OK)
                 {
                     SelectionSet ss = poRes.Value;
@@ -1426,9 +1428,25 @@ namespace PipeInfo
                     {
                         Entity en = acTrans.GetObject(id, OpenMode.ForRead) as Entity;
                         Type type = en.GetType();
-                        ed.WriteMessage("오브젝트 아이디 : {0}\n오브젝트 타입 : {1}\n타입 이름 : {2}\n", id, type, type.Name);
+                        ed.WriteMessage("핸들 아이디 : {0}\n오브젝트 타입 : {1}\n타입 이름 : {2}\n", en.Handle.ToString(), type, type.Name);
 
                     }
+                }
+            }
+
+            string mleader_handle = "ABCD"; // Handle of an MLeader in the active document
+
+            ObjectId idd = ObjectId.Null;
+
+            if (db.TryGetObjectId(new Handle(long.Parse(mleader_handle, NumberStyles.HexNumber)), out idd))
+            {
+                using (Transaction tr = db.TransactionManager.StartTransaction())
+                {
+                    MLeader leader = (MLeader)tr.GetObject(idd, OpenMode.ForWrite);
+                    MText mtext = leader.MText;
+                    mtext.Contents = "Here's the new content";
+                   
+                    tr.Commit();
                 }
             }
         }
@@ -1622,7 +1640,6 @@ namespace PipeInfo
                 }
             }
         }
-        List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
 
 
         [CommandMethod("ST")]
@@ -1647,7 +1664,7 @@ namespace PipeInfo
             //CAP을 달면 중복객체 발생.
             pipeInstances = pipeInstances.Distinct().ToList();
             Pipe pipe = new Pipe();
-
+            List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
             List<Point3d> pipePos = new List<Point3d>();
             List<double> pipeLength = new List<double>();
             List<double> pipeDia = new List<double>();
@@ -1745,8 +1762,6 @@ namespace PipeInfo
                         }
 
                     }
-
-
                 }
             }
 
@@ -1781,41 +1796,37 @@ namespace PipeInfo
                     }
                 }
                 acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
-
+                pipes_AutoMove_Array(stepfileSave_Ids);
             }
         }
 
         //파이프 개별파일로 저장하는건 보류(한 파일로 저장해도 컷팅기에서 인식가능)
         // [CommandMethod("ST")]
-        public void sleect()
+        public void pipes_AutoMove_Array(List<ObjectId> objectIds_Li)
         {
 
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;
             ObjectId id = new ObjectId();
-            //ObjectId[] saveObjIDs = new ObjectId[] { stepfileSave_Ids[0] };
 
-            string step_filename = "PIPE_STEP";
             Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("FACETRES", 8);
 
             //STEPOUT 명령어로 STEP파일 Export
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
-                for (int j = 0; j < stepfileSave_Ids.Count; j++)
+                for (int i = 0; i < objectIds_Li.Count; i++)
                 {
-                    ObjectId obj = stepfileSave_Ids[j];
+                    ObjectId obj = objectIds_Li[i];
                     if (obj.OldId != 0)
                     {
-                        Solid3d cy = acTrans.GetObject(stepfileSave_Ids[j], OpenMode.ForWrite) as Solid3d;
-                        cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 100 * j, 0) - Point3d.Origin));
+                        Solid3d cy = acTrans.GetObject(objectIds_Li[i], OpenMode.ForWrite) as Solid3d;
+                        cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 200 *i, 0) - Point3d.Origin));
                     }
                 }
                 acTrans.Commit();
 
             }
-
-            acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", step_filename), true, false, false);
         }
 
         /* --------------- [CLASS START]-------------------*/
