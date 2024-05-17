@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Navigation;
+using static PipeInfo.FileWatcher;
 
 namespace PipeInfo
 {
@@ -23,10 +24,14 @@ namespace PipeInfo
             PipeLength,
             IsHole
         }
-        public DataGetEventHandler DataSendEvent;
+        public delegate void recive_SpoolList(List<string> spool_Li, List<string> handle_Li);
+        public event recive_SpoolList recive_SpoolList_event;
 
+        List<string> spool_Li = new List<string>();
+        List<string> hanle_Li = new List<string>();
+        FileWatcher fiw = new FileWatcher();
+         
         // 그리드뷰 버튼 클릭을 위한 인덱스.
-        int btnColumnIdx = 2;
         PipeInfo pipeInfo = new PipeInfo();
         DatabaseIO db = new DatabaseIO();
         string db_path = "";
@@ -71,7 +76,7 @@ namespace PipeInfo
             {
                 stepFileSave_path = ofd.FileName;
                 string path_split = Path.GetDirectoryName(stepFileSave_path);
-                FileWatcher fiw = new FileWatcher();
+                //파일 감시 
                 fiw.initWatcher(path_split);
                 return true;
             }
@@ -84,6 +89,8 @@ namespace PipeInfo
 
         private void WinForm_STEP_Load(object sender, EventArgs e)
         {
+            //FileWatcher와 이벤트 연결하기.
+            recive_SpoolList_event += fiw.ReceiveSpoolList;
         }
 
         private void button_db_pathOk_Click(object sender, EventArgs e)
@@ -179,6 +186,7 @@ namespace PipeInfo
                 string is_Checked = "";
                 string is_Clicked_CheckBox = "";
                 string is_StepOut_Button = "";
+             
 
                 is_Checked = dataGridView_GroupList.Rows[e.RowIndex].Cells[0].Value.ToString();
                 is_Clicked_CheckBox = dataGridView_GroupList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
@@ -206,8 +214,8 @@ namespace PipeInfo
 
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
-                        pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
-                       
+                       (spool_Li, hanle_Li)= pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
+                        fiw.ReceiveSpoolList(spool_Li, hanle_Li);
                     }
                     else
                     {

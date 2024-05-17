@@ -9,14 +9,15 @@ using System.Windows;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
+using System.Data.SqlClient;
 
 namespace PipeInfo
 {
     class DatabaseIO
     {
         private string db_path = "";
-        private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
-        private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
+        //private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
+        //private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
         private string pipeInsType_Pipe = "17301760"; //
         public DatabaseIO()
         {
@@ -159,7 +160,8 @@ namespace PipeInfo
                     using (SQLiteConnection conn = new SQLiteConnection(connstr))
                     {
                         string sql = string.Format("SELECT DISTINCT PO.OWNER_INSTANCE_ID ,PS.OUTERDIAMETER, PIPESIZE_NM, MATERIAL_NM ,LENGTH1, PO.CONNECTION_ORDER From TB_INSTANCEGROUPMEMBERS as GM " +
-                                "INNER JOIN TB_PIPEINSTANCES as PI " +
+                                "INNER JOIN " +
+                                "TB_PIPEINSTANCES as PI "+
                                     "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
                                       "AND GM.INSTANCE_GROUP_ID = " +
                                         "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS " +
@@ -235,5 +237,166 @@ namespace PipeInfo
 
             return pipeInsInfo;
         }
+        public List<string> Get_SpoolList_By_GroupName(string db_path, string groupName)
+        {
+            List<string> spool_list = new List<string>();
+            string sql = string.Format(@"SELECT DISTINCT PIPESIZE_NM,UTILITY_NM,MATERIAL_NM,PRODUCTION_DRAWING_GROUP_NM,SPOOL_NUMBER 
+            From TB_INSTANCEGROUPMEMBERS as GM
+	            INNER JOIN
+	            TB_PIPEINSTANCES as PI
+		            ON PI.INSTANCE_ID = GM.INSTANCE_ID
+		            AND GM.INSTANCE_GROUP_ID =
+			        (SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS 
+				        WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}')
+	            INNER JOIN TB_POCINSTANCES as PO
+		            ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE= '{1}'
+	            INNER JOIN TB_PIPESIZE as PS
+		            ON PO.PIPESIZE_ID = PS.PIPESIZE_ID
+	            INNER JOIN TB_PRODUCTION_DRAWING as PD
+		            ON PD.PRODUCTION_DRAWING_GROUP_ID = PDG.PRODUCTION_DRAWING_GROUP_ID
+	            INNER JOIN TB_PRODUCTION_DRAWING_GROUPS as PDG
+		            ON PDG.INSTANCE_GROUP_ID = GM.INSTANCE_GROUP_ID AND PDG.INSTANCE_GROUP_ID = GM.INSTANCE_GROUP_ID
+	            INNER JOIN TB_MATERIALS as MG
+		            ON PO.MATERIAL_ID = MG.MATERIAL_ID
+	            INNER JOIN TB_UTILITIES as UT
+		            ON PO.UTILITY_ID = UT.UTILITY_ID;",groupName, pipeInsType_Pipe);
+
+            List<string> pipeInsInfo = new List<string>();
+            string connstr = "Data Source=" + db_path;
+            try
+            {
+                if (db_path != "")
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = comm.ExecuteReader();
+                        if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+                        {
+                            rdr.Read();
+                            string instance_GroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                            rdr.Close();
+                            comm.Dispose();
+                            comm = new SQLiteCommand(sql, conn);
+                            rdr = comm.ExecuteReader();
+                            string material_NM = "";
+                            string spool_num = "";
+                            while (rdr.Read())
+                            {
+                                string rdr_instanceGroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                                //찾은 객체의 첫번째 항목만 불러온다. -> 7.10수정 DWG 파일 이름이 곧 INSTANCE GORUP NM이기때문에 INSTANCEGROUP ID와 동일한 SpoolNM을 가져온다.
+                                //함수 추가 필요. 파일이름 -> INSTANCE GROUP NM -> ID DB연결할때 가져와야한다.
+                                if (rdr_instanceGroupId == instance_GroupId)
+                                {
+                                    material_NM = rdr["MATERIAL_NM"].ToString();
+                                    spool_num = rdr["SPOOL_NUMBER"].ToString();
+                                    if (material_NM.Contains("SUS"))
+                                    {
+                                        string[] split_material = material_NM.Split(' ');
+                                        if (split_material.Length > 1)
+                                        {
+                                            material_NM = split_material[1];
+                                        }
+                                    }
+                                    if (spool_num.Length == 1)
+                                    {
+                                        spool_num = "0" + spool_num;
+                                    }
+                                    spool_list.Add(rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다. Line:4381");
+                        }
+                        conn.Dispose();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            
+            return spool_list;
+
+        }
+        public string Get_SpoolInfo_By_InstanceID(string instanceID)
+        {
+            string spool = String.Empty;
+            string sql = string.Format(
+                        "SELECT DISTINCT INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
+                        "FROM TB_POCINSTANCES as PI INNER JOIN " +
+                        "TB_PIPESIZE as PS," +
+                        "TB_MATERIALS as MR," +
+                        "TB_UTILITIES as UT," +
+                        "TB_PRODUCTION_DRAWING as PD," +
+                        "TB_PRODUCTION_DRAWING_GROUPS as PDG," +
+                        "TB_INSTANCEGROUPMEMBERS as IGM " +
+                        "on PI.PIPESIZE_ID = PS.PIPESIZE_ID AND " +
+                        "PI.UTILITY_ID = UT.UTILITY_ID AND " +
+                        "PD.PRODUCTION_DRAWING_GROUP_ID = PDG.PRODUCTION_DRAWING_GROUP_ID AND " +
+                        "PDG.INSTANCE_GROUP_ID = IGM.INSTANCE_GROUP_ID AND " +
+                        "IGM.INSTANCE_ID = PI.OWNER_INSTANCE_ID AND " +
+                        "MR.MATERIAL_ID=PI.MATERIAL_ID AND " +
+                       "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > 0 AND PI.OWNER_TYPE=256 AND " +
+                       "hex(PI.OWNER_INSTANCE_ID) like '{0}' LIMIT 1;", instanceID);
+
+            string connstr = "Data Source=" + db_path;
+            try
+            {
+                if (db_path != "")
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = comm.ExecuteReader();
+                        if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+                        {
+                            rdr.Read();
+                            string instance_GroupId = BitConverter.ToString((byte[])rdr["INSTANCE_GROUP_ID"]).Replace("-", "");
+                            //rdr.Close();
+                            //comm.Dispose();
+                            comm = new SQLiteCommand(sql, conn);
+                            rdr = comm.ExecuteReader();
+                            string material_NM = "";
+                            string spool_num = "";
+                            while (rdr.Read())
+                            {
+                                    material_NM = rdr["MATERIAL_NM"].ToString();
+                                    spool_num = rdr["SPOOL_NUMBER"].ToString();
+                                    if (material_NM.Contains("SUS"))
+                                    {
+                                        string[] split_material = material_NM.Split(' ');
+                                        if (split_material.Length > 1)
+                                        {
+                                            material_NM = split_material[1];
+                                        }
+                                    }
+                                    if (spool_num.Length == 1)
+                                    {
+                                        spool_num = "0" + spool_num;
+                                    }
+                                    spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                            }
+                        }
+                        else
+                        {
+                            spool = "Nodefined";
+                            //MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
+                        }
+                        conn.Dispose();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            return spool;
+
+        }
+
     }
 }
