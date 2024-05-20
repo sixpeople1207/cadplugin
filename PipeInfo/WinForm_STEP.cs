@@ -141,6 +141,7 @@ namespace PipeInfo
 
             if (dataGridView_GroupList.RowCount.ToString() != "0")
             {
+                pipeInfo.delete_All_Object();
                 string groupName = "";
                 List<string> pipeInstance_li = new List<string>();
 
@@ -220,7 +221,7 @@ namespace PipeInfo
                         
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li);
                         button_Set_SpoolNumber.Enabled = true;
-                        pipeInfo.delete_All_Object();
+                       
                         //string spooli = "";
                         //string hanli = "";
 
@@ -247,6 +248,7 @@ namespace PipeInfo
         {
             fiw.dd();
             button_Set_SpoolNumber.Enabled = false;
+           
         }
     }
 

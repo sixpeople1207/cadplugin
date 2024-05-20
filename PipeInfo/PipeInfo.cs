@@ -1837,24 +1837,22 @@ namespace PipeInfo
             Database db = acDoc.Database;
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
-                BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
-                BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                Solid3d takeoff_Cylinder = new Solid3d();
-                Solid3d base_Cylinder = new Solid3d();
 
-                DBObjectCollection all_Obj = acTrans.GetAllObjects();
                 TypedValue[] tvs = new TypedValue[] { new TypedValue((int)DxfCode.LayerName, "0") };
                 SelectionFilter sf = new SelectionFilter(tvs);
                 PromptSelectionResult prs =  ed.SelectAll(sf);
                 SelectionSet ss = prs.Value;
-                
-                foreach(SelectedObject s in ss)
+
+                if (ss != null)
                 {
-                    DBObject ob = acTrans.GetObject(s.ObjectId, OpenMode.ForWrite);
-                    ob.Erase();
+                    foreach (SelectedObject s in ss)
+                    {
+                        DBObject ob = acTrans.GetObject(s.ObjectId, OpenMode.ForWrite);
+                        ob.Erase();
+                    }
+                    acTrans.Commit();
+                    ed.WriteMessage("객체를 모두 지웠습니다.");
                 }
-                acTrans.Commit();
-                ed.WriteMessage("객체를 모두 지웠습니다.");
             }
 
             }
