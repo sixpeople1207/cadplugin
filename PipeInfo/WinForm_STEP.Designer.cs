@@ -38,23 +38,24 @@
             this.button_db_pathOk = new System.Windows.Forms.Button();
             this.groupBox_GroupList = new System.Windows.Forms.GroupBox();
             this.dataGridView_GroupList = new System.Windows.Forms.DataGridView();
+            this.Column1 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.GroupName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Export = new System.Windows.Forms.DataGridViewButtonColumn();
             this.dataGridView_PipesList = new System.Windows.Forms.DataGridView();
+            this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column6 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox_PipeList = new System.Windows.Forms.GroupBox();
             this.groupBox_PipeLengthInfo = new System.Windows.Forms.GroupBox();
+            this.button_Set_SpoolNumber = new System.Windows.Forms.Button();
             this.label_PipeCount = new System.Windows.Forms.Label();
             this.label_PipesLength = new System.Windows.Forms.Label();
             this.label_PipeMaterial = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
-            this.Column1 = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-            this.GroupName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Export = new System.Windows.Forms.DataGridViewButtonColumn();
-            this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column6 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column3 = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox1.SuspendLayout();
             this.groupBox_GroupList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_GroupList)).BeginInit();
@@ -142,6 +143,36 @@
             this.dataGridView_GroupList.TabIndex = 0;
             this.dataGridView_GroupList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_GroupList_CellContentClick);
             // 
+            // Column1
+            // 
+            this.Column1.FillWeight = 50F;
+            this.Column1.Frozen = true;
+            this.Column1.HeaderText = "선택";
+            this.Column1.Name = "Column1";
+            this.Column1.ReadOnly = true;
+            this.Column1.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Column1.Width = 50;
+            // 
+            // GroupName
+            // 
+            this.GroupName.Frozen = true;
+            this.GroupName.HeaderText = "그룹이름";
+            this.GroupName.Name = "GroupName";
+            this.GroupName.ReadOnly = true;
+            this.GroupName.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.GroupName.Width = 195;
+            // 
+            // Export
+            // 
+            this.Export.HeaderText = "내보내기";
+            this.Export.Name = "Export";
+            this.Export.ReadOnly = true;
+            this.Export.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Export.Text = "내보내기";
+            this.Export.ToolTipText = "STEP파일로 내보내기";
+            this.Export.UseColumnTextForButtonValue = true;
+            this.Export.Width = 140;
+            // 
             // dataGridView_PipesList
             // 
             this.dataGridView_PipesList.AllowUserToAddRows = false;
@@ -163,6 +194,52 @@
             this.dataGridView_PipesList.TabIndex = 1;
             this.dataGridView_PipesList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PipesList_CellContentClick);
             // 
+            // Column2
+            // 
+            this.Column2.FillWeight = 40F;
+            this.Column2.HeaderText = "번호";
+            this.Column2.Name = "Column2";
+            this.Column2.ReadOnly = true;
+            this.Column2.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Column2.Width = 40;
+            // 
+            // Column5
+            // 
+            this.Column5.HeaderText = "관경";
+            this.Column5.Name = "Column5";
+            this.Column5.ReadOnly = true;
+            this.Column5.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Column5.Width = 60;
+            // 
+            // Column6
+            // 
+            this.Column6.HeaderText = "재질";
+            this.Column6.Name = "Column6";
+            this.Column6.ReadOnly = true;
+            this.Column6.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Column6.Width = 120;
+            // 
+            // Column3
+            // 
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
+            this.Column3.DefaultCellStyle = dataGridViewCellStyle2;
+            this.Column3.HeaderText = "파이프 길이";
+            this.Column3.Name = "Column3";
+            this.Column3.ReadOnly = true;
+            this.Column3.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            // 
+            // Column4
+            // 
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Column4.DefaultCellStyle = dataGridViewCellStyle3;
+            this.Column4.FillWeight = 40F;
+            this.Column4.HeaderText = "Hole";
+            this.Column4.Name = "Column4";
+            this.Column4.ReadOnly = true;
+            this.Column4.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.Column4.Width = 65;
+            // 
             // groupBox_PipeList
             // 
             this.groupBox_PipeList.Controls.Add(this.dataGridView_PipesList);
@@ -175,6 +252,7 @@
             // 
             // groupBox_PipeLengthInfo
             // 
+            this.groupBox_PipeLengthInfo.Controls.Add(this.button_Set_SpoolNumber);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipeCount);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipesLength);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipeMaterial);
@@ -187,6 +265,17 @@
             this.groupBox_PipeLengthInfo.TabIndex = 6;
             this.groupBox_PipeLengthInfo.TabStop = false;
             this.groupBox_PipeLengthInfo.Text = "Information";
+            // 
+            // button_Set_SpoolNumber
+            // 
+            this.button_Set_SpoolNumber.Enabled = false;
+            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(284, 20);
+            this.button_Set_SpoolNumber.Name = "button_Set_SpoolNumber";
+            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 51);
+            this.button_Set_SpoolNumber.TabIndex = 3;
+            this.button_Set_SpoolNumber.Text = "스풀번호반영";
+            this.button_Set_SpoolNumber.UseVisualStyleBackColor = true;
+            this.button_Set_SpoolNumber.Click += new System.EventHandler(this.button1_Click_1);
             // 
             // label_PipeCount
             // 
@@ -242,82 +331,6 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "파이프 재질 : ";
             // 
-            // Column1
-            // 
-            this.Column1.FillWeight = 50F;
-            this.Column1.Frozen = true;
-            this.Column1.HeaderText = "선택";
-            this.Column1.Name = "Column1";
-            this.Column1.ReadOnly = true;
-            this.Column1.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Column1.Width = 50;
-            // 
-            // GroupName
-            // 
-            this.GroupName.Frozen = true;
-            this.GroupName.HeaderText = "그룹이름";
-            this.GroupName.Name = "GroupName";
-            this.GroupName.ReadOnly = true;
-            this.GroupName.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.GroupName.Width = 195;
-            // 
-            // Export
-            // 
-            this.Export.HeaderText = "내보내기";
-            this.Export.Name = "Export";
-            this.Export.ReadOnly = true;
-            this.Export.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Export.Text = "내보내기";
-            this.Export.ToolTipText = "STEP파일로 내보내기";
-            this.Export.UseColumnTextForButtonValue = true;
-            this.Export.Width = 140;
-            // 
-            // Column2
-            // 
-            this.Column2.FillWeight = 40F;
-            this.Column2.HeaderText = "번호";
-            this.Column2.Name = "Column2";
-            this.Column2.ReadOnly = true;
-            this.Column2.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Column2.Width = 40;
-            // 
-            // Column5
-            // 
-            this.Column5.HeaderText = "관경";
-            this.Column5.Name = "Column5";
-            this.Column5.ReadOnly = true;
-            this.Column5.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Column5.Width = 60;
-            // 
-            // Column6
-            // 
-            this.Column6.HeaderText = "재질";
-            this.Column6.Name = "Column6";
-            this.Column6.ReadOnly = true;
-            this.Column6.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Column6.Width = 120;
-            // 
-            // Column3
-            // 
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
-            this.Column3.DefaultCellStyle = dataGridViewCellStyle2;
-            this.Column3.HeaderText = "파이프 길이";
-            this.Column3.Name = "Column3";
-            this.Column3.ReadOnly = true;
-            this.Column3.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            // 
-            // Column4
-            // 
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.Column4.DefaultCellStyle = dataGridViewCellStyle3;
-            this.Column4.FillWeight = 40F;
-            this.Column4.HeaderText = "Hole";
-            this.Column4.Name = "Column4";
-            this.Column4.ReadOnly = true;
-            this.Column4.Resizable = System.Windows.Forms.DataGridViewTriState.False;
-            this.Column4.Width = 65;
-            // 
             // WinForm_STEP
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -369,5 +382,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn Column6;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column3;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column4;
+        private System.Windows.Forms.Button button_Set_SpoolNumber;
     }
 }

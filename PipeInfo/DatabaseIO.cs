@@ -326,7 +326,7 @@ namespace PipeInfo
         {
             string spool = String.Empty;
             string sql = string.Format(
-                        "SELECT DISTINCT INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
+                        "SELECT DISTINCT PDG.INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
                         "FROM TB_POCINSTANCES as PI INNER JOIN " +
                         "TB_PIPESIZE as PS," +
                         "TB_MATERIALS as MR," +
@@ -340,7 +340,7 @@ namespace PipeInfo
                         "PDG.INSTANCE_GROUP_ID = IGM.INSTANCE_GROUP_ID AND " +
                         "IGM.INSTANCE_ID = PI.OWNER_INSTANCE_ID AND " +
                         "MR.MATERIAL_ID=PI.MATERIAL_ID AND " +
-                       "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > 0 AND PI.OWNER_TYPE=256 AND " +
+                       "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > -1 AND PI.OWNER_TYPE=256 AND " +
                        "hex(PI.OWNER_INSTANCE_ID) like '{0}' LIMIT 1;", instanceID);
 
             string connstr = "Data Source=" + db_path;

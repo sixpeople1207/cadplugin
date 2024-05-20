@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Office.Interop.Excel;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -27,8 +28,8 @@ namespace PipeInfo
         public delegate void recive_SpoolList(List<string> spool_Li, List<string> handle_Li);
         public event recive_SpoolList recive_SpoolList_event;
 
-        List<string> spool_Li = new List<string>();
-        List<string> hanle_Li = new List<string>();
+        List<string> _spool_Li = new List<string>();
+        List<string> _handle_Li = new List<string>();
         FileWatcher fiw = new FileWatcher();
          
         // 그리드뷰 버튼 클릭을 위한 인덱스.
@@ -77,7 +78,7 @@ namespace PipeInfo
                 stepFileSave_path = ofd.FileName;
                 string path_split = Path.GetDirectoryName(stepFileSave_path);
                 //파일 감시 
-                fiw.initWatcher(path_split);
+                fiw.initWatcher(stepFileSave_path);
                 return true;
             }
             else
@@ -91,6 +92,7 @@ namespace PipeInfo
         {
             //FileWatcher와 이벤트 연결하기.
             recive_SpoolList_event += fiw.ReceiveSpoolList;
+            button_Set_SpoolNumber.Enabled = false;
         }
 
         private void button_db_pathOk_Click(object sender, EventArgs e)
@@ -209,13 +211,28 @@ namespace PipeInfo
                     bool is_SaveFile = false;
                     is_SaveFile = saveFaileDialog();
                     
-
                     bool is_PathInBlank = stepFileSave_path.Contains(" ");
 
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
-                       (spool_Li, hanle_Li)= pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
-                        fiw.ReceiveSpoolList(spool_Li, hanle_Li);
+                       (_spool_Li, _handle_Li)= pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
+                        
+                        
+                        fiw.ReceiveSpoolList(_spool_Li, _handle_Li);
+                        button_Set_SpoolNumber.Enabled = true;
+                        pipeInfo.delete_All_Object();
+                        //string spooli = "";
+                        //string hanli = "";
+
+                        //foreach (var d in _spool_Li)
+                        //{
+                        //    spooli += d+"\n";
+                        //}
+                        //foreach (var d in _handle_Li)
+                        //{
+                        //    hanli += d + "\n";
+                        //}
+                        //MessageBox.Show("스풀정보 ㅣ " + spooli + "핸들: " + hanli.ToString());
                     }
                     else
                     {
@@ -223,6 +240,13 @@ namespace PipeInfo
                     }
                 }
             }
+        }
+
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            fiw.dd();
+            button_Set_SpoolNumber.Enabled = false;
         }
     }
 
