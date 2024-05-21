@@ -10,6 +10,10 @@ using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.Geometry;
 using System.Data.SqlClient;
+using Autodesk.Internal.Windows;
+using static PipeInfo.PipeInfo;
+using System.Windows.Forms;
+using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace PipeInfo
 {
@@ -397,6 +401,79 @@ namespace PipeInfo
             return spool;
 
         }
+        public List<string> Get_TakeOff_SizeForPipeinstanceId(string instanceID)
+        {
+            List<string> spool = new List<string>();
+            string sql = string.Format(
+                        "SELECT PI.INSTANCE_ID, DIAMETER1, PO.OWNER_INSTANCE_ID FROM TB_PIPEINSTANCES PI INNER JOIN TB_POCINSTANCES as PO "+
+                        "WHERE  round(PI.POSX) = round(PO.POSX) "+
+                        "AND round(PI.POSY) = round(PO.POSY) "+
+                        "AND round(PI.POSZ) = round(PO.POSZ) "+
+                        "AND Pi.PIPE_TYPE = '17301768' AND PO.CONNECTION_ORDER > 1 AND hex(PO.OWNER_INSTANCE_ID) like '{0}';", instanceID);
+            string connstr = "Data Source=" + db_path;
 
+            try
+            {
+                if (db_path != "")
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = comm.ExecuteReader();
+                        if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+                        {
+                           // rdr.Read();
+                            while (rdr.Read())
+                            {
+                              
+                                    spool.Add(rdr["DIAMETER1"].ToString());
+                                
+                            }
+                        }
+                            conn.Dispose();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            return spool;
+        }
+
+        public List<string> Get_TakeOff_Vector(string instanceID)
+        {
+            List<string> spool = new List<string>();
+            string sql = string.Format(
+                        "SELECT PI.INSTANCE_ID, DIAMETER1, PO.OWNER_INSTANCE_ID FROM TB_PIPEINSTANCES PI INNER JOIN TB_POCINSTANCES as PO " +
+                        "WHERE  round(PI.POSX) = round(PO.POSX) " +
+                        "AND round(PI.POSY) = round(PO.POSY) " +
+                        "AND round(PI.POSZ) = round(PO.POSZ) " +
+                        "AND Pi.PIPE_TYPE = '17301768' AND PO.CONNECTION_ORDER > 1 AND hex(PO.OWNER_INSTANCE_ID) like '{0}';", instanceID);
+            string connstr = "Data Source=" + db_path;
+
+            try
+            {
+                if (db_path != "")
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = comm.ExecuteReader();
+                        if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+                        {
+                            rdr.Read();
+                            spool.Add(rdr["DIAMETER1"].ToString());
+                        }
+                        conn.Dispose();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            return spool;
+        }
     }
 }
