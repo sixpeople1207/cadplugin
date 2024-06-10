@@ -117,6 +117,19 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <metadata name="toolTip1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>17, 17</value>
+  </metadata>
+  <data name="button_DBpath.ToolTip" xml:space="preserve">
+    <value>StepFile Export 도움말
+1. Database경로를 ...버튼을 눌러 지정해 주고 "확인"을 누릅니다.
+2. DDWorks 설계 그룹 리스트가 반영됩니다. 
+3. 그룹 리스트를 클릭해 단관 리스트와 Take-off리스트를 확인합니다.
+4. 선택 체크박스에서 선택 후 내보내기 버튼을 눌러 STEP 파일을 내보냅니다. 
+5. 스풀번호를 반영할 때는 우측 하단에 "스풀정보반영"버튼을 눌러 줍니다. 
+** 5번까지 과정을 거치면 STEP파일이 2개가 생성이 됩니다. 
+</value>
+  </data>
   <metadata name="Column1.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
@@ -124,6 +137,31 @@
     <value>True</value>
   </metadata>
   <metadata name="Export.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <data name="dataGridView_GroupList.ToolTip" xml:space="preserve">
+    <value>StepFile Export 도움말
+
+1. Database경로를 ...버튼을 눌러 지정해 주고 "확인"을 누릅니다.
+2. DDWorks 설계 그룹 리스트가 반영됩니다. 
+3. 그룹 리스트를 클릭해 단관 리스트와 Take-off리스트를 확인합니다.
+4. 선택 체크박스에서 선택 후 내보내기 버튼을 눌러 STEP 파일을 내보냅니다. 
+5. 스풀번호를 반영할 때는 우측 하단에 "스풀정보반영"버튼을 눌러 줍니다. 
+** 5번까지 과정을 거치면 STEP파일이 2개가 생성이 됩니다. </value>
+  </data>
+  <metadata name="Column2.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <metadata name="Column5.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <metadata name="Column6.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <metadata name="Column3.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>True</value>
+  </metadata>
+  <metadata name="Column4.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
   </metadata>
   <metadata name="Column2.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
@@ -140,6 +178,9 @@
   </metadata>
   <metadata name="Column4.UserAddedColumn" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
+  </metadata>
+  <metadata name="toolTip2.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>114, 17</value>
   </metadata>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">

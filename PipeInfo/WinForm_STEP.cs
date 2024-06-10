@@ -25,11 +25,12 @@ namespace PipeInfo
             PipeLength,
             IsHole
         }
-        public delegate void recive_SpoolList(List<string> spool_Li, List<string> handle_Li);
+        public delegate void recive_SpoolList(List<string> spool_Li, List<string> handle_Li, List<double> spoolLength_Li);
         public event recive_SpoolList recive_SpoolList_event;
 
         List<string> _spool_Li = new List<string>();
         List<string> _handle_Li = new List<string>();
+        List<double> _spoolLength_Li = new List<double>();
         FileWatcher fiw = new FileWatcher();
          
         // 그리드뷰 버튼 클릭을 위한 인덱스.
@@ -141,6 +142,8 @@ namespace PipeInfo
 
             if (dataGridView_GroupList.RowCount.ToString() != "0")
             {
+                // STEP파일을 내보내기 전(Pipe를 그리기전) 3D 객체들을 모두 지우고 시작
+                // STEP에 스풀 정보를 저장할때 객체 갯수와 스풀 정보갯수의 차이가 발생한다.
                 pipeInfo.delete_All_Object();
                 string groupName = "";
                 List<string> pipeInstance_li = new List<string>();
@@ -216,10 +219,9 @@ namespace PipeInfo
 
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
-                       (_spool_Li, _handle_Li)= pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
+                       (_spool_Li, _handle_Li, _spoolLength_Li) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
                         
-                        
-                        fiw.ReceiveSpoolList(_spool_Li, _handle_Li);
+                        fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
                         button_Set_SpoolNumber.Enabled = true;
                        
                         //string spooli = "";
@@ -246,9 +248,14 @@ namespace PipeInfo
 
         private void button1_Click_1(object sender, EventArgs e)
         {
-            fiw.dd();
+            fiw.stepFileWriteSpoolNumber();
             button_Set_SpoolNumber.Enabled = false;
            
+        }
+
+        private void toolTip1_Popup(object sender, PopupEventArgs e)
+        {
+
         }
     }
 

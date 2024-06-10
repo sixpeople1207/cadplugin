@@ -24,8 +24,18 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Media.Media3D.Converters;
 using static System.Net.Mime.MediaTypeNames;
+
+using DINNO.HU3D.ViewModel;
+using DINNO.DO3D.IO;
+using DINNO.HU3D.ViewModel.Property;
+using DINNO.DO3D.IO.DataModel.InstanceDataModel;
+using DINNO.HU3D.Workspace.Instance;
+using DINNO.DO3D.Database;
+using DINNO.DO3D.MEP.Instances;
+
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -34,6 +44,10 @@ using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
+using DINNO.HU3D.Workspace.Instance;
+using DINNO.DO3D.Database.DataModel;
+using DINNO.DO3D.IO.DataModel;
+using DINNO.DO3D.IO.Instances;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -50,11 +64,30 @@ namespace PipeInfo
         //나중에는 Handle과 Spool정보와 길이를 맵핑한다. 
         //추가할 기능은 같은 레벨에 있는 텍스트를 선택하기 정도.. 
         public string db_path = "";
+
+        [CommandMethod("DDW")]
+        public void DDWConverter()
+        {
+            SqliteConnection ddd = new DINNO.DO3D.Database.SqliteConnection();
+            ddd.openSQLite(db_path);
+            InstanceModelLoader il = new InstanceModelLoader();
+            //InstanceBase();
+            //InstanceAABBModel();
+            //ModelBase();
+            //InstanceBaseExtensions ib = new InstanceBaseExtensions();
+            //ModelBase io = new DINNO.DO3D.IO.DataModel.ModelBase();
+            ddd.beginTrans();
+            MEPSceneDataSource mb = new DINNO.DO3D.MEP.Instances.MEPSceneDataSource();
+            Guid key = new Guid();
+            //InstanceBase ib = mb.getDBInstance();
+            
+            //MEPInstanceSceneObjectBase dd = mb.getInstance(key);
+        }
+
         public void DataGet(string data)
         {
             db_path = data;
         }
-
         //DWG 경로만으로 파일을 열어 도면 안에 있는 Block정보를 Copy하는 예제. 23.11.23 
         [CommandMethod("dwg")]
         public void ReadDWG()
@@ -1649,7 +1682,7 @@ namespace PipeInfo
             winForm_STEP.Show();
         }
 
-        public (List<string>,List<string>) export_Pipes_StepFiles(string groupName, string savepath)
+        public (List<string>,List<string>, List<double>) export_Pipes_StepFiles(string groupName, string savepath)
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
@@ -1657,7 +1690,7 @@ namespace PipeInfo
 
             DDWorks_Database ddwDB = new DDWorks_Database(db_path);
             DatabaseIO dbIO = new DatabaseIO(db_path);
-
+            
             List<string> pipeInfo_ID_li = new List<string>();
             List<string> pipeInstances = new List<string>();
 
@@ -1668,7 +1701,7 @@ namespace PipeInfo
             pipeInstances = pipeInstances.Distinct().ToList();
 
             //PipeInstance로 PipeSpool정보를 가져온다. 
-
+            
             Pipe pipe = new Pipe();
             List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
             List<Point3d> pipeInfo_Pos_li = new List<Point3d>();
@@ -1676,6 +1709,7 @@ namespace PipeInfo
             List<double> pipeInfo_Dia_Li = new List<double>();
             List<ObjectId> cylinder_ids = new List<ObjectId>();
             List<string> spoolNum_Li = new List<string>();
+            List<double> spoolLength_Li = new List<double>();
             List<string> pipeHandle_Li = new List<string>(); 
             //List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
 
@@ -1692,159 +1726,164 @@ namespace PipeInfo
                 * pipeInfo_ID_li는 해당 파이프 인스턴스에 POC가 여러개(TakeOff까지) 존재하기 때문에 리스트로 반환하고 거기서 정보를 가공해서 사용.
                 */
                 (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
-                
-                // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
-                string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
-                // 리스트에 담는다.
-                if (spoolNum != null && spoolNum != "")
-                {
-                    spoolNum_Li.Add(spoolNum);
-                    // MessageBox.Show(spoolNum.ToString());
-                    // POC 정보를 이용하여 3D Pipe를 생성한다. 반환값은 CAD ObjectId를 리스트로 반환한다.
-
-                    if (pipeInfo_ID_li.Count > 1)
-                    {
-                        // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
-                        // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
-                        if (pipeInfo_Dia_Li[0] > 30) // 파이프 사이즈 30이상인 대구경 파이프만 
-                        {
-                            cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, 3.0);
-                            if (cylinder_ids.Count > 1)
-                            {
-                                saveObj_ID = pipe.subtract_pipe(cylinder_ids[0], cylinder_ids[1]);
-                                if (saveObj_ID.OldId != 0)
-                                {
-                                    //MessageBox.Show(cylinder_ids[0].Handle.ToString()+ cylinder_ids[1].Handle.ToString()+ saveObj_ID.Handle.ToString());
-                                    // 생성한 3D 파이프의 Object Ids를 저장.
-                                    stepfileSave_Ids.Add(saveObj_ID);
-                                    // 파이프의 핸들정보를 저장한다. 추후에 STEP파일에 SPoolNumber를 적용하기위함.
-                                    pipeHandle_Li.Add(cylinder_ids[0].Handle.ToString());
-                                };
-                            }
-                        }
-                    }
-
-                    if (pipeInfo_Pos_li.Count > 2)
-                    {
-                        List<string> takeoff_Size_Li = dbIO.Get_TakeOff_SizeForPipeinstanceId(pipeIns);
                        
-                        pipeInfo_Dia_Li= pipeInfo_Dia_Li.OrderByDescending(x=>x).ToList();
-
-                        if (takeoff_Size_Li.Count == pipeInfo_Dia_Li.Count - 2 && takeoff_Size_Li[0]!="0") //찾은 테크오프 사이즈와 PIPE에 
+                        // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
+                        string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
+                        // 리스트에 담는다.
+                        if (spoolNum != null && spoolNum != "")
                         {
-                            for (int i = 0; i < takeoff_Size_Li.Count; i++)
+                            spoolNum_Li.Add(spoolNum);
+                            if (pipeInfo_Length_li.Count > 0)
                             {
-                                pipeInfo_Dia_Li[i + 2] = double.Parse(takeoff_Size_Li[i]);
+                                spoolLength_Li.Add(pipeInfo_Length_li[0]);
+                            }
+                            
+                            // MessageBox.Show(spoolNum.ToString());
+                            // POC 정보를 이용하여 3D Pipe를 생성한다. 반환값은 CAD ObjectId를 리스트로 반환한다.
+
+                            if (pipeInfo_ID_li.Count > 1)
+                            {
+                                // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
+                                // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
+                                if (pipeInfo_Dia_Li[0] > 40) // 파이프 사이즈 30이상인 대구경 파이프만 
+                                {
+                                    cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, 3.0);
+                                    if (cylinder_ids.Count > 1)
+                                    {
+                                        saveObj_ID = pipe.subtract_pipe(cylinder_ids[0], cylinder_ids[1]);
+                                        if (saveObj_ID.OldId != 0)
+                                        {
+                                            //MessageBox.Show(cylinder_ids[0].Handle.ToString()+ cylinder_ids[1].Handle.ToString()+ saveObj_ID.Handle.ToString());
+                                            // 생성한 3D 파이프의 Object Ids를 저장.
+                                            stepfileSave_Ids.Add(saveObj_ID);
+                                            // 파이프의 핸들정보를 저장한다. 추후에 STEP파일에 SPoolNumber를 적용하기위함.
+                                            pipeHandle_Li.Add(cylinder_ids[0].Handle.ToString());
+                                        };
+                                    }
+                                }
+                            }
+
+                            if (pipeInfo_Pos_li.Count > 2)
+                            {
+                                List<string> takeoff_Size_Li = dbIO.Get_TakeOff_SizeForPipeinstanceId(pipeIns);
+
+                                if (takeoff_Size_Li.Count == pipeInfo_Dia_Li.Count - 2 && takeoff_Size_Li[0] != "0") //찾은 테크오프 사이즈와 PIPE에 
+                                {
+                                    for (int i = 0; i < takeoff_Size_Li.Count; i++)
+                                    {
+                                        pipeInfo_Dia_Li[i + 2] = double.Parse(takeoff_Size_Li[i]);
+                                    }
+                                }
+                            }
+
+                            /* Take Off 처리 객체 3D 뽕따기
+                                - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
+                                - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
+                                - 임의의 길이값을 추가해주고 Subtract함. 
+                            */
+                            if (pipeInfo_Pos_li.Count > 2)
+                            {
+                                acDoc.LockDocument();
+                                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                                {
+                                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
+                                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+                                    Solid3d takeoff_Cylinder = new Solid3d();
+                                    Solid3d base_Cylinder = new Solid3d();
+
+                                    for (int i = 2; i < pipeInfo_Pos_li.Count; i += 1)
+                                    {
+                                        if (pipeInfo_Dia_Li[i] < pipeInfo_Dia_Li[0])
+                                        {
+                                            double radius = pipeInfo_Dia_Li[i] / 2;
+                                            cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, radius);
+                                            //take off만 반영
+                                            Vector3d normal = Vector3d.YAxis;
+                                            takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
+                                            base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
+                                            
+                                            
+                                            // 베이스가 되는 파이프와 TakeOff위치의 벡터를 구해서 진행.
+                                            Vector3d pos = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
+
+                                            double takeoff_Level = 0.0;
+                                            if (Math.Abs(pos.X) > 5)
+                                            { 
+                                                takeoff_Level = Math.Abs(pos.X);
+                                            }
+                                            else if (Math.Abs(pos.Y) > 5)
+                                            {
+                                                takeoff_Level = Math.Abs(pos.Y);
+                                            }
+                                            else if (Math.Abs(pos.Z) > 5)
+                                            {
+                                                takeoff_Level = Math.Abs(pos.Z);
+                                            }
+                                            else
+                                            {
+                                                ed.WriteMessage("Error : Takeoff 위치를 찾을 수 없습니다.");
+                                            }
+
+                                            //ed.WriteMessage(takeoff_Level.ToString());
+
+                                            var centroid = takeoff_Cylinder.MassProperties.Centroid;
+                                            var plane = new Plane(centroid, normal);
+                                            takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
+                                            takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(pipeInfo_Dia_Li[0] / 2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
+                                            base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
+                                        }
+                                        //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
+                                        if (saveObj_ID.OldId != 0)
+                                        {
+                                            saveObj_ID = base_Cylinder.ObjectId;
+                                            stepfileSave_Ids.Add(saveObj_ID);
+                                        }
+                                    }
+                                    acTrans.Commit();
+                                }
+
                             }
                         }
                     }
-                    /* Take Off 처리 객체 3D 뽕따기
-                        - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
-                        - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
-                        - 임의의 길이값을 추가해주고 Subtract함. 
-                    */
-                    if (pipeInfo_Pos_li.Count > 2)
+
+                    //STEP파일 저장
+                    //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", "Sample"), true, false, false);
+
+                    if (stepfileSave_Ids.Count > 0)
                     {
-                        acDoc.LockDocument();
                         using (Transaction acTrans = db.TransactionManager.StartTransaction())
                         {
-                            BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
-                            BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
-                            Solid3d takeoff_Cylinder = new Solid3d();
-                            Solid3d base_Cylinder = new Solid3d();
-                            
-                            for (int i = 2; i < pipeInfo_Pos_li.Count; i += 1)
+
+                            //CMDDIA 명령어를 창을 띄우지 않고 진행하는 시스템 명령어. 
+                            acDoc.SendStringToExecute("CMDDIA 0\n", true, false, false);
+                            ObjectId[] saveObjIDs = new ObjectId[] { };
+                            for (int j = 0; j < stepfileSave_Ids.Count; j++)
                             {
-                                if (pipeInfo_Dia_Li[i] < pipeInfo_Dia_Li[0])
+                                if (j != 0)
                                 {
-                                    double radius = pipeInfo_Dia_Li[i] / 2;
-                                    cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, radius);
-                                    //take off만 반영
-                                    Vector3d normal = Vector3d.YAxis;
-                                    takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
-                                    base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
-
-                                    // 베이스가 되는 파이프와 TakeOff위치의 벡터를 구해서 진행.
-                                    Vector3d pos = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
-                                    
-                                    double takeoff_Level = 0.0;
-                                    if (Math.Abs(pos.X) > pipeInfo_Dia_Li[0])
-                                    {
-                                        takeoff_Level = Math.Abs(pos.X);
-                                    }
-                                    else if (Math.Abs(pos.Y) > pipeInfo_Dia_Li[0])
-                                    {
-                                        takeoff_Level = Math.Abs(pos.Y);
-                                    }
-                                    else if (Math.Abs(pos.Z) > pipeInfo_Dia_Li[0])
-                                    {
-                                        takeoff_Level = Math.Abs(pos.Z);
-                                    }
-                                    else
-                                    {
-                                        ed.WriteMessage("Error : Takeoff 위치를 찾을 수 없습니다.");
-                                    }
-
-                                    //ed.WriteMessage(takeoff_Level.ToString());
-                                    
-                                    var centroid = takeoff_Cylinder.MassProperties.Centroid;
-                                    var plane = new Plane(centroid, normal);
-                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
-                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(pipeInfo_Dia_Li[0] / 2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
-                                    base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
+                                    //  ed.WriteMessage(stepfileSave_Ids[j].ToString());
+                                    //saveObjIDs = new ObjectId[] { stepfileSave_Ids[j] };
+                                    saveObjIDs.Append(stepfileSave_Ids[j]);
                                 }
-                                //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
-                                if (saveObj_ID.OldId != 0)
-                                {
-                                    saveObj_ID = base_Cylinder.ObjectId;
-                                    stepfileSave_Ids.Add(saveObj_ID);
-                                }
+                                //ObjectId obj = stepfileSave_Ids[j];
+                                //if (obj.OldId != 0)
+                                //{
+                                //    Solid3d cy = acTrans.GetObject(stepfileSave_Ids[j], OpenMode.ForWrite) as Solid3d;
+                                //    cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 0, 0) - Point3d.Origin));
+                                //}
+                                //string step_filename = "PIPE_STEP_" + j;
+                                //STEPOUT 명령어로 STEP파일 Export
+                                //ed.SetImpliedSelection(saveObjIDs);
                             }
                             acTrans.Commit();
                         }
 
+                        acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
+                        pipes_AutoMove_Array(stepfileSave_Ids);
                     }
-                }
-            }
-
-            //STEP파일 저장
-            //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", "Sample"), true, false, false);
-
-            if (stepfileSave_Ids.Count > 0)
-            {
-                using (Transaction acTrans = db.TransactionManager.StartTransaction())
-                {
-
-                    //CMDDIA 명령어를 창을 띄우지 않고 진행하는 시스템 명령어. 
-                    acDoc.SendStringToExecute("CMDDIA 0\n", true, false, false);
-                    ObjectId[] saveObjIDs = new ObjectId[] { };
-                    for (int j = 0; j < stepfileSave_Ids.Count; j++)
-                    {
-                        if (j != 0)
-                        {
-                            //  ed.WriteMessage(stepfileSave_Ids[j].ToString());
-                            //saveObjIDs = new ObjectId[] { stepfileSave_Ids[j] };
-                            saveObjIDs.Append(stepfileSave_Ids[j]);
-                        }
-                        ObjectId obj = stepfileSave_Ids[j];
-                        if (obj.OldId != 0)
-                        {
-                            Solid3d cy = acTrans.GetObject(stepfileSave_Ids[j], OpenMode.ForWrite) as Solid3d;
-                            
-                            cy.TransformBy(Matrix3d.Displacement(new Point3d(0, j, 0) - Point3d.Origin));
-                        }
-                        //string step_filename = "PIPE_STEP_" + j;
-                        //STEPOUT 명령어로 STEP파일 Export
-                        //ed.SetImpliedSelection(saveObjIDs);
-                    }
-                }
-
-                acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
-                pipes_AutoMove_Array(stepfileSave_Ids);
-            }
-            
+              
             // 스풀정보 반환, 3D파이프 핸들 반환
-            return (spoolNum_Li, pipeHandle_Li);
+            return (spoolNum_Li, pipeHandle_Li, spoolLength_Li);
 
         }
 
@@ -1901,7 +1940,24 @@ namespace PipeInfo
                     if (obj.OldId != 0)
                     {
                         Solid3d cy = acTrans.GetObject(objectIds_Li[i], OpenMode.ForWrite) as Solid3d;
-                        cy.TransformBy(Matrix3d.Displacement(new Point3d(0, 200 *i, 0) - Point3d.Origin));
+                        Vector3d mov = new Vector3d();
+                        // 배관이 겹치지 않기 위해서 경우의 수를 두어서 배치. 간혹 좌표가 겹침.
+                        if (i % 2 == 0 && i % 2==0)
+                        {
+                            mov = new Vector3d(0, 300 * i, 0);
+                        }
+                        else if(i%2 == 1)
+                        {
+                            mov = new Vector3d(300 * i, 0, 0);
+                        }
+                        else
+                        {
+                            mov = new Vector3d(300 * i, 300 * i, 0);
+                        }
+                        
+                        cy.TransformBy(Matrix3d.Displacement(mov));
+                        // Point3d po = cy.Bounds.Value.MaxPoint;
+                        //ed.WriteMessage("{0}\n", po.Y);
                     }
                 }
                 acTrans.Commit();
@@ -4180,15 +4236,16 @@ namespace PipeInfo
                                 string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID " +
                                             " From TB_INSTANCEGROUPMEMBERS as GM " +
                                             " INNER JOIN TB_PIPEINSTANCES as PI " +
-                                            "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                            " ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
                                             "  AND GM.INSTANCE_GROUP_ID = " +
                                             "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS  " +
-                                            "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
-                                            "INNER JOIN TB_POCINSTANCES as PO " +
-                                            "   ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}' " +
-                                            "INNER JOIN TB_PIPESIZE as PS " +
+                                            " WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                            " INNER JOIN TB_POCINSTANCES as PO " +
+                                            " ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}'" +
+                                            " INNER JOIN TB_PIPESIZE as PS " +
                                             " ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
-                                            "WHERE hex(PI.INSTANCE_ID) like '{2}';", groupName, pipeInsType_Pipe, instanceID);
+                                            "WHERE hex(PI.INSTANCE_ID) like '{2}' " +
+                                            "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe, instanceID);
                                 if (sql != "")
                                 {
                                     SQLiteCommand cmd = new SQLiteCommand(sql, conn);
@@ -4227,10 +4284,17 @@ namespace PipeInfo
                     {
                         using (SQLiteConnection conn = new SQLiteConnection(connstr))
                         {
-                            string sql = string.Format("SELECT INSTANCE_ID, INSTANCE_GROUP_NM FROM TB_INSTANCEGROUPMEMBERS as IM" +
-                                " INNER JOIN TB_INSTANCEGROUPS as IG " +
-                                "ON IM.INSTANCE_GROUP_ID = IG.INSTANCE_GROUP_ID " +
-                                "WHERE INSTANCE_GROUP_NM='{0}';", groupName);
+                            string sql = string.Format("SELECT * FROM TB_PIPEINSTANCES as PI " +
+                                "INNER JOIN TB_INSTANCEGROUPMEMBERS as IGM " +
+                                "on PI.INSTANCE_ID = IGM.INSTANCE_ID " +
+                                "INNER JOIN TB_INSTANCEGROUPS as IG " +
+                                "on IGM.INSTANCE_GROUP_ID = IG.INSTANCE_GROUP_ID " +
+                                "WHERE IG.INSTANCE_GROUP_NM='{0}';", groupName);
+
+                            //string sql = string.Format("SELECT INSTANCE_ID, INSTANCE_GROUP_NM FROM TB_INSTANCEGROUPMEMBERS as IM" +
+                            //    " INNER JOIN TB_INSTANCEGROUPS as IG " +
+                            //    "ON IM.INSTANCE_GROUP_ID = IG.INSTANCE_GROUP_ID " +
+                            //    "WHERE INSTANCE_GROUP_NM='{0}';", groupName);
 
                             conn.Open();
                             if (sql != "")

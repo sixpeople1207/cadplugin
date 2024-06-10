@@ -18,8 +18,9 @@ namespace PipeInfo
 {
     public class FileWatcher
     {
-        List<string> _Spool_Li= new List<string>();
+        List<string> _spool_Li= new List<string>();
         List<string> _handle_Li = new List<string>();
+        List<double> _spoolLenth_Li = new List<double>();
         string _file_path=string.Empty;
         string _file_Name = string.Empty;
         string _full_path = string.Empty;
@@ -52,13 +53,14 @@ namespace PipeInfo
             watcher.EnableRaisingEvents = true;
 
         }
-        public void ReceiveSpoolList(List<string> Spool_Li, List<string> handle_Li)
+        public void ReceiveSpoolList(List<string> spool_Li, List<string> handle_Li, List<double> spoolLength_Li)
         {
-            _Spool_Li = Spool_Li;
+            _spool_Li = spool_Li;
             _handle_Li = handle_Li;
+            _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.
         }
 
-        public void dd()
+        public void stepFileWriteSpoolNumber()
         {
             try
             {
@@ -90,7 +92,7 @@ namespace PipeInfo
                                 {
                                     if (new_LineSp[1].Contains(_handle_Li[j]))
                                     {
-                                        new_Line = new_LineSp[0] + "\'" + _Spool_Li[j] + "\'" + _handle_Li[j] + new_LineSp[2];
+                                        new_Line = new_LineSp[0] + "\'" + _spool_Li[j] +" "+ _handle_Li[j]+ " " + _spoolLenth_Li[j] +  "\'" + new_LineSp[2];
                                         st.Add(new_Line);
                                     }
                                 }
@@ -145,7 +147,7 @@ namespace PipeInfo
                                 {
                                     if (new_LineSp[1].Contains(_handle_Li[j]))
                                     {
-                                        new_Line = new_LineSp[0] + "\'" + _Spool_Li[j] + "\'" + _handle_Li[j] + new_LineSp[2];
+                                        new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + "\'" + _handle_Li[j] + new_LineSp[2];
                                         st.Add(new_Line);
                                     }
                                 }

@@ -10,8 +10,8 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>13</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <AssemblyName>791</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -137,6 +137,25 @@
     <Reference Include="AdWindows">
       <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\AdWindows.dll</HintPath>
     </Reference>
+    <Reference Include="Dinno.Do3d.Client.IO">
+      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Client.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Dinno.Do3d.Database">
+      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Database.dll</HintPath>
+    </Reference>
+    <Reference Include="Dinno.Do3d.IO">
+      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="Dinno.Do3d.Mep.NetFramework">
+      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Mep.NetFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="DINNO.HU3D.ViewModel">
+      <HintPath>D:\Git\bak\ddworks.app\Dinno.Hu3d.ViewModel\NetFramework\bin\Debug\DINNO.HU3D.ViewModel.dll</HintPath>
+    </Reference>
+    <Reference Include="DINNO.HU3D.Workspace, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>D:\Git\bak\ddworks.app\Dinno.Hu3d.Workspace\NetFramework\bin\x64\Debug\DINNO.HU3D.Workspace.dll</HintPath>
+    </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
       <Private>False</Private>
@@ -260,9 +279,7 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="NewFolder1\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

@@ -14,6 +14,9 @@ using Autodesk.Internal.Windows;
 using static PipeInfo.PipeInfo;
 using System.Windows.Forms;
 using MessageBox = System.Windows.Forms.MessageBox;
+using DINNO.HU3D.ViewModel.STD;
+using System.Security.Cryptography;
+using System.Windows.Shapes;
 
 namespace PipeInfo
 {
@@ -329,23 +332,42 @@ namespace PipeInfo
         public string Get_SpoolInfo_By_InstanceID(string instanceID)
         {
             string spool = String.Empty;
+            //string sql = string.Format(
+            //            "SELECT DISTINCT PI.OUTERDIAMETER, PDG.INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
+            //            "FROM TB_POCINSTANCES as PI INNER JOIN " +
+            //            "TB_PIPESIZE as PS," +
+            //            "TB_MATERIALS as MR," +
+            //            "TB_UTILITIES as UT," +
+            //            "TB_PRODUCTION_DRAWING as PD," +
+            //            "TB_PRODUCTION_DRAWING_GROUPS as PDG," +
+            //            "TB_INSTANCEGROUPMEMBERS as IGM " +
+            //            "on PI.PIPESIZE_ID = PS.PIPESIZE_ID AND " +
+            //            "PI.UTILITY_ID = UT.UTILITY_ID AND " +
+            //            "PD.PRODUCTION_DRAWING_GROUP_ID = PDG.PRODUCTION_DRAWING_GROUP_ID AND " +
+            //            "PDG.INSTANCE_GROUP_ID = IGM.INSTANCE_GROUP_ID AND " +
+            //            "IGM.INSTANCE_ID = PI.OWNER_INSTANCE_ID AND " +
+            //            "MR.MATERIAL_ID=PI.MATERIAL_ID AND " +
+            //           "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > -1 AND PI.OWNER_TYPE=256 AND " +
+            //           "hex(PI.OWNER_INSTANCE_ID) like '{0}' LIMIT 1;", instanceID);
+            // 스풀 정보 찾을때 OuterDiameter를 오름차순으로 정렬 추가
             string sql = string.Format(
-                        "SELECT DISTINCT PDG.INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
-                        "FROM TB_POCINSTANCES as PI INNER JOIN " +
-                        "TB_PIPESIZE as PS," +
-                        "TB_MATERIALS as MR," +
-                        "TB_UTILITIES as UT," +
-                        "TB_PRODUCTION_DRAWING as PD," +
-                        "TB_PRODUCTION_DRAWING_GROUPS as PDG," +
-                        "TB_INSTANCEGROUPMEMBERS as IGM " +
-                        "on PI.PIPESIZE_ID = PS.PIPESIZE_ID AND " +
-                        "PI.UTILITY_ID = UT.UTILITY_ID AND " +
-                        "PD.PRODUCTION_DRAWING_GROUP_ID = PDG.PRODUCTION_DRAWING_GROUP_ID AND " +
-                        "PDG.INSTANCE_GROUP_ID = IGM.INSTANCE_GROUP_ID AND " +
-                        "IGM.INSTANCE_ID = PI.OWNER_INSTANCE_ID AND " +
-                        "MR.MATERIAL_ID=PI.MATERIAL_ID AND " +
-                       "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > -1 AND PI.OWNER_TYPE=256 AND " +
-                       "hex(PI.OWNER_INSTANCE_ID) like '{0}' LIMIT 1;", instanceID);
+                "SELECT DISTINCT PS.OUTERDIAMETER, PDG.INSTANCE_GROUP_ID, PIPESIZE_NM, UTILITY_NM, PRODUCTION_DRAWING_GROUP_NM, MATERIAL_NM, SPOOL_NUMBER, IGM.INSTANCE_GROUP_ID " +
+                "FROM TB_POCINSTANCES as PI " +
+                "INNER JOIN TB_PIPEINSTANCES as PT " +
+                "on PI.OWNER_INSTANCE_ID = PT.INSTANCE_ID " +
+                "INNER JOIN TB_PIPESIZE as PS " +
+                "on PI.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                "INNER JOIN TB_MATERIALS as MR " +
+                "on MR.MATERIAL_ID = PI.MATERIAL_ID " +
+                "INNER JOIN TB_UTILITIES as UT " +
+                "on PI.UTILITY_ID = UT.UTILITY_ID " +
+                "INNER JOIN TB_PRODUCTION_DRAWING as PD " +
+                "on PD.INSTANCE_ID = PI.OWNER_INSTANCE_ID " +
+                "INNER JOIN TB_PRODUCTION_DRAWING_GROUPS as PDG " +
+                "on PDG.PRODUCTION_DRAWING_GROUP_ID = PD.PRODUCTION_DRAWING_GROUP_ID " +
+                "INNER JOIN TB_INSTANCEGROUPMEMBERS as IGM " +
+                "on IGM.INSTANCE_GROUP_ID = PDG.INSTANCE_GROUP_ID WHERE PD.SPOOL_NUMBER > -1 AND hex(PI.OWNER_INSTANCE_ID) like '{0}' ORDER BY PS.OUTERDIAMETER DESC LIMIT 1;"
+                , instanceID);
 
             string connstr = "Data Source=" + db_path;
             try
@@ -371,6 +393,8 @@ namespace PipeInfo
                             {
                                     material_NM = rdr["MATERIAL_NM"].ToString();
                                     spool_num = rdr["SPOOL_NUMBER"].ToString();
+                                    double size = Double.Parse(rdr["OUTERDIAMETER"].ToString());
+                                    double limit_Dia = 30;
                                     if (material_NM.Contains("SUS"))
                                     {
                                         string[] split_material = material_NM.Split(' ');
@@ -383,7 +407,11 @@ namespace PipeInfo
                                     {
                                         spool_num = "0" + spool_num;
                                     }
+
+                                if (size > limit_Dia)
+                                {
                                     spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                                }
                             }
                         }
                         else
