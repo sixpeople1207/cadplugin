@@ -182,9 +182,6 @@ C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\System.Data.SQL
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\en-US\AdWindows.resources.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\ko-KR\AdWindows.resources.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\791.dll.config
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\791.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\791.pdb
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\Dinno.Do3d.Client.IO.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\Dinno.Do3d.Database.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\Dinno.Do3d.IO.dll
@@ -235,5 +232,8 @@ C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\de\DevExpress.D
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\es\DevExpress.Data.v18.2.resources.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\ja\DevExpress.Data.v18.2.resources.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\ru\DevExpress.Data.v18.2.resources.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\791.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\791.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\799.dll.config
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\799.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\799.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\799.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\799.pdb

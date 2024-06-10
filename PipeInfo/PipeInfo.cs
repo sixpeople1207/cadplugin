@@ -48,6 +48,9 @@ using DINNO.HU3D.Workspace.Instance;
 using DINNO.DO3D.Database.DataModel;
 using DINNO.DO3D.IO.DataModel;
 using DINNO.DO3D.IO.Instances;
+using DINNO.HU3D.Workspace;
+using System.Runtime.CompilerServices;
+using DINNO.DO3D.CLIENT.IO.Comm.Datas;
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -69,16 +72,23 @@ namespace PipeInfo
         public void DDWConverter()
         {
             SqliteConnection ddd = new DINNO.DO3D.Database.SqliteConnection();
-            ddd.openSQLite(db_path);
+            //ddd.openSQLite(db_path);
             InstanceModelLoader il = new InstanceModelLoader();
             //InstanceBase();
             //InstanceAABBModel();
             //ModelBase();
             //InstanceBaseExtensions ib = new InstanceBaseExtensions();
             //ModelBase io = new DINNO.DO3D.IO.DataModel.ModelBase();
-            ddd.beginTrans();
-            MEPSceneDataSource mb = new DINNO.DO3D.MEP.Instances.MEPSceneDataSource();
-            Guid key = new Guid();
+            //ddd.beginTrans();
+            ddworksApp da = new ddworksApp();
+            da.Open("D:\\2. 제작도면\\자료\\도면\\DINNO 요청 DB (1)\\CSTNH01\\DInno.HU3D.db");
+            // 워크 스페이스에서 데이터 로드하는 법.. da.InstanceModelLoader;
+            //MessageBox.Show(bou.ToString());
+            //Guid id = new Guid();
+            //id.ToByteArray();
+            
+            //InstanceModelBase mb = da.InstanceModelLoader.loadInstanceModel(id);
+            
             //InstanceBase ib = mb.getDBInstance();
             
             //MEPInstanceSceneObjectBase dd = mb.getInstance(key);
@@ -5184,6 +5194,29 @@ namespace PipeInfo
             _palette.ui();
         }
 
+    }
+
+    public class ddworksApp : AppWorkspace
+    {
+        public override User User => throw new NotImplementedException();
+
+        public override IServerSide ServerSide => throw new NotImplementedException();
+
+        public override bool IsLocal => throw new NotImplementedException();
+
+        public override int LocalSchemaVersion => throw new NotImplementedException();
+
+        public override void Close()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool Open(string dbFileName)
+        {
+            bool isOnpen = false;
+            isOnpen = this.openDB(dbFileName);
+            return IsOpen;
+        }
     }
 }
 
