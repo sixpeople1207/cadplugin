@@ -39,6 +39,11 @@ using Utils = Autodesk.AutoCAD.Internal.Utils;
 using RibbonPanelSource = Autodesk.Windows.RibbonPanelSource;
 using RibbonButton = Autodesk.Windows.RibbonButton;
 using Quaternion = DINNO.DO3D.SceneGraph.Graphics.Math.Quaterniond;
+using DVecter3D = DINNO.DO3D.SceneGraph.Graphics.Math.Vector3d;
+using Vector3d = Autodesk.AutoCAD.Geometry.Vector3d;
+using Plane = Autodesk.AutoCAD.Geometry.Plane;
+using DINNO.DO3D.MEP;
+using DINNO.DO3D.SceneGraph.Graphics.Math;
 
 
 //using DINNO.DO3D.CLIENT.IO.Comm.Datas;
@@ -66,11 +71,13 @@ namespace PipeInfo
             env.Load();
 
             //DB PipeInstanceId String
-            string idstr = "4c501a796b09984095a14b203192aa2f";
+//            string idstr = "4c501a796b09984095a14b203192aa2f";
+            string idstr = "a18d1d743ef8804d8bf5dc364e69676b";
+
             //Project생성(StandAlone)
             ProjectBase project = DINNO.HU3D.Workspace.StandaloneProject.From(@"D:\2. 제작도면\베포 (UI및 기능)\TakeOff 테스트\시작DB_240426+.dpf") as StandaloneProject;
             //ApppWorkspace 생성
-            AppWorkspace workspace = env.OpenWorkspace(project); ;
+            AppWorkspace workspace = env.OpenWorkspace(project);
             //HookupDesigner Data로드
             workspace.LoadData(WorkspaceModuleType.HookupDesigner);
             //DB InstaceString Data를 DDWorks에서 사용하는 Guid로 변환 Byte 4개 객체가 순서 바뀌어 있음.
@@ -80,13 +87,54 @@ namespace PipeInfo
             //Instace객체의 회전정보를 Radian값으로 참조(Reference)해서 받아옴.
             double x = 0.0;
             double y = 0.0;
-            double z = 0.0;
+            double z = 1.0;
+            double radian = 1.57079637050629;
             //InstaceBase에 기본 저장되어 있는 함수.
             ibb.getYawPitchRollObjectAligned(out x, out y, out z);
-            //이 값을 Degree로 변환해서 사용가능.
-            MessageBox.Show(x.ToString() +"/" +y.ToString()+"/" +z.ToString());
-        }
 
+            Quaternion q = Quaternion.getRotate(radian,x,y,z);
+
+            double x_ = 0.0;
+            double y_ = 0.0;
+            double z_ = 0.0;
+            _getPipeYawPitchRollObjectAligned(q, out x_,out y_,out z_);
+            //이 값을 Degree로 변환해서 사용가능.
+            MessageBox.Show(x_.ToString() +"/" +y_.ToString()+"/" +z_.ToString());
+        }
+ 
+        public void _getPipeYawPitchRollObjectAligned(Quaterniond q, out double hdeg, out double vdeg, out double udeg)
+        {
+            hdeg = 0.0;
+            vdeg = 0.0;
+            udeg = 0.0;
+            DVecter3D normalized = (DVecter3D.YAXIS * q).getNormalized();
+            DVecter3D normalized2 = (DVecter3D.ZAXIS * q).getNormalized();
+            DVecter3D normalized3 = (DVecter3D.XAXIS * q).getNormalized();
+            if (!MEPSceneUtil.checkVerticalDirection(normalized3))
+            {
+                DVecter3D normalized4 = new DVecter3D(normalized3.x, normalized3.y, 0.0).getNormalized();
+                hdeg = MathUtil.calcDegree(DVecter3D.ZAXIS, DVecter3D.XAXIS, normalized4);
+                vdeg = MathUtil.calcDegree(normalized3, normalized4);
+                if (normalized3.z < 0.0)
+                {
+                    vdeg = 0.0 - vdeg;
+                }
+
+                DVecter3D normalized5 = (DVecter3D.ZAXIS ^ normalized3).getNormalized();
+                DVecter3D normalized6 = (normalized3 ^ normalized5).getNormalized();
+                udeg = MathUtil.calcDegree(normalized3, normalized6, normalized2);
+            }
+            else
+            {
+                hdeg = 0.0;
+                vdeg = ((normalized3.z >= 0.0) ? 90 : (-90));
+                udeg = MathUtil.calcDegree(normalized3, (normalized3.z >= 0.0) ? DVecter3D.XAXIS_NEGATIVE : DVecter3D.XAXIS, normalized2);
+            }
+            //getYawPitchRollObjectAligned 마지막 부분 추가
+            hdeg = MathUtil.toRadian(hdeg);
+            vdeg = MathUtil.toRadian(vdeg);
+            udeg = MathUtil.toRadian(udeg);
+        }
         public void DataGet(string data)
         {
             db_path = data;

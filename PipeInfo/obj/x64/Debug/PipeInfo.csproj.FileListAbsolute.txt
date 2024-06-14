@@ -167,9 +167,6 @@ C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\29.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\bin\x64\Debug\29.pdb
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\29.dll
 C:\Users\Dinno\source\repos\cadplugin\PipeInfo\obj\x64\Debug\29.pdb
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\1.dll.config
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\1.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\1.pdb
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\AdWindows.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\Dinno.Do3d.Client.IO.dll
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\Dinno.Do3d.Database.dll
@@ -235,5 +232,12 @@ C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.WinFor
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.GenerateResource.cache
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CopyComplete
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\1.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\1.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\4.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\5.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\6.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\7.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\8.dll.config
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\8.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\8.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\8.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\8.pdb
