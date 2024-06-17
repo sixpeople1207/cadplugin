@@ -103,7 +103,7 @@ namespace PipeInfo
             if (textBox_DBPath.Text != "")
             {
                 this.DialogResult = DialogResult.OK;
-
+                
                 //this.Close();
                 List<string> group_li = new List<string>();
                 List<string> pipeLen_li = new List<string>();

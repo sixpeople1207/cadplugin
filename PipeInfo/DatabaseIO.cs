@@ -17,6 +17,7 @@ using MessageBox = System.Windows.Forms.MessageBox;
 using DINNO.HU3D.ViewModel.STD;
 using System.Security.Cryptography;
 using System.Windows.Shapes;
+using DINNO.HU3D.Workspace.ProductionDrawing;
 
 namespace PipeInfo
 {
@@ -332,23 +333,6 @@ namespace PipeInfo
         public string Get_SpoolInfo_By_InstanceID(string instanceID)
         {
             string spool = String.Empty;
-            //string sql = string.Format(
-            //            "SELECT DISTINCT PI.OUTERDIAMETER, PDG.INSTANCE_GROUP_ID,PIPESIZE_NM,UTILITY_NM,PRODUCTION_DRAWING_GROUP_NM,MATERIAL_NM,SPOOL_NUMBER,IGM.INSTANCE_GROUP_ID " +
-            //            "FROM TB_POCINSTANCES as PI INNER JOIN " +
-            //            "TB_PIPESIZE as PS," +
-            //            "TB_MATERIALS as MR," +
-            //            "TB_UTILITIES as UT," +
-            //            "TB_PRODUCTION_DRAWING as PD," +
-            //            "TB_PRODUCTION_DRAWING_GROUPS as PDG," +
-            //            "TB_INSTANCEGROUPMEMBERS as IGM " +
-            //            "on PI.PIPESIZE_ID = PS.PIPESIZE_ID AND " +
-            //            "PI.UTILITY_ID = UT.UTILITY_ID AND " +
-            //            "PD.PRODUCTION_DRAWING_GROUP_ID = PDG.PRODUCTION_DRAWING_GROUP_ID AND " +
-            //            "PDG.INSTANCE_GROUP_ID = IGM.INSTANCE_GROUP_ID AND " +
-            //            "IGM.INSTANCE_ID = PI.OWNER_INSTANCE_ID AND " +
-            //            "MR.MATERIAL_ID=PI.MATERIAL_ID AND " +
-            //           "hex(PD.INSTANCE_ID) like '{0}' AND PD.SPOOL_NUMBER > -1 AND PI.OWNER_TYPE=256 AND " +
-            //           "hex(PI.OWNER_INSTANCE_ID) like '{0}' LIMIT 1;", instanceID);
             // 스풀 정보 찾을때 OuterDiameter를 오름차순으로 정렬 추가
             string sql = string.Format(
                 "SELECT DISTINCT PS.OUTERDIAMETER, PDG.INSTANCE_GROUP_ID, PIPESIZE_NM, UTILITY_NM, PRODUCTION_DRAWING_GROUP_NM, MATERIAL_NM, SPOOL_NUMBER, IGM.INSTANCE_GROUP_ID " +
@@ -429,9 +413,9 @@ namespace PipeInfo
             return spool;
 
         }
-        public List<string> Get_TakeOff_SizeForPipeinstanceId(string instanceID)
+        public List<string> Get_TakeOff_Size_By_InstanceId(string instanceID)
         {
-            List<string> spool = new List<string>();
+            List<string> holeSize_Li = new List<string>();
             string sql = string.Format(
                         "SELECT PI.INSTANCE_ID, DIAMETER1, PO.OWNER_INSTANCE_ID FROM TB_PIPEINSTANCES PI INNER JOIN TB_POCINSTANCES as PO "+
                         "WHERE  round(PI.POSX) = round(PO.POSX) "+
@@ -454,8 +438,8 @@ namespace PipeInfo
                            // rdr.Read();
                             while (rdr.Read())
                             {
-                              
-                                    spool.Add(rdr["DIAMETER1"].ToString());
+
+                                holeSize_Li.Add(rdr["DIAMETER1"].ToString());
                                 
                             }
                         }
@@ -466,42 +450,72 @@ namespace PipeInfo
             catch (Exception e)
             {
             }
-            return spool;
+            return holeSize_Li;
         }
 
-        public List<string> Get_TakeOff_Vector(string instanceID)
-        {
-            List<string> spool = new List<string>();
-            string sql = string.Format(
-                        "SELECT PI.INSTANCE_ID, DIAMETER1, PO.OWNER_INSTANCE_ID FROM TB_PIPEINSTANCES PI INNER JOIN TB_POCINSTANCES as PO " +
-                        "WHERE  round(PI.POSX) = round(PO.POSX) " +
-                        "AND round(PI.POSY) = round(PO.POSY) " +
-                        "AND round(PI.POSZ) = round(PO.POSZ) " +
-                        "AND Pi.PIPE_TYPE = '17301768' AND PO.CONNECTION_ORDER > 1 AND hex(PO.OWNER_INSTANCE_ID) like '{0}';", instanceID);
-            string connstr = "Data Source=" + db_path;
+        //public List<string> Get_TakeOff_Vector(string instanceID)
+        //{
+        //    List<string> spool = new List<string>();
+        //    string sql = string.Format(
+        //                "SELECT PI.INSTANCE_ID, DIAMETER1, PO.OWNER_INSTANCE_ID FROM TB_PIPEINSTANCES PI INNER JOIN TB_POCINSTANCES as PO " +
+        //                "WHERE  round(PI.POSX) = round(PO.POSX) " +
+        //                "AND round(PI.POSY) = round(PO.POSY) " +
+        //                "AND round(PI.POSZ) = round(PO.POSZ) " +
+        //                "AND Pi.PIPE_TYPE = '17301768' AND PO.CONNECTION_ORDER > 1 AND hex(PO.OWNER_INSTANCE_ID) like '{0}';", instanceID);
+        //    string connstr = "Data Source=" + db_path;
 
-            try
+        //    try
+        //    {
+        //        if (db_path != "")
+        //        {
+        //            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+        //            {
+        //                conn.Open();
+        //                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+        //                SQLiteDataReader rdr = comm.ExecuteReader();
+        //                if (rdr.HasRows) //rdr 반환값이 있을때만 Read
+        //                {
+        //                    rdr.Read();
+        //                    spool.Add(rdr["DIAMETER1"].ToString());
+        //                }
+        //                conn.Dispose();
+        //            }
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //    }
+        //    return spool;
+        //}
+        public List<string> Get_TakeOff_XYZRAngle_By_InstanceId(string  pipeInstanceID)
+        {
+            //리스트의 값은 POSX,POSY,POSZ,RADIAN 값 4개가 1개의 POC 정보
+            List<string> xyzrAngle = new List<string>();
+            //PipeInstance에 Takeoff가 있는 ConnOrder가 0,1이상인 POC가 있는 파이프크기가 큰 순서대로만 반환.
+            string sql = string.Format(
+                        "SELECT * FROM TB_POCINSTANCES as PI " +
+                        "JOIN TB_PIPESIZE as PS " +
+                        "on PI.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                        "WHERE hex(OWNER_INSTANCE_ID) like '{0}' AND " +
+                        "CONNECTION_ORDER > 1 ORDER BY PS.OUTERDIAMETER DESC;", pipeInstanceID);
+            string connstr = "Data Source=" + db_path;
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
             {
-                if (db_path != "")
+                conn.Open();
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                if (rdr.HasRows) //rdr 반환값이 있을때만 Read
                 {
-                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
-                    {
-                        conn.Open();
-                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
-                        SQLiteDataReader rdr = comm.ExecuteReader();
-                        if (rdr.HasRows) //rdr 반환값이 있을때만 Read
-                        {
-                            rdr.Read();
-                            spool.Add(rdr["DIAMETER1"].ToString());
-                        }
-                        conn.Dispose();
-                    }
+                    rdr.Read();
+                    xyzrAngle.Add(rdr["POSX"].ToString());
+                    xyzrAngle.Add(rdr["POSY"].ToString());
+                    xyzrAngle.Add(rdr["POSZ"].ToString());
+                    xyzrAngle.Add(rdr["RADIAN"].ToString());
+                    
                 }
+                conn.Dispose();
             }
-            catch (Exception e)
-            {
-            }
-            return spool;
+            return xyzrAngle;
         }
     }
 }

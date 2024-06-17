@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>8</AssemblyName>
+    <AssemblyName>13</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -151,6 +151,9 @@
     </Reference>
     <Reference Include="Dinno.Do3d.SceneGraph.NetFramework">
       <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.SceneGraph.NetFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="DINNO.HU3D.UI.WPF">
+      <HintPath>D:\Git\bak\ddworks.pub\dinno.hu3d.release\DINNO.HU3D.UI.WPF.dll</HintPath>
     </Reference>
     <Reference Include="DINNO.HU3D.ViewModel">
       <HintPath>D:\Git\bak\ddworks.app\Dinno.Hu3d.ViewModel\NetFramework\bin\Debug\DINNO.HU3D.ViewModel.dll</HintPath>
