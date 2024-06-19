@@ -8,6 +8,7 @@ using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
 using DINNO.DO3D.IO.Instances;
 using DINNO.DO3D.MEP;
+using DINNO.DO3D.MEP.InputHandler;
 using DINNO.DO3D.MEP.Instances;
 using DINNO.DO3D.SceneGraph.Graphics.Math;
 using DINNO.HU3D.Workspace;
@@ -100,14 +101,15 @@ namespace PipeInfo
                     double radian = 1.57079637050629;
                     //InstaceBase에 기본 저장되어 있는 함수.
                     ibb.getYawPitchRollObjectAligned(out x, out y, out z);
-
+                    
                     Quaternion q = Quaternion.getRotate(radian, x, y, z);
-
+                    
                     double x_ = 0.0;
                     double y_ = 0.0;
                     double z_ = 0.0;
 
                     _getPipeYawPitchRollObjectAligned(q, out x_, out y_, out z_);
+                    
                     //이 값을 Degree로 변환해서 사용가능.
                     MessageBox.Show(x_.ToString() + "/" + y_.ToString() + "/" + z_.ToString());
                 }
@@ -116,8 +118,9 @@ namespace PipeInfo
                     MessageBox.Show("경고:폴더 내에 DDWorks 프로젝트 파일(dpf)가 없음");
                 }
             }
-
         }
+
+    
 
         public void _getPipeYawPitchRollObjectAligned(Quaterniond q, out double hdeg, out double vdeg, out double udeg)
         {
@@ -1784,7 +1787,6 @@ namespace PipeInfo
             ObjectId cylinderObj_ID = new ObjectId();
             ObjectId saveObj_ID = new ObjectId();
 
-            double takeOff_length = 50;
 
             //PipeInstances 의 정보를 저장.
             foreach (var pipeIns in pipeInstances)
@@ -1858,6 +1860,7 @@ namespace PipeInfo
                             BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                             Solid3d takeoff_Cylinder = new Solid3d();
                             Solid3d base_Cylinder = new Solid3d();
+                            double takeOff_length = 50;
 
                             for (int i = 2; i < pipeInfo_Pos_li.Count; i += 1)
                             {
@@ -1865,9 +1868,11 @@ namespace PipeInfo
                                 {
                                     double radius = 0.0;
                                     radius = pipeInfo_Dia_Li[i] / 2;
+
+                                    //Take off 배관 생성
                                     cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, radius);
-                                    //take off만 반영
-                                 
+                                    
+                                    //take off만 반영 3D파이프의 핸들링을 위한 객체가져오기
                                     takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
                                     base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
 
@@ -1887,17 +1892,17 @@ namespace PipeInfo
 
                                     ed.WriteMessage(x_Angle.ToString() + " " + y_Angle.ToString() + " " + z_Angle.ToString() + " " + "\n");
 
-                                    // takeoff각도 저장.
+                                    // takeoff각도 저장. 단 XYZ값 중 한개만 값이 있다는 가정.두 개이상일때는 값이 틀어짐.
                                     double takeoff_Andgle = 0.0;
-                                    if(x_Angle > 0)
+                                    if(x_Angle != 0)
                                     {
                                         takeoff_Andgle = x_Angle;
                                     }
-                                    else if(y_Angle > 0)
+                                    else if(y_Angle != 0)
                                     {
                                         takeoff_Andgle = y_Angle;
                                     }
-                                    else if(z_Angle > 0)
+                                    else if(z_Angle != 0)
                                     {
                                         takeoff_Andgle = z_Angle;
                                     }
@@ -1908,32 +1913,74 @@ namespace PipeInfo
 
                                     // 베이스가 되는 파이프와 TakeOff위치의 거리를 구해서 진행.
                                     Vector3d pos = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
-                                    // takeoff위치 저장.
-                                    double takeoff_Level = 0.0;
-                                    if (Math.Abs(pos.X) > 5)
+                                    Vector3d basePipe_Vec = (pipeInfo_Pos_li[0] - pipeInfo_Pos_li[1]).GetNormal();
+                                    
+                                    Point2d fromPo = new Point2d();
+                                    Point2d toPo = new Point2d();
+                                    double takeoff_An_ToPipe = 0.0;
+
+                                    if (Math.Round(basePipe_Vec.X) == 1 || Math.Round(basePipe_Vec.X) == -1)
                                     {
-                                        takeoff_Level = Math.Abs(pos.X);
+                                        fromPo = new Point2d(pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
+                                        toPo = new Point2d(pipeInfo_Pos_li[i].Y, pipeInfo_Pos_li[i].Z);
                                     }
-                                    else if (Math.Abs(pos.Y) > 5)
+                                    else if(Math.Round(basePipe_Vec.Y) == 1 || Math.Round(basePipe_Vec.Y) == -1)
                                     {
-                                        takeoff_Level = Math.Abs(pos.Y);
+                                        fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Z);
+                                        toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Z);
                                     }
-                                    else if (Math.Abs(pos.Z) > 5)
+                                    else if(Math.Round(basePipe_Vec.Z) == 1 || Math.Round(basePipe_Vec.Z) == -1)
                                     {
-                                        takeoff_Level = Math.Abs(pos.Z);
+                                        fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y);
+                                        toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Y);
                                     }
                                     else
                                     {
-                                        ed.WriteMessage("Error : Takeoff 위치를 찾을 수 없습니다.");
+                                        MessageBox.Show("base파이프의 진행방향을 알 수 없습니다.");
                                     }
+
+                                    takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+
+                                    List<double> pos_Li = new List<double>();
+                                    pos_Li.Add(Math.Abs(pos.X));
+                                    pos_Li.Add(Math.Abs(pos.Y));
+                                    pos_Li.Add(Math.Abs(pos.Z));
+                                    // takeoff위치 저장.
+                                    double takeoff_Level = pos_Li.Max();
+
+                                    //if (Math.Abs(pos.X) > 5)
+                                    //{
+                                    //    takeoff_Level = Math.Abs(pos.X);
+                                    //}
+                                    //else if (Math.Abs(pos.Y) > 5)
+                                    //{
+                                    //    takeoff_Level = Math.Abs(pos.Y);
+                                    //}
+                                    //else if (Math.Abs(pos.Z) > 5)
+                                    //{
+                                    //    takeoff_Level = Math.Abs(pos.Z);
+                                    //}
+                                    //else
+                                    //{
+                                    //    ed.WriteMessage("Error : Takeoff 위치를 찾을 수 없습니다.");
+                                    //}
 
                                     Vector3d normal = Vector3d.YAxis;
                                     var centroid = takeoff_Cylinder.MassProperties.Centroid;
+                                    var zeroCenter = new Point3d(0,0,0);
                                     var plane = new Plane(centroid, normal);
 
-                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(takeoff_Andgle, normal, centroid));
-                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(pipeInfo_Dia_Li[0] / 2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
-                                   // base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
+                                    //STEP 파일을 그릴때는 무조건 Z축으로 Take-off 위치가 이동하도록 진행.
+                                    //파이프의 위치는 0을 중심으로 길이를 반반나누어서 진행.
+                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
+                                    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(takeOff_length/2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
+                                    normal = Vector3d.ZAxis;
+
+                                    //Database에 있는 Take-Off 값을 곱해주는 것으로 DDW와 같은 값을 얻는다. 만약 실제로 화면에 POC방향까지 표시하려면 Quaternion에 ToEular를 사용해서 X축에서 시작해서 회전값을 반영해줘야한다.
+                                    //기본 파이프와 POC의 피뢰침 시작은 X축을 바라보고 있는것으로 시작
+                                    //takeoff_Cylinder.TransformBy(Matrix3d.Rotation(r* takeoff_Andgle, normal, new Point3d(0, 0, 0))); //r과 곱하는 축 선택해줘야함.
+                                    takeoff_Cylinder.TransformBy(Matrix3d.Rotation(takeoff_An_ToPipe, normal, new Point3d(0, 0, 0)));
+                                    base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
                                 }
                                 //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
                                 if (saveObj_ID.OldId != 0)
@@ -2412,7 +2459,8 @@ namespace PipeInfo
                     basepoint.Y + (distance * Math.Sin(angle)),
                     basepoint.Z);
             }
-            // CREATE STEP
+           
+            // CREATE 3DCylinder
             public ObjectId create_3DCylinder(double pipe_Length, double radius)
             {
                 ObjectId objId = new ObjectId();
