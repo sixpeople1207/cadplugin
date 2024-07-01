@@ -24,6 +24,7 @@ namespace PipeInfo
     class DatabaseIO
     {
         private string db_path = "";
+        private string connstr = "";
         //private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
         //private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
         private string pipeInsType_Pipe = "17301760"; //
@@ -33,6 +34,7 @@ namespace PipeInfo
         public DatabaseIO(string acDB_path)
         {
             db_path = acDB_path;
+            connstr= "Data Source = " + db_path;
         }
       
         public List<string> get_DB_GroupList()
@@ -245,6 +247,9 @@ namespace PipeInfo
 
             return pipeInsInfo;
         }
+        /// <summary>
+        /// DDWorks Database에서 입력받은 그룹에 해당하는 모든 Instance의 Spool이름을 리스트로 반환한다.
+        /// </summary>
         public List<string> Get_SpoolList_By_GroupName(string db_path, string groupName)
         {
             List<string> spool_list = new List<string>();
@@ -330,6 +335,9 @@ namespace PipeInfo
             return spool_list;
 
         }
+        /// <summary>
+        /// DDWorks Database에서 한 개의 인스턴스의 Spool이름을 반환.
+        /// </summary>
         public string Get_SpoolInfo_By_InstanceID(string instanceID)
         {
             string spool = String.Empty;
@@ -413,6 +421,9 @@ namespace PipeInfo
             return spool;
 
         }
+        /// <summary>
+        /// DDWorks Database에서 Pipe에 뚫린 Take off 홀 사이즈들을 리스트로 반환한다.
+        /// </summary>
         public List<string> Get_TakeOff_Size_By_InstanceId(string instanceID)
         {
             List<string> holeSize_Li = new List<string>();
@@ -452,7 +463,9 @@ namespace PipeInfo
             }
             return holeSize_Li;
         }
-
+        /// <summary>
+        /// DDWorks Database에서 PipeInstance의 방향정보인 POSX,POSY,POSZ,Radian값을 반환한다. 
+        /// </summary>
         //public List<string> Get_TakeOff_Vector(string instanceID)
         //{
         //    List<string> spool = new List<string>();
@@ -516,6 +529,31 @@ namespace PipeInfo
                 conn.Dispose();
             }
             return xyzrAngle;
+        }
+        /// <summary>
+        /// 파이프의 두께를 반환(Pipe Out과 Inner 두께를 뺀 값) 
+        /// </summary>
+        /// <param name="pipeInstanceID"></param>
+        /// <returns></returns>
+        public double Get_Pipe_Thinkess_By_InstanceId(string pipeInstanceID)
+        {
+            double thk = 0;
+            string sql = String.Format("SELECT INNERDIAMETER,OUTERDIAMETER FROM TB_POCINSTANCES as PI " +
+                "INNER JOIN TB_PIPESIZE as PS ON PI.PIPESIZE_ID " +
+                "= PS.PIPESIZE_ID WHERE PI.OWNER_INSTANCE_ID = x'{0}';", pipeInstanceID);
+
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                conn.Open();
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                if (rdr.HasRows)
+                {
+                    rdr.Read();
+                    thk = (double)rdr["OUTERDIAMETER"] - (double)rdr["INNERDIAMETER"];
+                }
+            }
+                return thk;
         }
     }
 }

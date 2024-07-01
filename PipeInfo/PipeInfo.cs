@@ -1,4 +1,5 @@
-﻿using AutoCAD;
+﻿#region Namespaces
+using AutoCAD;
 using Autodesk.AutoCAD.ApplicationServices;
 using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
@@ -26,6 +27,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Media.Imaging;
+
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
@@ -43,6 +45,7 @@ using RibbonPanelSource = Autodesk.Windows.RibbonPanelSource;
 using Utils = Autodesk.AutoCAD.Internal.Utils;
 using Vector3d = Autodesk.AutoCAD.Geometry.Vector3d;
 //using DINNO.DO3D.CLIENT.IO.Comm.Datas;
+#endregion
 
 [assembly: ExtensionApplication(typeof(PipeInfo.App))]
 [assembly: CommandClass(typeof(PipeInfo.PipeInfo))]
@@ -1787,6 +1790,7 @@ namespace PipeInfo
             ObjectId cylinderObj_ID = new ObjectId();
             ObjectId saveObj_ID = new ObjectId();
 
+            double pipeThk = 0;
 
             //PipeInstances 의 정보를 저장.
             foreach (var pipeIns in pipeInstances)
@@ -1817,9 +1821,15 @@ namespace PipeInfo
                         // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
                         if (pipeInfo_Dia_Li[0] > 40) // 파이프 사이즈 30이상인 대구경 파이프만 
                         {
-                            cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, 3.0);
+                            // 파이프 두께를 반환
+                            pipeThk =  dbIO.Get_Pipe_Thinkess_By_InstanceId(pipeIns);
+                            if(pipeThk < 0 || pipeThk > 3) {pipeThk = 2; } //파이프 사이즈 중 일반두께 2.0
+
+                            // 파이프 생성
+                            cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, pipeThk);
                             if (cylinder_ids.Count > 1)
                             {
+                                // 비어 있는 파이프 만들기
                                 saveObj_ID = pipe.subtract_pipe(cylinder_ids[0], cylinder_ids[1]);
                                 if (saveObj_ID.OldId != 0)
                                 {
@@ -1847,9 +1857,9 @@ namespace PipeInfo
                     //}
 
                     /* Take Off 처리 객체 3D 뽕따기
-                        - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
-                        - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
-                        - 임의의 길이값을 추가해주고 Subtract함. 
+                    - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
+                    - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
+                    - 임의의 길이값을 추가해주고 Subtract함. 
                     */
                     if (pipeInfo_Pos_li.Count > 2)
                     {
@@ -1860,7 +1870,7 @@ namespace PipeInfo
                             BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
                             Solid3d takeoff_Cylinder = new Solid3d();
                             Solid3d base_Cylinder = new Solid3d();
-                            double takeOff_length = 50;
+                            double takeOff_length = pipeInfo_Dia_Li[0];
 
                             for (int i = 2; i < pipeInfo_Pos_li.Count; i += 1)
                             {
@@ -1875,7 +1885,7 @@ namespace PipeInfo
                                     //take off만 반영 3D파이프의 핸들링을 위한 객체가져오기
                                     takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
                                     base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
-
+                                    
                                     //Take off각도 계산
                                     int count = 0;
                                     //Take Off 속성정보는 x,y,z,r 4개가 1POC정보. 
@@ -1890,7 +1900,7 @@ namespace PipeInfo
                                     double z_Angle = 0.0;
                                     _getPipeYawPitchRollObjectAligned(q, out x_Angle, out y_Angle, out z_Angle);
 
-                                    ed.WriteMessage(x_Angle.ToString() + " " + y_Angle.ToString() + " " + z_Angle.ToString() + " " + "\n");
+                                    //ed.WriteMessage(x_Angle.ToString() + " " + y_Angle.ToString() + " " + z_Angle.ToString() + " " + "\n");
 
                                     // takeoff각도 저장. 단 XYZ값 중 한개만 값이 있다는 가정.두 개이상일때는 값이 틀어짐.
                                     double takeoff_Andgle = 0.0;
@@ -1975,7 +1985,7 @@ namespace PipeInfo
                                     takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
                                     takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(takeOff_length/2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
                                     normal = Vector3d.ZAxis;
-
+                                    
                                     //Database에 있는 Take-Off 값을 곱해주는 것으로 DDW와 같은 값을 얻는다. 만약 실제로 화면에 POC방향까지 표시하려면 Quaternion에 ToEular를 사용해서 X축에서 시작해서 회전값을 반영해줘야한다.
                                     //기본 파이프와 POC의 피뢰침 시작은 X축을 바라보고 있는것으로 시작
                                     //takeoff_Cylinder.TransformBy(Matrix3d.Rotation(r* takeoff_Andgle, normal, new Point3d(0, 0, 0))); //r과 곱하는 축 선택해줘야함.
@@ -2479,6 +2489,12 @@ namespace PipeInfo
                 }
                 return objId;
             }
+
+            ///<summary>
+            /// subtract_pipe기능을 사용하기 위해(비어있는 파이프 만들기) 두 개의 파이프를 생성해 리턴한다.
+            ///     1. Pipe Length, Radius 파이프를 생성. 
+            ///     2. Pipe Radius - Pipe Thk 파이프 생성.
+            ///</summary>
             public List<ObjectId> create_3DCylinder_Thickness(double pipe_length, double radius_Out, double pipe_thk)
             {
                 Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
