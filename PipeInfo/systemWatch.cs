@@ -1,12 +1,15 @@
-﻿using Microsoft.Office.Interop.Excel;
+﻿using EnvDTE;
+using Microsoft.Office.Interop.Excel;
 using System;
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
@@ -45,7 +48,7 @@ namespace PipeInfo
             watcher.IncludeSubdirectories = false;
 
             // 4. 감시할 이벤트 설정 (생성, 변경..)
-           // watcher.Created += new FileSystemEventHandler(Changed);
+            watcher.Created += new FileSystemEventHandler(Changed);
             //watcher.Changed += new FileSystemEventHandler(Changed);
             //watcher.Renamed += new RenamedEventHandler(Renamed);
 
@@ -59,27 +62,26 @@ namespace PipeInfo
             _handle_Li = handle_Li;
             _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.
         }
-
-        public void stepFileWriteSpoolNumber()
+        
+        public bool stepFileWriteSpoolNumber()
         {
+            bool isWrite = false;
             try
             {
                 //만들어진 파일경로를 감시해서 가져온다.
-           
-                    //FileStream ReadData = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    // ReadData.Close();
-                    //if (File.Exists(filepath))
-                    //{
-                    //FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-                    //string[] arrLine = File.ReadLines(filepath, Encoding.UTF8).ToArray();
-                    //string[] new_File = new string[arrLine.Length];
-                    List<string> st = new List<string>();
-                    // 스풀넘버를 적기 위해 '로 SPLIT으로 나눈다.
-                    // #29=MANIFOLD_SOLID_BREP( , F8 ,#584); 의 순으로 나누어 지고
-                    // 나중에 스풀넘버 좌우에 ''를 적어줘야한다. 
-                    string[] new_LineSp = new string[3];
-                    string new_Line = string.Empty;
-
+                //FileStream ReadData = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                // ReadData.Close();
+                //if (File.Exists(filepath))
+                //{
+                //FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                //string[] arrLine = File.ReadLines(filepath, Encoding.UTF8).ToArray();
+                //string[] new_File = new string[arrLine.Length];
+                List<string> st = new List<string>();
+                // 스풀넘버를 적기 위해 '로 SPLIT으로 나눈다.
+                // #29=MANIFOLD_SOLID_BREP( , F8 ,#584); 의 순으로 나누어 지고
+                // 나중에 스풀넘버 좌우에 ''를 적어줘야한다. 
+                string[] new_LineSp = new string[3];
+                string new_Line = string.Empty;
                     using (var reader = new StreamReader(_full_path, Encoding.UTF8))
                     {
                         while (!reader.EndOfStream)
@@ -95,8 +97,7 @@ namespace PipeInfo
                                         //new_Line = new_LineSp[0] + "\'" + _spool_Li[j] +" "+ _handle_Li[j]+ " " + _spoolLenth_Li[j] +  "\'" + new_LineSp[2];
                                         // 24.7.1양식 결정
                                         new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + ":"+ Math.Round(_spoolLenth_Li[j],0) + "\'" + new_LineSp[2];
-
-                                    st.Add(new_Line);
+                                        st.Add(new_Line);
                                     }
                                 }
                             }
@@ -107,12 +108,16 @@ namespace PipeInfo
                             }
                         }
                     }
-                    File.WriteAllLines(Path.GetDirectoryName(_full_path) + Path.GetFileNameWithoutExtension(_full_path) + "_.STP", st.ToArray());
-                }
+
+                //string filename = Path.GetDirectoryName(_full_path)+"\\" + Path.GetFileNameWithoutExtension(_full_path) + "_스풀넘버.STP";
+                File.WriteAllLines(Path.GetDirectoryName(_full_path) + "\\" + Path.GetFileNameWithoutExtension(_full_path) + "_스풀넘버.STP", st.ToArray());
+                isWrite = true;
+            }
             catch (Exception ex)
             {
                 MessageBox.Show("경고:파일이 사용중입니다.");
             }
+            return isWrite;
         }
         // 6. 감시할 폴더 내부 변경시 event 호출
         public void Changed(object source, FileSystemEventArgs e)

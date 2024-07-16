@@ -114,11 +114,11 @@ namespace PipeInfo
                     _getPipeYawPitchRollObjectAligned(q, out x_, out y_, out z_);
                     
                     //이 값을 Degree로 변환해서 사용가능.
-                    MessageBox.Show(x_.ToString() + "/" + y_.ToString() + "/" + z_.ToString());
+                    MessageBox.Show(x_.ToString() + "/" + y_.ToString() + "/" + z_.ToString(), "DDWorks Cad Plug-In");
                 }
                 else
                 {
-                    MessageBox.Show("경고:폴더 내에 DDWorks 프로젝트 파일(dpf)가 없음");
+                    MessageBox.Show("경고:폴더 내에 DDWorks 프로젝트 파일(dpf)가 없음", "DDWorks Cad Plug-In");
                 }
             }
         }
@@ -1163,7 +1163,7 @@ namespace PipeInfo
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
             }
 
         }
@@ -1335,7 +1335,7 @@ namespace PipeInfo
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
             }
             //CAD에서 하는 방법 1개 DB에서 하는 방법 1개. 진행.(db에서 vavle위치 가져오면서 연결된 객체들도)
 
@@ -1375,7 +1375,7 @@ namespace PipeInfo
             }
             catch (Autodesk.AutoCAD.Runtime.Exception ex)
             {
-                MessageBox.Show(ex.ToString());
+                MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
             }
 
         }
@@ -1946,7 +1946,7 @@ namespace PipeInfo
                                     }
                                     else
                                     {
-                                        MessageBox.Show("base파이프의 진행방향을 알 수 없습니다.");
+                                        MessageBox.Show("base파이프의 진행방향을 알 수 없습니다.", "DDWorks Cad Plug-In");
                                     }
 
                                     takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
@@ -2622,7 +2622,7 @@ namespace PipeInfo
                         DateTime currentTime = DateTime.Now;
                         //MessageBox.Show(dlg.FileName.ToString());
                         wb.SaveAs(dlg.FileName, XlFileFormat.xlWorkbookDefault);
-                        MessageBox.Show("저장되었습니다.");
+                        MessageBox.Show("저장되었습니다.","DDWorks Cad Plug-In");
                         wb.Close(true);
                         excelApp.Quit();
                     }
@@ -2884,7 +2884,7 @@ namespace PipeInfo
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        MessageBox.Show("*에러 : " + ex.ToString());
+                        MessageBox.Show("*에러 : " + ex.ToString(), "DDWorks Cad Plug-In");
                     }
                     return point3Ds;
                 }
@@ -3624,7 +3624,7 @@ namespace PipeInfo
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        MessageBox.Show(ex.ToString());
+                        MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
                     }
 
                     //***************************  텍스트 사이 라인그리기 *******************************
@@ -3828,7 +3828,7 @@ namespace PipeInfo
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        MessageBox.Show(ex.ToString());
+                        MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
                     }
 
                     return drawText_spoolTexts_objIDs;
@@ -4062,7 +4062,7 @@ namespace PipeInfo
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        MessageBox.Show(ex.ToString());
+                        MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
                     }
 
                     //***************************  텍스트 사이 라인그리기 *******************************
@@ -4264,7 +4264,7 @@ namespace PipeInfo
                     }
                     catch (Autodesk.AutoCAD.Runtime.Exception ex)
                     {
-                        MessageBox.Show(ex.ToString());
+                        MessageBox.Show(ex.ToString(), "DDWorks Cad Plug-In");
                     }
 
                     return drawText_spoolTexts_objIDs;
@@ -4436,7 +4436,7 @@ namespace PipeInfo
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.ToString());
+                    MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
                 }
                 // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
                 return (pipeInfor, pipePos, pipeLength, pipeDia, xyzrAngle);
@@ -4481,7 +4481,7 @@ namespace PipeInfo
                     }
                     else
                     {
-                        MessageBox.Show("Error : DDWorks Database 파일을 로드해주세요.");
+                        MessageBox.Show("Error : DDWorks Database 파일을 로드해주세요.", "DDWorks Cad Plug-In");
                     }
 
                 }
@@ -4592,7 +4592,7 @@ namespace PipeInfo
                                         else
                                         {
                                             ids.Add("Undefined");
-                                            MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.");
+                                            MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다.", "DDWorks Cad Plug-In");
                                         }
                                     }
                                 }
@@ -4908,7 +4908,7 @@ namespace PipeInfo
                     }
                     else
                     {
-                        MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다. Line:4381");
+                        MessageBox.Show("Error : 해당 배관에 대한 데이터가 없습니다. Line:4381", "DDWorks Cad Plug-In");
                     }
                     conn.Dispose();
                 }

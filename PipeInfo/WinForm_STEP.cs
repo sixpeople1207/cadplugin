@@ -8,9 +8,11 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Lifetime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Navigation;
+using static DINNO.HU3D.WPF.HookUpDesigner.FormBatchImport;
 using static PipeInfo.FileWatcher;
 
 namespace PipeInfo
@@ -219,27 +221,15 @@ namespace PipeInfo
 
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
-                       (_spool_Li, _handle_Li, _spoolLength_Li) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
-                        
+                        (_spool_Li, _handle_Li, _spoolLength_Li) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
                         button_Set_SpoolNumber.Enabled = true;
-                       
-                        //string spooli = "";
-                        //string hanli = "";
-
-                        //foreach (var d in _spool_Li)
-                        //{
-                        //    spooli += d+"\n";
-                        //}
-                        //foreach (var d in _handle_Li)
-                        //{
-                        //    hanli += d + "\n";
-                        //}
-                        //MessageBox.Show("스풀정보 ㅣ " + spooli + "핸들: " + hanli.ToString());
+                        MessageBox.Show("STEP파일이 생성 되었습니다.\nSTEP에 스풀정보를 입력하기 위해서는 아래 버튼을 눌러주세요.", "STEP File Export");
+                   
                     }
                     else
                     {
-                        MessageBox.Show("경고:경로에 빈칸이 존재합니다. 다른곳에 저장해주세요.");
+                        MessageBox.Show("경고:경로에 빈칸이 존재합니다. 다른곳에 저장해주세요.", "STEP File Export");
                     }
                 }
             }
@@ -248,8 +238,13 @@ namespace PipeInfo
 
         private void button1_Click_1(object sender, EventArgs e)
         {
-            fiw.stepFileWriteSpoolNumber();
+            bool isWrite = false;
+            isWrite = fiw.stepFileWriteSpoolNumber();
             button_Set_SpoolNumber.Enabled = false;
+            if(isWrite == true)
+            {
+                MessageBox.Show("STEP파일에 스풀정보 입력이 되었습니다.(스풀정보:길이)", "STEP File Export");
+            }
            
         }
 
