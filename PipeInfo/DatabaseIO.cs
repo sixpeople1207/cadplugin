@@ -535,9 +535,37 @@ namespace PipeInfo
         /// </summary>
         /// <param name="pipeInstanceID"></param>
         /// <returns></returns>
-        public double Get_Pipe_Thinkess_By_InstanceId(string pipeInstanceID)
+        public double Get_PipeThickness_By_InstanceId(string pipeInstanceID)
         {
             double thk = 0;
+
+            //string sql = String.Format("SELECT INNERDIAMETER,OUTERDIAMETER FROM TB_POCINSTANCES as PI " +
+            //    "INNER JOIN TB_PIPESIZE as PS ON PI.PIPESIZE_ID " +
+            //    "= PS.PIPESIZE_ID WHERE PI.OWNER_INSTANCE_ID = x'{0}';", pipeInstanceID);
+
+            // 24.7.16 ThickessID테이블 추가 후 SQL구문 업데이트
+            string sql = String.Format("SELECT (OUTERDIAMETER-INNERDIAMETER),THICKNESS FROM TB_POCINSTANCES as PI " +
+                "INNER JOIN TB_PIPESIZE as PS ON PI.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                "INNER JOIN TB_RULE_THICKNESS as TH ON PI.PIPESIZE_ID = TH.PIPESIZE_ID AND PI.MATERIAL_ID = TH.MATERIAL_ID " +
+                "WHERE PI.OWNER_INSTANCE_ID=x'{0}';",pipeInstanceID);
+
+            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+            {
+                conn.Open();
+                SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                SQLiteDataReader rdr = comm.ExecuteReader();
+                if (rdr.HasRows)
+                {
+                    rdr.Read();
+                    thk = (double)rdr["THICKNESS"];
+                }
+            }
+                return thk;
+        }
+        public double Get_PipeThk_SubOutInnerDia_By_InstanceId(string pipeInstanceID)
+        {
+            double thk = 0;
+
             string sql = String.Format("SELECT INNERDIAMETER,OUTERDIAMETER FROM TB_POCINSTANCES as PI " +
                 "INNER JOIN TB_PIPESIZE as PS ON PI.PIPESIZE_ID " +
                 "= PS.PIPESIZE_ID WHERE PI.OWNER_INSTANCE_ID = x'{0}';", pipeInstanceID);
@@ -553,7 +581,7 @@ namespace PipeInfo
                     thk = (double)rdr["OUTERDIAMETER"] - (double)rdr["INNERDIAMETER"];
                 }
             }
-                return thk;
+            return thk;
         }
     }
 }

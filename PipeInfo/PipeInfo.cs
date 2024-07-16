@@ -1819,11 +1819,17 @@ namespace PipeInfo
                     {
                         // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
                         // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
-                        if (pipeInfo_Dia_Li[0] > 40) // 파이프 사이즈 30이상인 대구경 파이프만 
+                        if (pipeInfo_Dia_Li[0] > 20) // 파이프 사이즈 30이상인 대구경 파이프만 -> 15A도 컷팅가능해서 20mm로 낮춤(24.7.16) 
                         {
-                            // 파이프 두께를 반환
-                            pipeThk =  dbIO.Get_Pipe_Thinkess_By_InstanceId(pipeIns);
-                            if(pipeThk < 0 || pipeThk > 3) {pipeThk = 2; } //파이프 사이즈 중 일반두께 2.0
+                            // 파이프 두께를 반환 , 최대값 두께 4.5미리
+                            pipeThk =  dbIO.Get_PipeThickness_By_InstanceId(pipeIns);
+                            if(pipeThk <= 0 || pipeThk > 5) {
+                                pipeThk = dbIO.Get_PipeThk_SubOutInnerDia_By_InstanceId(pipeIns);
+                                if(pipeThk <= 0 || pipeThk > 5) //파이프 설정이 없는 경우 (Thickness 설정 없을때, Out-Inner = Out사이즈일때)
+                                {
+                                    pipeThk = 2; //파이프 사이즈 중 일반두께 2.0
+                                }
+                            } 
 
                             // 파이프 생성
                             cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, pipeThk);
