@@ -161,7 +161,7 @@ namespace PipeInfo
                 double total_Length = 0;
 
                 pipeInstance_li = db.Get_PipeInstances_Infor_By_GroupName(db_path, groupName);
-                if (pipeInstance_li.Count > 5)
+                if (pipeInstance_li.Count >= 5)
                 {
                     for (int i = 0; i < pipeInstance_li.Count; i += 5)
                     {
@@ -186,7 +186,6 @@ namespace PipeInfo
                         }
                     }
                 }
-
                 //단관 총 갯수 표시
                 label_PipeCount.Text = (count_Pipe).ToString()+" 개";
                 label_PipesLength.Text = total_Length.ToString() + " mm";
@@ -195,7 +194,6 @@ namespace PipeInfo
                 string is_Clicked_CheckBox = "";
                 string is_StepOut_Button = "";
              
-
                 is_Checked = dataGridView_GroupList.Rows[e.RowIndex].Cells[0].Value.ToString();
                 is_Clicked_CheckBox = dataGridView_GroupList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
                 is_StepOut_Button = dataGridView_GroupList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value.ToString();
@@ -225,7 +223,6 @@ namespace PipeInfo
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
                         button_Set_SpoolNumber.Enabled = true;
                         MessageBox.Show("STEP파일이 생성 되었습니다.\nSTEP에 스풀정보를 입력하기 위해서는 아래 버튼을 눌러주세요.", "STEP File Export");
-                   
                     }
                     else
                     {
@@ -245,7 +242,6 @@ namespace PipeInfo
             {
                 MessageBox.Show("STEP파일에 스풀정보 입력이 되었습니다.(스풀정보:길이)", "STEP File Export");
             }
-           
         }
 
         private void toolTip1_Popup(object sender, PopupEventArgs e)
