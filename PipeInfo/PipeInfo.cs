@@ -2014,7 +2014,6 @@ namespace PipeInfo
 
             //STEP파일 저장
             //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", "Sample"), true, false, false);
-
             if (stepfileSave_Ids.Count > 0)
             {
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
@@ -2043,7 +2042,6 @@ namespace PipeInfo
                     }
                     acTrans.Commit();
                 }
-
                 acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
                 pipes_AutoMove_Array(stepfileSave_Ids);
             }
@@ -2108,20 +2106,22 @@ namespace PipeInfo
                         Solid3d cy = acTrans.GetObject(objectIds_Li[i], OpenMode.ForWrite) as Solid3d;
                         Vector3d mov = new Vector3d();
                         // 배관이 겹치지 않기 위해서 경우의 수를 두어서 배치. 간혹 좌표가 겹침.
+
                         if (i % 2 == 0 && i % 2 == 0)
-                        {
-                            mov = new Vector3d(0, 300 * i, 0);
-                        }
-                        else if (i % 2 == 1)
                         {
                             mov = new Vector3d(300 * i, 0, 0);
                         }
+                        else if (i % 2 == 1)
+                        {
+                            mov = new Vector3d(150 * i, 0, 0);
+
+                        }
                         else
                         {
-                            mov = new Vector3d(300 * i, 300 * i, 0);
+                            mov = new Vector3d(200 * i, 0, 0);
                         }
-
                         cy.TransformBy(Matrix3d.Displacement(mov));
+
                         // Point3d po = cy.Bounds.Value.MaxPoint;
                         //ed.WriteMessage("{0}\n", po.Y);
                     }
