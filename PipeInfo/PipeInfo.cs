@@ -12,6 +12,7 @@ using DINNO.DO3D.MEP;
 using DINNO.DO3D.MEP.InputHandler;
 using DINNO.DO3D.MEP.Instances;
 using DINNO.DO3D.SceneGraph.Graphics.Math;
+using DINNO.HU3D.UI.WPF.History;
 using DINNO.HU3D.Workspace;
 using Microsoft.Office.Interop.Excel;
 using System;
@@ -1784,7 +1785,7 @@ namespace PipeInfo
             List<double> spoolLength_Li = new List<double>();
             List<string> pipeHandle_Li = new List<string>();
             List<double> xyzr_Angle_Li = new List<double>();
-
+            List<double> pipeList = new List<double>();
             //List<ObjectId> stepfileSave_Ids = new List<ObjectId>();
 
             ObjectId cylinderObj_ID = new ObjectId();
@@ -1800,6 +1801,7 @@ namespace PipeInfo
                 * pipeInfo_ID_li는 해당 파이프 인스턴스에 POC가 여러개(TakeOff까지) 존재하기 때문에 리스트로 반환하고 거기서 정보를 가공해서 사용.
                 */
                 (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li, xyzr_Angle_Li) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
+                pipeList = ddwDB.Get_PipeList_By_GroupName(groupName);
 
                 // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
                 string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
@@ -1811,7 +1813,6 @@ namespace PipeInfo
                     {
                         spoolLength_Li.Add(pipeInfo_Length_li[0]);
                     }
-
                     // MessageBox.Show(spoolNum.ToString());
                     // POC 정보를 이용하여 3D Pipe를 생성한다. 반환값은 CAD ObjectId를 리스트로 반환한다.
 
@@ -1999,11 +2000,12 @@ namespace PipeInfo
                                     base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
                                 }
                                 //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
-                                if (saveObj_ID.OldId != 0)
-                                {
-                                    saveObj_ID = base_Cylinder.ObjectId;
-                                    stepfileSave_Ids.Add(saveObj_ID);
-                                }
+                              
+                            }
+                            if (saveObj_ID.OldId != 0)
+                            {
+                                saveObj_ID = base_Cylinder.ObjectId;
+                                //stepfileSave_Ids.Add(saveObj_ID); <- 파이프 id를 중복 저장하고 있음.. 삭제
                             }
                             acTrans.Commit();
                         }
@@ -2094,7 +2096,7 @@ namespace PipeInfo
             ObjectId id = new ObjectId();
 
             Autodesk.AutoCAD.ApplicationServices.Core.Application.SetSystemVariable("FACETRES", 8);
-
+            List<double> li = new List<double>();
             //STEPOUT 명령어로 STEP파일 Export
             using (Transaction acTrans = db.TransactionManager.StartTransaction())
             {
@@ -2104,30 +2106,12 @@ namespace PipeInfo
                     if (obj.OldId != 0)
                     {
                         Solid3d cy = acTrans.GetObject(objectIds_Li[i], OpenMode.ForWrite) as Solid3d;
-                        Vector3d mov = new Vector3d();
-                        // 배관이 겹치지 않기 위해서 경우의 수를 두어서 배치. 간혹 좌표가 겹침.
-
-                        if (i % 2 == 0 && i % 2 == 0)
-                        {
-                            mov = new Vector3d(300 * i, 0, 0);
-                        }
-                        else if (i % 2 == 1)
-                        {
-                            mov = new Vector3d(150 * i, 0, 0);
-
-                        }
-                        else
-                        {
-                            mov = new Vector3d(200 * i, 0, 0);
-                        }
-                        cy.TransformBy(Matrix3d.Displacement(mov));
-
-                        // Point3d po = cy.Bounds.Value.MaxPoint;
-                        //ed.WriteMessage("{0}\n", po.Y);
+                        Matrix3d matrix = Matrix3d.Displacement(new Vector3d(400 * i, 0, 0));
+                        cy.TransformBy(matrix);
+                       
                     }
                 }
-                acTrans.Commit();
-
+            acTrans.Commit();
             }
         }
 
@@ -2509,6 +2493,7 @@ namespace PipeInfo
                 List<ObjectId> objID_list = new List<ObjectId>();
                 Solid3d cylinder_Out = new Solid3d();
                 Solid3d cylinder_In = new Solid3d();
+
                 //Pipe 본체 모델링 
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
@@ -4405,17 +4390,19 @@ namespace PipeInfo
                             using (SQLiteConnection conn = new SQLiteConnection(connstr))
                             {
                                 conn.Open();
-                                string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN " +
-                                            " From TB_INSTANCEGROUPMEMBERS as GM " +
-                                            " INNER JOIN TB_PIPEINSTANCES as PI " +
-                                            " ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
-                                            "  AND GM.INSTANCE_GROUP_ID = " +
+                                string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                                            "From TB_INSTANCEGROUPMEMBERS as GM " +
+                                            "INNER JOIN TB_PIPEINSTANCES as PI " +
+                                            "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                            "AND GM.INSTANCE_GROUP_ID = " +
                                             "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS  " +
-                                            " WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
-                                            " INNER JOIN TB_POCINSTANCES as PO " +
-                                            " ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}'" +
-                                            " INNER JOIN TB_PIPESIZE as PS " +
-                                            " ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                            "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                            "INNER JOIN TB_POCINSTANCES as PO " +
+                                            "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}' " +
+                                            "INNER JOIN TB_PIPESIZE as PS " +
+                                            "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                            "INNER JOIN TB_PIPESTD as PD " +
+                                            "ON PS.PIPESTD_ID = PD.PIPESTD_ID " + 
                                             "WHERE hex(PI.INSTANCE_ID) like '{2}' " +
                                             "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe, instanceID);
                                 if (sql != "")
@@ -4425,15 +4412,23 @@ namespace PipeInfo
                                     string instanceId = "";
                                     while (rdr_ready.Read())
                                     {
-                                        instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
-                                        pipeInfor.Add(instanceId);
-                                        pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                        pipeLength.Add((double)rdr_ready["LENGTH1"]);
-                                        pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                        xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                        //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
+                                        string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
+                                        Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+
+                                        //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상
+                                        if (isPipe.Contains("PIPE") || connectInt>1)
+                                        {
+                                            instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                            pipeInfor.Add(instanceId);
+                                            pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                            pipeLength.Add((double)rdr_ready["LENGTH1"]);
+                                            pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                            xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                        }
                                     }
                                 }
                             }
@@ -4447,6 +4442,79 @@ namespace PipeInfo
                 // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
                 return (pipeInfor, pipePos, pipeLength, pipeDia, xyzrAngle);
 
+            }
+
+            // 파이프 배치를 위해서 Tube와 Take off Tube를 제외한 Pipe 리스트만 반환
+            public List<double> Get_PipeList_By_GroupName(string groupName)
+            {
+                List<string> pipeInfor = new List<string>();
+                List<Point3d> pipePos = new List<Point3d>();
+                List<double> pipeLength = new List<double>();
+                List<double> pipeDia = new List<double>();
+                List<double> xyzrAngle = new List<double>();
+
+                try
+                {
+                    using (Transaction acTrans = db_acDB.TransactionManager.StartTransaction())
+                    {
+                        DocumentCollection dm = Application.DocumentManager;
+                        Database destDb = dm.MdiActiveDocument.Database;
+                        Editor ed = dm.MdiActiveDocument.Editor;
+                        if (db_path != null)
+                        {
+                            string connstr = "Data Source=" + db_path;
+                            using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                            {
+                                conn.Open();
+                                string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                                            "From TB_INSTANCEGROUPMEMBERS as GM " +
+                                            "INNER JOIN TB_PIPEINSTANCES as PI " +
+                                            "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                            "AND GM.INSTANCE_GROUP_ID = " +
+                                            "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS  " +
+                                            "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                            "INNER JOIN TB_POCINSTANCES as PO " +
+                                            "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}' " +
+                                            "INNER JOIN TB_PIPESIZE as PS " +
+                                            "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                            "INNER JOIN TB_PIPESTD as PD " +
+                                            "ON PS.PIPESTD_ID = PD.PIPESTD_ID " +
+                                            "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe);
+                                if (sql != "")
+                                {
+                                    SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                    SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                                    string instanceId = "";
+                                    while (rdr_ready.Read())
+                                    {
+                                        //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
+                                        string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
+                                        Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+
+                                        if (isPipe.Contains("PIPE") && connectInt == 0) //온전히 파이프 갯수를 구하기 위해 POC번호 0번
+                                        {
+                                            instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                            pipeInfor.Add(instanceId);
+                                            pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                            pipeLength.Add((double)rdr_ready["LENGTH1"]);
+                                            pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                            xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                            xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
+                }
+                // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
+                return pipeLength;
             }
             // 그룹에 포함된 PIPEISNTANCES를 반환.
             public List<string> Get_PipeInstances_By_GroupName(string groupName)

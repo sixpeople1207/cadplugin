@@ -220,7 +220,7 @@ namespace PipeInfo
                                         hole ="Pipe";
                                     }
 
-                                    if ((outDia > 25.4 && hole=="Pipe") || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다.
+                                    if ((hole=="Pipe") || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다.
                                     {
                                         pipeInsInfo.Add(instanceId);
                                         pipeInsInfo.Add(pipeSize);
