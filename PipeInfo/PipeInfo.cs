@@ -124,8 +124,6 @@ namespace PipeInfo
             }
         }
 
-    
-
         public void _getPipeYawPitchRollObjectAligned(Quaterniond q, out double hdeg, out double vdeg, out double udeg)
         {
             hdeg = 0.0;
@@ -1755,6 +1753,9 @@ namespace PipeInfo
             winForm_STEP.Show();
         }
 
+        /*
+         * 기능 : DDWorks DB에서 파이프 정보를 가져와 STEP파일로 Export하는 기능 
+         */
         public (List<string>, List<string>, List<double>) export_Pipes_StepFiles(string groupName, string savepath)
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -1801,12 +1802,15 @@ namespace PipeInfo
                 * pipeInfo_ID_li는 해당 파이프 인스턴스에 POC가 여러개(TakeOff까지) 존재하기 때문에 리스트로 반환하고 거기서 정보를 가공해서 사용.
                 */
                 (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li, xyzr_Angle_Li) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
+                
+                //실제 파이프 갯수만 가져온다. POC 정보를 제외한 실제 파이프 갯수. 
                 pipeList = ddwDB.Get_PipeList_By_GroupName(groupName);
 
                 // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
                 string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
-                // 리스트에 담는다.
-                if (spoolNum != null && spoolNum != "")
+
+                // 리스트에 담는다. 스풀이름이 없어도 STEP파일 추출 되게끔 수정.
+                if (spoolNum != null) // && spoolNum != "")
                 {
                     spoolNum_Li.Add(spoolNum);
                     if (pipeInfo_Length_li.Count > 0)
@@ -1820,9 +1824,7 @@ namespace PipeInfo
                     {
                         // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
                         // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
-                        if (pipeInfo_Dia_Li[0] > 20) // 파이프 사이즈 30이상인 대구경 파이프만 -> 15A도 컷팅가능해서 20mm로 낮춤(24.7.16) 
-                        {
-                            // 파이프 두께를 반환 , 최대값 두께 4.5미리
+                        // 파이프 두께를 반환 , 최대값 두께 4.5미리
                             pipeThk =  dbIO.Get_PipeThickness_By_InstanceId(pipeIns);
                             if(pipeThk <= 0 || pipeThk > 5) {
                                 pipeThk = dbIO.Get_PipeThk_SubOutInnerDia_By_InstanceId(pipeIns);
@@ -1847,7 +1849,6 @@ namespace PipeInfo
                                     pipeHandle_Li.Add(cylinder_ids[0].Handle.ToString());
                                 };
                             }
-                        }
                     }
 
                     //if (pipeInfo_Pos_li.Count > 2)
@@ -2002,11 +2003,12 @@ namespace PipeInfo
                                 //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
                               
                             }
-                            if (saveObj_ID.OldId != 0)
-                            {
-                                saveObj_ID = base_Cylinder.ObjectId;
-                                //stepfileSave_Ids.Add(saveObj_ID); <- 파이프 id를 중복 저장하고 있음.. 삭제
-                            }
+
+                            //if (saveObj_ID.OldId != 0)
+                            //{
+                            //    saveObj_ID = base_Cylinder.ObjectId;
+                            //    //stepfileSave_Ids.Add(saveObj_ID); <- 파이프 id를 중복 저장하고 있음.. 삭제
+                            //}
                             acTrans.Commit();
                         }
 
