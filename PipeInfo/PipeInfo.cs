@@ -4417,7 +4417,7 @@ namespace PipeInfo
                                         Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
 
                                         //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상
-                                        if (isPipe.Contains("PIPE") || connectInt>1)
+                                        if (isPipe.Contains("PIPE") || isPipe.Contains("NW") || connectInt>1)
                                         {
                                             instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                             pipeInfor.Add(instanceId);
@@ -4491,7 +4491,7 @@ namespace PipeInfo
                                         string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                         Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
 
-                                        if (isPipe.Contains("PIPE") && connectInt == 0) //온전히 파이프 갯수를 구하기 위해 POC번호 0번
+                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && connectInt == 0) //온전히 파이프 갯수를 구하기 위해 POC번호 0번
                                         {
                                             instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                             pipeInfor.Add(instanceId);

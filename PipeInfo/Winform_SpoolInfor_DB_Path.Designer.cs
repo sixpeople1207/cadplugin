@@ -124,6 +124,7 @@ namespace PipeInfo
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Winform_SpoolInfor_DB_Path";
             this.Text = "제작도면 : Spool 정보 불러오기";
+            this.TopMost = true;
             this.Load += new System.EventHandler(this.Winform_SpoolInfor_DB_Path_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();

@@ -553,11 +553,23 @@ namespace PipeInfo
             {
                 conn.Open();
                 SQLiteCommand comm = new SQLiteCommand(sql, conn);
-                SQLiteDataReader rdr = comm.ExecuteReader();
-                if (rdr.HasRows)
+
+                try
                 {
-                    rdr.Read();
-                    thk = (double)rdr["THICKNESS"];
+                    SQLiteDataReader rdr = comm.ExecuteReader();
+                    if (rdr.HasRows)
+                    {
+                        rdr.Read();
+                        thk = (double)rdr["THICKNESS"];
+                    }
+                }
+                catch(Exception e)
+                {
+                    MessageBox.Show(e.ToString());
+                }
+                finally
+                {
+                    conn.Close();
                 }
             }
                 return thk;
