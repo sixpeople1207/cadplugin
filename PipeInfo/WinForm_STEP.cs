@@ -149,7 +149,7 @@ namespace PipeInfo
                 pipeInfo.delete_All_Object();
                 string groupName = "";
                 List<string> pipeInstance_li = new List<string>();
-
+                List<double> pipeList = new List<double>();
                 //DataGridView 행을 돌며 선택이 된 행의 그룹 이름을 가져온다.
                 dataGridView_PipesList.Rows.Clear();
                 groupName = dataGridView_GroupList.Rows[e.RowIndex].Cells[1].Value.ToString();
@@ -161,29 +161,31 @@ namespace PipeInfo
                 double total_Length = 0;
 
                 pipeInstance_li = db.Get_PipeInstances_Infor_By_GroupName(db_path, groupName);
+
                 if (pipeInstance_li.Count >= 5)
                 {
                     for (int i = 0; i < pipeInstance_li.Count; i += 5)
                     {
                         dataGridView_PipesList.Rows.Add(
-                            pipeInstance_li[i+ (int)stepPipeInfo.InstanceId], 
-                            pipeInstance_li[i + (int)stepPipeInfo.PipeSize], 
-                            pipeInstance_li[i + (int)stepPipeInfo.PipeMaterial], 
-                            pipeInstance_li[i + (int)stepPipeInfo.PipeLength]+" mm", 
+                            //pipeInstance_li[i + (int)stepPipeInfo.InstanceId],
+                            (dataGridView_PipesList.RowCount+1).ToString(),
+                            pipeInstance_li[i + (int)stepPipeInfo.PipeSize],
+                            pipeInstance_li[i + (int)stepPipeInfo.PipeMaterial],
+                            pipeInstance_li[i + (int)stepPipeInfo.PipeLength] + " mm",
                             pipeInstance_li[i + (int)stepPipeInfo.IsHole]
-                            );
+                            ) ;
 
                         //그리브뷰에서 파이프일때 파이프 갯수와 파이프 길이를 저장.
-                        if(pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Pipe")
-                        {
+                        //if (pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Pipe")
+                        //{
                             //dataGridView_PipesList.Rows[i].Cells[4].Style.ForeColor = Color.DarkBlue;
                             count_Pipe += 1;
                             total_Length += Double.Parse(pipeInstance_li[i + (int)stepPipeInfo.PipeLength]);
-                        }
-                        else if(pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Hole")
-                        {
+                        //}
+                        //else if (pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Hole")
+                        //{
                             //dataGridView_PipesList.Rows[i].Cells[4].Style.ForeColor = Color.DarkGreen;
-                        }
+                        //}
                     }
                 }
                 //단관 총 갯수 표시

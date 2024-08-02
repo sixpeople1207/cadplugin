@@ -169,19 +169,21 @@ namespace PipeInfo
                 {
                     using (SQLiteConnection conn = new SQLiteConnection(connstr))
                     {
-                        string sql = string.Format("SELECT DISTINCT PO.OWNER_INSTANCE_ID ,PS.OUTERDIAMETER, PIPESIZE_NM, MATERIAL_NM ,LENGTH1, PO.CONNECTION_ORDER From TB_INSTANCEGROUPMEMBERS as GM " +
+                        string sql = string.Format("SELECT DISTINCT PD.PIPESTD_NM ,PO.OWNER_INSTANCE_ID , PS.OUTERDIAMETER, PIPESIZE_NM, MATERIAL_NM ,LENGTH1, PO.CONNECTION_ORDER From TB_INSTANCEGROUPMEMBERS as GM " +
                                 "INNER JOIN " +
                                 "TB_PIPEINSTANCES as PI "+
-                                    "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
-                                      "AND GM.INSTANCE_GROUP_ID = " +
-                                        "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS " +
-                                            "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                "AND GM.INSTANCE_GROUP_ID = " +
+                                "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS " +
+                                "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
                                 "INNER JOIN TB_POCINSTANCES as PO  " +
-                                    "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE= '{1}' " +
+                                "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE= '{1}' " +
                                 "INNER JOIN TB_PIPESIZE as PS  " +
-                                    "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                "INNER JOIN TB_PIPESTD as PD "+
+                                "ON PS.PIPESTD_ID = PD.PIPESTD_ID "+
                                 "INNER JOIN TB_MATERIALS as MG " +
-                                    "ON PO.MATERIAL_ID = MG.MATERIAL_ID;",groupName, pipeInsType_Pipe);
+                                "ON PO.MATERIAL_ID = MG.MATERIAL_ID;",groupName, pipeInsType_Pipe);
                         conn.Open();
                         if (sql != "")
                         {
@@ -192,7 +194,8 @@ namespace PipeInfo
                                 if (rdr_ready["CONNECTION_ORDER"].ToString() != "1") //그리드뷰에서 POC1개의 정보만 보여주기 위해 1개는 걸러냄.
                                 {
                                     string instanceId = BitConverter.ToString((byte[])rdr_ready["OWNER_INSTANCE_ID"]).Replace("-", "");
-                                    string legnth = Math.Round((double)rdr_ready["LENGTH1"],1).ToString();
+                                    string length_str = Math.Round((double)rdr_ready["LENGTH1"],1).ToString();
+                                    double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
                                     string hole = "-";
                                     string pipeSize = "";
                                     string material_Nm = "";
@@ -202,34 +205,35 @@ namespace PipeInfo
                                     //float dia = (float)rdr_ready["OUTERDIAMETER"];
                                     
                                     Double outDia = Double.Parse(rdr_ready["OUTERDIAMETER"].ToString());
-                                
-                                        connect_id = rdr_ready["CONNECTION_ORDER"].ToString();
-                                        pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
-                                        material_Nm = rdr_ready["MATERIAL_NM"].ToString();
-                                    
-                                   
+                                    connect_id = rdr_ready["CONNECTION_ORDER"].ToString();
+                                    pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
 
-                                    //TakeOff객체인지 걸러내기 위해 Connect Id중에 0과 1은 파이프의 POC이고 2이상은 TakeOff임.
-                                    if (connect_id != "0" && connect_id != "1")
-                                    {
-                                        hole="Hole";
-                                        legnth = "0"; //Hole은 길이값 없어서 길이값 수정.
-                                    }
-                                    else
-                                    {
-                                        hole ="Pipe";
-                                    }
+                                    //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
+                                    string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
+                                    Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+                                    material_Nm = rdr_ready["MATERIAL_NM"].ToString();
 
-                                    if ((hole=="Pipe") || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다.
+                                    ////TakeOff객체인지 걸러내기 위해 Connect Id중에 0과 1은 파이프의 POC이고 2이상은 TakeOff임.
+                                    //if (connect_id != "0" && connect_id != "1")
+                                    //{
+                                    //    hole="Hole";
+                                    //    legnth = "0"; //Hole은 길이값 없어서 길이값 수정.
+                                    //}
+                                    //else
+                                    //{
+                                    //    hole ="Pipe";
+                                    //}
+
+                                    //파이프 STD객체중 Pipe인 객체만 걸러낸다. 
+                                    if ((isPipe.Contains("PIPE") || isPipe.Contains("NW"))&& length>0) // || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다. -> Hole은 제외ㅏ
                                     {
                                         pipeInsInfo.Add(instanceId);
                                         pipeInsInfo.Add(pipeSize);
                                         pipeInsInfo.Add(material_Nm);
-                                        pipeInsInfo.Add(legnth);
+                                        pipeInsInfo.Add(length_str);
                                         pipeInsInfo.Add(hole);
                                     }
                                 }
-
                             }
                         }
                     }
@@ -246,6 +250,74 @@ namespace PipeInfo
             }
 
             return pipeInsInfo;
+        }
+        /// <summary>
+        /// 파이프 배치를 위해서 Tube와 Take off Tube를 제외한 Pipe 리스트만 반환
+        /// </summary>
+        public List<double> Get_PipeList_By_GroupName(string groupName)
+        {
+            List<string> pipeInfor = new List<string>();
+            List<Point3d> pipePos = new List<Point3d>();
+            List<double> pipeLength = new List<double>();
+            List<double> pipeDia = new List<double>();
+            List<double> xyzrAngle = new List<double>();
+
+            try
+            {
+                if (db_path != null)
+                    {
+                        string connstr = "Data Source=" + db_path;
+                        using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                        {
+                            conn.Open();
+                            string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                                        "From TB_INSTANCEGROUPMEMBERS as GM " +
+                                        "INNER JOIN TB_PIPEINSTANCES as PI " +
+                                        "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                        "AND GM.INSTANCE_GROUP_ID = " +
+                                        "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS  " +
+                                        "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                        "INNER JOIN TB_POCINSTANCES as PO " +
+                                        "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}' " +
+                                        "INNER JOIN TB_PIPESIZE as PS " +
+                                        "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                        "INNER JOIN TB_PIPESTD as PD " +
+                                        "ON PS.PIPESTD_ID = PD.PIPESTD_ID " +
+                                        "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe);
+                            if (sql != "")
+                            {
+                                SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                                SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                                string instanceId = "";
+                                while (rdr_ready.Read())
+                                {
+                                    //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
+                                    string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
+                                    Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+
+                                    if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && connectInt == 0) //온전히 파이프 갯수를 구하기 위해 POC번호 0번
+                                    {
+                                        instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                        pipeInfor.Add(instanceId);
+                                        pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                        pipeLength.Add((double)rdr_ready["LENGTH1"]);
+                                        pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                        xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                    }
+                                }
+                            }
+                        }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
+            }
+            // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
+            return pipeLength;
         }
         /// <summary>
         /// DDWorks Database에서 입력받은 그룹에 해당하는 모든 Instance의 Spool이름을 리스트로 반환한다.
@@ -386,7 +458,7 @@ namespace PipeInfo
                                     material_NM = rdr["MATERIAL_NM"].ToString();
                                     spool_num = rdr["SPOOL_NUMBER"].ToString();
                                     double size = Double.Parse(rdr["OUTERDIAMETER"].ToString());
-                                    double limit_Dia = 30;
+                                    //double limit_Dia = 30;
                                     if (material_NM.Contains("SUS"))
                                     {
                                         string[] split_material = material_NM.Split(' ');
@@ -400,10 +472,10 @@ namespace PipeInfo
                                         spool_num = "0" + spool_num;
                                     }
 
-                                if (size > limit_Dia)
-                                {
+                                //if (size > limit_Dia) //
+                                //{
                                     spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
-                                }
+                                //}
                             }
                         }
                         else

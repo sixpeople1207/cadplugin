@@ -59,6 +59,7 @@
             this.label1 = new System.Windows.Forms.Label();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.toolTip2 = new System.Windows.Forms.ToolTip(this.components);
+            this.button1 = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox_GroupList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_GroupList)).BeginInit();
@@ -195,7 +196,7 @@
             this.dataGridView_PipesList.ReadOnly = true;
             this.dataGridView_PipesList.RowHeadersVisible = false;
             this.dataGridView_PipesList.RowTemplate.Height = 23;
-            this.dataGridView_PipesList.Size = new System.Drawing.Size(389, 257);
+            this.dataGridView_PipesList.Size = new System.Drawing.Size(389, 306);
             this.dataGridView_PipesList.TabIndex = 1;
             this.dataGridView_PipesList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PipesList_CellContentClick);
             // 
@@ -250,21 +251,20 @@
             this.groupBox_PipeList.Controls.Add(this.dataGridView_PipesList);
             this.groupBox_PipeList.Location = new System.Drawing.Point(12, 248);
             this.groupBox_PipeList.Name = "groupBox_PipeList";
-            this.groupBox_PipeList.Size = new System.Drawing.Size(404, 287);
+            this.groupBox_PipeList.Size = new System.Drawing.Size(404, 331);
             this.groupBox_PipeList.TabIndex = 4;
             this.groupBox_PipeList.TabStop = false;
             this.groupBox_PipeList.Text = "파이프 리스트";
             // 
             // groupBox_PipeLengthInfo
             // 
-            this.groupBox_PipeLengthInfo.Controls.Add(this.button_Set_SpoolNumber);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipeCount);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipesLength);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label_PipeTHK);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label3);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label2);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label1);
-            this.groupBox_PipeLengthInfo.Location = new System.Drawing.Point(12, 541);
+            this.groupBox_PipeLengthInfo.Location = new System.Drawing.Point(12, 585);
             this.groupBox_PipeLengthInfo.Name = "groupBox_PipeLengthInfo";
             this.groupBox_PipeLengthInfo.Size = new System.Drawing.Size(404, 89);
             this.groupBox_PipeLengthInfo.TabIndex = 6;
@@ -274,9 +274,9 @@
             // button_Set_SpoolNumber
             // 
             this.button_Set_SpoolNumber.Enabled = false;
-            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(284, 20);
+            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(296, 680);
             this.button_Set_SpoolNumber.Name = "button_Set_SpoolNumber";
-            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 51);
+            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 33);
             this.button_Set_SpoolNumber.TabIndex = 3;
             this.button_Set_SpoolNumber.Text = "스풀번호반영";
             this.button_Set_SpoolNumber.UseVisualStyleBackColor = true;
@@ -340,12 +340,24 @@
             // 
             this.toolTip1.Popup += new System.Windows.Forms.PopupEventHandler(this.toolTip1_Popup);
             // 
+            // button1
+            // 
+            this.button1.Enabled = false;
+            this.button1.Location = new System.Drawing.Point(179, 680);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(111, 33);
+            this.button1.TabIndex = 7;
+            this.button1.Text = "내보내기";
+            this.button1.UseVisualStyleBackColor = true;
+            // 
             // WinForm_STEP
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(419, 638);
+            this.ClientSize = new System.Drawing.Size(430, 725);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.button_Set_SpoolNumber);
             this.Controls.Add(this.groupBox_PipeLengthInfo);
             this.Controls.Add(this.groupBox_GroupList);
             this.Controls.Add(this.groupBox1);
@@ -395,5 +407,6 @@
         private System.Windows.Forms.Button button_Set_SpoolNumber;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.ToolTip toolTip2;
+        private System.Windows.Forms.Button button1;
     }
 }

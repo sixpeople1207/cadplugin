@@ -4409,6 +4409,7 @@ namespace PipeInfo
                                             "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe, instanceID);
                                 if (sql != "")
                                 {
+
                                     SQLiteCommand cmd = new SQLiteCommand(sql, conn);
                                     SQLiteDataReader rdr_ready = cmd.ExecuteReader();
                                     string instanceId = "";
@@ -4417,9 +4418,10 @@ namespace PipeInfo
                                         //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                         string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                         Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+                                        double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
 
                                         //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상
-                                        if (isPipe.Contains("PIPE") || isPipe.Contains("NW") || connectInt>1)
+                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW") || connectInt>1)&& length>0)
                                         {
                                             instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                             pipeInfor.Add(instanceId);
