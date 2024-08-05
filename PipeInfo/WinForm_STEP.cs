@@ -255,18 +255,18 @@ namespace PipeInfo
         {
             // 파이프 리스트가 0이상일때.. 작동하도록.. 
             List<string> header = new List<string>()
-            { "번호","관경","재질","파이프 길이" };
+            { "번호","관경","재질","파이프 길이","스풀이름" };
             ExcelObject excel = new ExcelObject(header);
             Compare comparePoint = new Compare();
 
             // pipeInstance_li의 정보는 Instance, 파이프 사이즈, 등의 정보를 5개단위로 가지고 있다.
             // 그리드뷰에 파이프 정보를 표시한다.
             List<string> pipeInstance_li = new List<string>();
-            
+            string spoolNambe = "";
             if (groupName != null)
             {
                 pipeInstance_li = db.Get_PipeInstances_Infor_By_GroupName(db_path, groupName);
-
+                
                 for (int i = 0; i < pipeInstance_li.Count; i+=5)
                 {
                     int j = 0;
@@ -283,6 +283,11 @@ namespace PipeInfo
                     excel.excel_InsertData(j, 2, pipeInstance_li[i + (int)stepPipeInfo.PipeSize], false);
                     excel.excel_InsertData(j, 3, pipeInstance_li[i + (int)stepPipeInfo.PipeMaterial], false);
                     excel.excel_InsertData(j, 4, pipeInstance_li[i + (int)stepPipeInfo.PipeLength], false);
+
+                    //스풀 정보 
+                    spoolNambe = db.Get_SpoolInfo_By_InstanceID(pipeInstance_li[i]);
+                    excel.excel_InsertData(j, 5, spoolNambe, false);
+
                 }
                 excel.excel_save();
             }
