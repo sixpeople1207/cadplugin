@@ -62,6 +62,7 @@ namespace PipeInfo
         //나중에는 Handle과 Spool정보와 길이를 맵핑한다. 
         //추가할 기능은 같은 레벨에 있는 텍스트를 선택하기 정도.. 
         public string db_path = "";
+        public double pipeSize_Limit = 260;
 
         [CommandMethod("DDW")]
         public void ddworks_Connection()
@@ -1801,6 +1802,7 @@ namespace PipeInfo
                 * 그룹이름과 파이프 인스턴스를 이용해 파이프 사이즈 길이 등 POC의 정보를 가져온다.
                 * pipeInfo_ID_li는 해당 파이프 인스턴스에 POC가 여러개(TakeOff까지) 존재하기 때문에 리스트로 반환하고 거기서 정보를 가공해서 사용.
                 */
+
                 (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li, xyzr_Angle_Li) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
                 
                 //실제 파이프 갯수만 가져온다. POC 정보를 제외한 실제 파이프 갯수. 
@@ -1813,6 +1815,7 @@ namespace PipeInfo
                 if (spoolNum != null) // && spoolNum != "")
                 {
                     spoolNum_Li.Add(spoolNum);
+              
                     if (pipeInfo_Length_li.Count > 0)
                     {
                         spoolLength_Li.Add(pipeInfo_Length_li[0]);
@@ -2499,7 +2502,7 @@ namespace PipeInfo
                 //Pipe 본체 모델링 
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
-                    if (pipe_length > 30)
+                    if (pipe_length > 10) //최소 파이프 길이 10mm
                     {
                         acDoc.LockDocument();
                         BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
@@ -2510,10 +2513,18 @@ namespace PipeInfo
                         cylinder_Out.RecordHistory = true;
                         cylinder_Out.CreateFrustum(pipe_length, radius_Out, radius_Out, radius_Out);
 
-                        double radius_In = radius_Out - pipe_thk;
-                        cylinder_In.RecordHistory = true;
-                        cylinder_In.CreateFrustum(pipe_length, radius_In, radius_In, radius_In);
 
+                        //Subtract 할 배관 생성
+                        double radius_In = radius_Out - pipe_thk;
+                        if (radius_In > 0)
+                        {
+                            cylinder_In.RecordHistory = true;
+                            cylinder_In.CreateFrustum(pipe_length, radius_In, radius_In, radius_In);
+                        }
+                        else
+                        {
+                            MessageBox.Show("파이프의 두께가 10mm이하입니다.","DDWorks CAD Plug-In");
+                        }
                         //double radius_takeoff = 5;
                         //Solid3d takeoff_cylinder = new Solid3d();
                         //takeoff_cylinder.RecordHistory = true;
@@ -2524,11 +2535,13 @@ namespace PipeInfo
                         pipeObID_In = acBlkRec.AppendEntity(cylinder_In);
                         acTrans.AddNewlyCreatedDBObject(cylinder_In, true);
 
-                        //objID_C = acBlkRec.AppendEntity(takeoff_cylinder);
-                        //acTrans.AddNewlyCreatedDBObject(takeoff_cylinder, true);
                         acTrans.Commit();
                         objID_list.Add(pipeObID_Out);
                         objID_list.Add(pipeObID_In);
+                    }
+                    else
+                    {
+                        MessageBox.Show("파이프의 길이가 0mm이하 입니다.\n", "DDWorks CAD Plug-In");
                     }
                 }
                 return objID_list;
@@ -4373,10 +4386,10 @@ namespace PipeInfo
             // 파이프 인스턴스중 PIPE TYPE이 17301760인 객체만 가져와서 POC위치, 길이, 파이프 사이즈정보를 리스트로 넘겨준다.
             public (List<string>, List<Point3d>, List<double>, List<double>, List<double>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
             {
-                List<string> pipeInfor = new List<string>();
-                List<Point3d> pipePos = new List<Point3d>();
-                List<double> pipeLength = new List<double>();
-                List<double> pipeDia = new List<double>();
+                List<string> pipesInfor = new List<string>();
+                List<Point3d> pipesPos = new List<Point3d>();
+                List<double> pipesLength = new List<double>();
+                List<double> pipesDia = new List<double>();
                 List<double> xyzrAngle = new List<double>();
 
                 try
@@ -4419,20 +4432,43 @@ namespace PipeInfo
                                         string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                         Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
                                         double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
-
-                                        //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상
-                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW") || connectInt>1)&& length>0)
+                                        double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
+                                        double pipeSizeLimit = 260;
+                                        //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
+                                        if (connectInt < 2)
                                         {
-                                            instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
-                                            pipeInfor.Add(instanceId);
-                                            pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                            pipeLength.Add((double)rdr_ready["LENGTH1"]);
-                                            pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                            xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                            if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSizeLimit)
+                                            {
+                                                instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                                pipesInfor.Add(instanceId);
+                                                pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                                pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                                pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                                xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                            }
+                                            else
+                                            {
+                                                break;
+                                            }
                                         }
+                                        else if(connectInt > 1)
+                                        {
+                                                instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                                pipesInfor.Add(instanceId);
+                                                pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                                pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                                pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                                xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                                xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                            
+                                        }
+                                        
+                                      
                                     }
                                 }
                             }
@@ -4444,7 +4480,7 @@ namespace PipeInfo
                     MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
                 }
                 // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
-                return (pipeInfor, pipePos, pipeLength, pipeDia, xyzrAngle);
+                return (pipesInfor, pipesPos, pipesLength, pipesDia, xyzrAngle);
 
             }
 

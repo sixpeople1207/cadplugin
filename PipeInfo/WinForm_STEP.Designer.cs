@@ -50,16 +50,16 @@
             this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.groupBox_PipeList = new System.Windows.Forms.GroupBox();
             this.groupBox_PipeLengthInfo = new System.Windows.Forms.GroupBox();
-            this.button_Set_SpoolNumber = new System.Windows.Forms.Button();
             this.label_PipeCount = new System.Windows.Forms.Label();
             this.label_PipesLength = new System.Windows.Forms.Label();
             this.label_PipeTHK = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
+            this.button_Set_SpoolNumber = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
             this.toolTip2 = new System.Windows.Forms.ToolTip(this.components);
-            this.button1 = new System.Windows.Forms.Button();
+            this.button_Export_PipeList = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.groupBox_GroupList.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_GroupList)).BeginInit();
@@ -271,17 +271,6 @@
             this.groupBox_PipeLengthInfo.TabStop = false;
             this.groupBox_PipeLengthInfo.Text = "Information";
             // 
-            // button_Set_SpoolNumber
-            // 
-            this.button_Set_SpoolNumber.Enabled = false;
-            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(296, 680);
-            this.button_Set_SpoolNumber.Name = "button_Set_SpoolNumber";
-            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 33);
-            this.button_Set_SpoolNumber.TabIndex = 3;
-            this.button_Set_SpoolNumber.Text = "스풀번호반영";
-            this.button_Set_SpoolNumber.UseVisualStyleBackColor = true;
-            this.button_Set_SpoolNumber.Click += new System.EventHandler(this.button1_Click_1);
-            // 
             // label_PipeCount
             // 
             this.label_PipeCount.AutoSize = true;
@@ -336,19 +325,31 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "파이프 두께 : ";
             // 
+            // button_Set_SpoolNumber
+            // 
+            this.button_Set_SpoolNumber.Enabled = false;
+            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(296, 680);
+            this.button_Set_SpoolNumber.Name = "button_Set_SpoolNumber";
+            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 33);
+            this.button_Set_SpoolNumber.TabIndex = 3;
+            this.button_Set_SpoolNumber.Text = "스풀번호반영";
+            this.button_Set_SpoolNumber.UseVisualStyleBackColor = true;
+            this.button_Set_SpoolNumber.Click += new System.EventHandler(this.button1_Click_1);
+            // 
             // toolTip1
             // 
             this.toolTip1.Popup += new System.Windows.Forms.PopupEventHandler(this.toolTip1_Popup);
             // 
-            // button1
+            // button_Export_PipeList
             // 
-            this.button1.Enabled = false;
-            this.button1.Location = new System.Drawing.Point(179, 680);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(111, 33);
-            this.button1.TabIndex = 7;
-            this.button1.Text = "내보내기";
-            this.button1.UseVisualStyleBackColor = true;
+            this.button_Export_PipeList.Enabled = false;
+            this.button_Export_PipeList.Location = new System.Drawing.Point(179, 680);
+            this.button_Export_PipeList.Name = "button_Export_PipeList";
+            this.button_Export_PipeList.Size = new System.Drawing.Size(111, 33);
+            this.button_Export_PipeList.TabIndex = 7;
+            this.button_Export_PipeList.Text = "내보내기";
+            this.button_Export_PipeList.UseVisualStyleBackColor = true;
+            this.button_Export_PipeList.Click += new System.EventHandler(this.button_Export_PipeList_Click);
             // 
             // WinForm_STEP
             // 
@@ -356,7 +357,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.ClientSize = new System.Drawing.Size(430, 725);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.button_Export_PipeList);
             this.Controls.Add(this.button_Set_SpoolNumber);
             this.Controls.Add(this.groupBox_PipeLengthInfo);
             this.Controls.Add(this.groupBox_GroupList);
@@ -365,7 +366,6 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "WinForm_STEP";
             this.Text = "제작도면 : DDWorks To STEP";
-            this.TopMost = true;
             this.Load += new System.EventHandler(this.WinForm_STEP_Load);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
@@ -407,6 +407,6 @@
         private System.Windows.Forms.Button button_Set_SpoolNumber;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.ToolTip toolTip2;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button button_Export_PipeList;
     }
 }

@@ -28,6 +28,8 @@ namespace PipeInfo
         //private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
         //private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
         private string pipeInsType_Pipe = "17301760"; //
+        private double pipeSize_Limit = 260;
+
         public DatabaseIO()
         {
         }
@@ -156,7 +158,7 @@ namespace PipeInfo
         }
 
         /// <summary>
-        /// DDWorks Database에서 파이프 인스턴스 정보를 불러온다.(배열 정보(0~4):인스턴스아이디,파이프사이즈,재질,길이,파이프타입(Takeoff인지))
+        /// DDWorks Database에서 파이프 인스턴스 정보를 불러온다. UI 파싱용 (배열 정보(0~4):인스턴스아이디,파이프사이즈,재질,길이,파이프타입(Takeoff인지))
         /// </summary>
         public List<string> Get_PipeInstances_Infor_By_GroupName(string db_path, string groupName)
         {
@@ -181,7 +183,7 @@ namespace PipeInfo
                                 "INNER JOIN TB_PIPESIZE as PS  " +
                                 "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
                                 "INNER JOIN TB_PIPESTD as PD "+
-                                "ON PS.PIPESTD_ID = PD.PIPESTD_ID "+
+                                "ON PS.PIPESTD_ID = PD.PIPESTD_ID "+ //파이프 여부 확인 24.8.2추가
                                 "INNER JOIN TB_MATERIALS as MG " +
                                 "ON PO.MATERIAL_ID = MG.MATERIAL_ID;",groupName, pipeInsType_Pipe);
                         conn.Open();
@@ -196,42 +198,28 @@ namespace PipeInfo
                                     string instanceId = BitConverter.ToString((byte[])rdr_ready["OWNER_INSTANCE_ID"]).Replace("-", "");
                                     string length_str = Math.Round((double)rdr_ready["LENGTH1"],1).ToString();
                                     double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
-                                    string hole = "-";
+                                    double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
+                                    string hole = "-"; 
                                     string pipeSize = "";
                                     string material_Nm = "";
-                                  
-                                    // Take Off 객체인지 리스트에 표시.
-                                    string connect_id = "";
-                                    //float dia = (float)rdr_ready["OUTERDIAMETER"];
-                                    
-                                    Double outDia = Double.Parse(rdr_ready["OUTERDIAMETER"].ToString());
-                                    connect_id = rdr_ready["CONNECTION_ORDER"].ToString();
-                                    pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
-
+                                   
                                     //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                     string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                     Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
                                     material_Nm = rdr_ready["MATERIAL_NM"].ToString();
-
-                                    ////TakeOff객체인지 걸러내기 위해 Connect Id중에 0과 1은 파이프의 POC이고 2이상은 TakeOff임.
-                                    //if (connect_id != "0" && connect_id != "1")
-                                    //{
-                                    //    hole="Hole";
-                                    //    legnth = "0"; //Hole은 길이값 없어서 길이값 수정.
-                                    //}
-                                    //else
-                                    //{
-                                    //    hole ="Pipe";
-                                    //}
+                                    pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
 
                                     //파이프 STD객체중 Pipe인 객체만 걸러낸다. 
-                                    if ((isPipe.Contains("PIPE") || isPipe.Contains("NW"))&& length>0) // || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다. -> Hole은 제외ㅏ
+                                    if (connectInt < 2)
                                     {
-                                        pipeInsInfo.Add(instanceId);
-                                        pipeInsInfo.Add(pipeSize);
-                                        pipeInsInfo.Add(material_Nm);
-                                        pipeInsInfo.Add(length_str);
-                                        pipeInsInfo.Add(hole);
+                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSize_Limit) // || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다. -> Hole은 제외, 250A 이상은 사이즈 리미트
+                                        {
+                                            pipeInsInfo.Add(instanceId);
+                                            pipeInsInfo.Add(pipeSize);
+                                            pipeInsInfo.Add(material_Nm);
+                                            pipeInsInfo.Add(length_str);
+                                            pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
+                                        }
                                     }
                                 }
                             }

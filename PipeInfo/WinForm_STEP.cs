@@ -174,18 +174,9 @@ namespace PipeInfo
                             pipeInstance_li[i + (int)stepPipeInfo.PipeLength] + " mm",
                             pipeInstance_li[i + (int)stepPipeInfo.IsHole]
                             ) ;
-
                         //그리브뷰에서 파이프일때 파이프 갯수와 파이프 길이를 저장.
-                        //if (pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Pipe")
-                        //{
-                            //dataGridView_PipesList.Rows[i].Cells[4].Style.ForeColor = Color.DarkBlue;
                             count_Pipe += 1;
                             total_Length += Double.Parse(pipeInstance_li[i + (int)stepPipeInfo.PipeLength]);
-                        //}
-                        //else if (pipeInstance_li[i + (int)stepPipeInfo.IsHole] == "Hole")
-                        //{
-                            //dataGridView_PipesList.Rows[i].Cells[4].Style.ForeColor = Color.DarkGreen;
-                        //}
                     }
                 }
                 //단관 총 갯수 표시
@@ -249,6 +240,11 @@ namespace PipeInfo
         private void toolTip1_Popup(object sender, PopupEventArgs e)
         {
 
+        }
+
+        private void button_Export_PipeList_Click(object sender, EventArgs e)
+        {
+            // 파이프 리스트가 0이상일때.. 작동하도록.. 
         }
     }
 
