@@ -1808,27 +1808,29 @@ namespace PipeInfo
                 //실제 파이프 갯수만 가져온다. POC 정보를 제외한 실제 파이프 갯수. 
                 pipeList = ddwDB.Get_PipeList_By_GroupName(groupName);
 
-                // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
-                string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
-
-                // 리스트에 담는다. 스풀이름이 없어도 STEP파일 추출 되게끔 수정.
-                if (spoolNum != null) // && spoolNum != "")
-                {
-                    spoolNum_Li.Add(spoolNum);
-              
-                    if (pipeInfo_Length_li.Count > 0)
-                    {
-                        spoolLength_Li.Add(pipeInfo_Length_li[0]);
-                    }
+             
                     // MessageBox.Show(spoolNum.ToString());
                     // POC 정보를 이용하여 3D Pipe를 생성한다. 반환값은 CAD ObjectId를 리스트로 반환한다.
 
                     if (pipeInfo_ID_li.Count > 1)
                     {
+                    // 파이프 인스턴스를 통해 DDW DB에서 SpoolNum를 가져온다. 
+                    string spoolNum = dbIO.Get_SpoolInfo_By_InstanceID(pipeIns);
+
+                    // 리스트에 담는다. 스풀이름이 없어도 STEP파일 추출 되게끔 수정.
+                    if (spoolNum != null) // && spoolNum != "")
+                    {
+                        spoolNum_Li.Add(spoolNum);
+
+                        if (pipeInfo_Length_li.Count > 0)
+                        {
+                            spoolLength_Li.Add(pipeInfo_Length_li[0]);
+                        }
+                    }
                         // POC 는 아래위로 쌍으로 길이와 DIAMETER가 같기때문에 하나만 사용한다.
                         // Cylinder는 Out, In 두개를 만들어서 CAD에서 Subtract명령어로 두께가 있는 파이프를 만든다.
                         // 파이프 두께를 반환 , 최대값 두께 4.5미리
-                            pipeThk =  dbIO.Get_PipeThickness_By_InstanceId(pipeIns);
+                        pipeThk =  dbIO.Get_PipeThickness_By_InstanceId(pipeIns);
                             if(pipeThk <= 0 || pipeThk > 5) {
                                 pipeThk = dbIO.Get_PipeThk_SubOutInnerDia_By_InstanceId(pipeIns);
                                 if(pipeThk <= 0 || pipeThk > 5) //파이프 설정이 없는 경우 (Thickness 설정 없을때, Out-Inner = Out사이즈일때)
@@ -2016,7 +2018,7 @@ namespace PipeInfo
                         }
 
                     }
-                }
+                
             }
 
             //STEP파일 저장

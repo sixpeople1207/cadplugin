@@ -443,27 +443,27 @@ namespace PipeInfo
                             string spool_num = "";
                             while (rdr.Read())
                             {
-                                    material_NM = rdr["MATERIAL_NM"].ToString();
-                                    spool_num = rdr["SPOOL_NUMBER"].ToString();
-                                    double size = Double.Parse(rdr["OUTERDIAMETER"].ToString());
-                                    //double limit_Dia = 30;
-                                    if (material_NM.Contains("SUS"))
+                                material_NM = rdr["MATERIAL_NM"].ToString();
+                                spool_num = rdr["SPOOL_NUMBER"].ToString();
+                                double size = Double.Parse(rdr["OUTERDIAMETER"].ToString());
+                                //double limit_Dia = 30;
+                                if (material_NM.Contains("SUS"))
+                                {
+                                    string[] split_material = material_NM.Split(' ');
+                                    if (split_material.Length > 1)
                                     {
-                                        string[] split_material = material_NM.Split(' ');
-                                        if (split_material.Length > 1)
-                                        {
-                                            material_NM = split_material[1];
-                                        }
+                                        material_NM = split_material[1];
                                     }
-                                    if (spool_num.Length == 1)
-                                    {
-                                        spool_num = "0" + spool_num;
-                                    }
+                                }
+                                if (spool_num.Length == 1)
+                                {
+                                    spool_num = "0" + spool_num;
+                                }
 
-                                //if (size > limit_Dia) //
-                                //{
-                                    spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
-                                //}
+                            //if (size > limit_Dia) //
+                            //{
+                                spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                            //}
                             }
                         }
                         else
