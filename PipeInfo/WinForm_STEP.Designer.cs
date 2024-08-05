@@ -30,9 +30,9 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(WinForm_STEP));
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
-            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle10 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle11 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle12 = new System.Windows.Forms.DataGridViewCellStyle();
             this.textBox_DBPath = new System.Windows.Forms.TextBox();
             this.button_DBpath = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
@@ -112,9 +112,9 @@
             // groupBox_GroupList
             // 
             this.groupBox_GroupList.Controls.Add(this.dataGridView_GroupList);
-            this.groupBox_GroupList.Location = new System.Drawing.Point(12, 87);
+            this.groupBox_GroupList.Location = new System.Drawing.Point(12, 80);
             this.groupBox_GroupList.Name = "groupBox_GroupList";
-            this.groupBox_GroupList.Size = new System.Drawing.Size(404, 151);
+            this.groupBox_GroupList.Size = new System.Drawing.Size(404, 178);
             this.groupBox_GroupList.TabIndex = 3;
             this.groupBox_GroupList.TabStop = false;
             this.groupBox_GroupList.Text = "설계 그룹 리스트";
@@ -133,14 +133,14 @@
             this.dataGridView_GroupList.MultiSelect = false;
             this.dataGridView_GroupList.Name = "dataGridView_GroupList";
             this.dataGridView_GroupList.ReadOnly = true;
-            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Control;
-            dataGridViewCellStyle1.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.WindowText;
-            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Info;
-            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.Highlight;
-            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
-            this.dataGridView_GroupList.RowHeadersDefaultCellStyle = dataGridViewCellStyle1;
+            dataGridViewCellStyle10.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle10.BackColor = System.Drawing.SystemColors.Control;
+            dataGridViewCellStyle10.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            dataGridViewCellStyle10.ForeColor = System.Drawing.SystemColors.WindowText;
+            dataGridViewCellStyle10.SelectionBackColor = System.Drawing.SystemColors.Info;
+            dataGridViewCellStyle10.SelectionForeColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle10.WrapMode = System.Windows.Forms.DataGridViewTriState.True;
+            this.dataGridView_GroupList.RowHeadersDefaultCellStyle = dataGridViewCellStyle10;
             this.dataGridView_GroupList.RowHeadersVisible = false;
             this.dataGridView_GroupList.RowTemplate.Height = 23;
             this.dataGridView_GroupList.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
@@ -227,8 +227,8 @@
             // 
             // Column3
             // 
-            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
-            this.Column3.DefaultCellStyle = dataGridViewCellStyle2;
+            dataGridViewCellStyle11.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleRight;
+            this.Column3.DefaultCellStyle = dataGridViewCellStyle11;
             this.Column3.HeaderText = "파이프 길이";
             this.Column3.Name = "Column3";
             this.Column3.ReadOnly = true;
@@ -236,9 +236,9 @@
             // 
             // Column4
             // 
-            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle3.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
-            this.Column4.DefaultCellStyle = dataGridViewCellStyle3;
+            dataGridViewCellStyle12.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleCenter;
+            dataGridViewCellStyle12.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
+            this.Column4.DefaultCellStyle = dataGridViewCellStyle12;
             this.Column4.FillWeight = 40F;
             this.Column4.HeaderText = "Hole";
             this.Column4.Name = "Column4";
@@ -248,10 +248,11 @@
             // 
             // groupBox_PipeList
             // 
+            this.groupBox_PipeList.Controls.Add(this.button_Export_PipeList);
             this.groupBox_PipeList.Controls.Add(this.dataGridView_PipesList);
-            this.groupBox_PipeList.Location = new System.Drawing.Point(12, 248);
+            this.groupBox_PipeList.Location = new System.Drawing.Point(12, 257);
             this.groupBox_PipeList.Name = "groupBox_PipeList";
-            this.groupBox_PipeList.Size = new System.Drawing.Size(404, 331);
+            this.groupBox_PipeList.Size = new System.Drawing.Size(404, 363);
             this.groupBox_PipeList.TabIndex = 4;
             this.groupBox_PipeList.TabStop = false;
             this.groupBox_PipeList.Text = "파이프 리스트";
@@ -264,7 +265,7 @@
             this.groupBox_PipeLengthInfo.Controls.Add(this.label3);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label2);
             this.groupBox_PipeLengthInfo.Controls.Add(this.label1);
-            this.groupBox_PipeLengthInfo.Location = new System.Drawing.Point(12, 585);
+            this.groupBox_PipeLengthInfo.Location = new System.Drawing.Point(12, 624);
             this.groupBox_PipeLengthInfo.Name = "groupBox_PipeLengthInfo";
             this.groupBox_PipeLengthInfo.Size = new System.Drawing.Size(404, 89);
             this.groupBox_PipeLengthInfo.TabIndex = 6;
@@ -328,9 +329,9 @@
             // button_Set_SpoolNumber
             // 
             this.button_Set_SpoolNumber.Enabled = false;
-            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(296, 680);
+            this.button_Set_SpoolNumber.Location = new System.Drawing.Point(18, 224);
             this.button_Set_SpoolNumber.Name = "button_Set_SpoolNumber";
-            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(111, 33);
+            this.button_Set_SpoolNumber.Size = new System.Drawing.Size(389, 25);
             this.button_Set_SpoolNumber.TabIndex = 3;
             this.button_Set_SpoolNumber.Text = "스풀번호반영";
             this.button_Set_SpoolNumber.UseVisualStyleBackColor = true;
@@ -343,11 +344,11 @@
             // button_Export_PipeList
             // 
             this.button_Export_PipeList.Enabled = false;
-            this.button_Export_PipeList.Location = new System.Drawing.Point(179, 680);
+            this.button_Export_PipeList.Location = new System.Drawing.Point(6, 331);
             this.button_Export_PipeList.Name = "button_Export_PipeList";
-            this.button_Export_PipeList.Size = new System.Drawing.Size(111, 33);
+            this.button_Export_PipeList.Size = new System.Drawing.Size(389, 25);
             this.button_Export_PipeList.TabIndex = 7;
-            this.button_Export_PipeList.Text = "내보내기";
+            this.button_Export_PipeList.Text = "List 내보내기";
             this.button_Export_PipeList.UseVisualStyleBackColor = true;
             this.button_Export_PipeList.Click += new System.EventHandler(this.button_Export_PipeList_Click);
             // 
@@ -357,12 +358,11 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.ClientSize = new System.Drawing.Size(430, 725);
-            this.Controls.Add(this.button_Export_PipeList);
             this.Controls.Add(this.button_Set_SpoolNumber);
             this.Controls.Add(this.groupBox_PipeLengthInfo);
-            this.Controls.Add(this.groupBox_GroupList);
             this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.groupBox_PipeList);
+            this.Controls.Add(this.groupBox_GroupList);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "WinForm_STEP";
             this.Text = "제작도면 : DDWorks To STEP";
