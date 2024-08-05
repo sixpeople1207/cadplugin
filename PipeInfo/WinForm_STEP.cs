@@ -269,14 +269,16 @@ namespace PipeInfo
 
                 for (int i = 0; i < pipeInstance_li.Count; i+=5)
                 {
-                    int j = 0; 
+                    int j = 0;
+                    int num = 1;
                     if (i > 0) { 
-                        j = i / 5;
-                        excel.excel_InsertData(j, 1, j.ToString(), false);
+                        j = (i / 5);
+                        num = j + 1;
+                        excel.excel_InsertData(j, 1, num.ToString(), false);
                     }
                     else
                     {
-                        excel.excel_InsertData(j, 1, j+1.ToString(), false);
+                        excel.excel_InsertData(j, 1, num.ToString(), false);
                     }
                     excel.excel_InsertData(j, 2, pipeInstance_li[i + (int)stepPipeInfo.PipeSize], false);
                     excel.excel_InsertData(j, 3, pipeInstance_li[i + (int)stepPipeInfo.PipeMaterial], false);
