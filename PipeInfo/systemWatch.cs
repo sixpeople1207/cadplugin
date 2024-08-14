@@ -94,11 +94,12 @@ namespace PipeInfo
                                 {
                                     if (new_LineSp[1].Contains(_handle_Li[j]))
                                     {
-                                        //new_Line = new_LineSp[0] + "\'" + _spool_Li[j] +" "+ _handle_Li[j]+ " " + _spoolLenth_Li[j] +  "\'" + new_LineSp[2];
-                                        // 24.7.1양식 결정
-                                        new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + ":"+ Math.Round(_spoolLenth_Li[j],0) + "\'" + new_LineSp[2];
-                                        st.Add(new_Line);
-                                    }
+                                    //new_Line = new_LineSp[0] + "\'" + _spool_Li[j] +" "+ _handle_Li[j]+ " " + _spoolLenth_Li[j] +  "\'" + new_LineSp[2];
+                                    // 24.7.1양식 결정 
+                                    // 24.8 컷팅기 스풀번호 인식리미트 > 도면번호+스풀번호:길이
+                                    new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + ":"+ Math.Round(_spoolLenth_Li[j],0) + "\'" + new_LineSp[2];
+                                    st.Add(new_Line);
+                                }
                                 }
                             }
                             else

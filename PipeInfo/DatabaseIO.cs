@@ -460,9 +460,16 @@ namespace PipeInfo
                                     spool_num = "0" + spool_num;
                                 }
 
-                            //if (size > limit_Dia) //
-                            //{
-                                spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                                //if (size > limit_Dia) //
+                                //{
+                                //spool = (rdr["PIPESIZE_NM"] + "_" + rdr["UTILITY_NM"] + "_" + material_NM + "_" + rdr["PRODUCTION_DRAWING_GROUP_NM"] + "_" + spool_num);
+                                string groupNm = (string)rdr["PRODUCTION_DRAWING_GROUP_NM"];
+                                if (groupNm.Contains("__"))
+                                {
+                                    groupNm = groupNm.Replace("__", "_");
+                                }
+
+                                spool = (groupNm + spool_num);
                             //}
                             }
                         }

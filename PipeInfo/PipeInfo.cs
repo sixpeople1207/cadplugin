@@ -2621,6 +2621,8 @@ namespace PipeInfo
                 {
                     if (wb != null)
                     {
+                        ws.Columns.AutoFit();
+                        ws.Columns.HorizontalAlignment = 3;
                         Document doc = Application.DocumentManager.MdiActiveDocument;
                         Editor ed = doc.Editor;
                         System.Windows.Forms.SaveFileDialog dlg = new System.Windows.Forms.SaveFileDialog();
