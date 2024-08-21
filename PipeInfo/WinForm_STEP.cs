@@ -1,4 +1,5 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
+using DINNO.DO3D.MEP.InputHandler;
 using DINNO.DO3D.SceneGraph.Graphics.Scene.Object;
 using Microsoft.Office.Interop.Excel;
 using System;
@@ -32,19 +33,22 @@ namespace PipeInfo
             IsHole
         }
         public delegate void recive_SpoolList(List<string> spool_Li, List<string> handle_Li, List<double> spoolLength_Li);
-        public event recive_SpoolList recive_SpoolList_event;
+        public event recive_SpoolList _recive_SpoolList_event;
+        
+        private Thread _thread;
 
-        List<string> _spool_Li = new List<string>();
-        List<string> _handle_Li = new List<string>();
-        List<double> _spoolLength_Li = new List<double>();
-        FileWatcher fiw = new FileWatcher();
-         
+        private List<string> _spool_Li = new List<string>();
+        private List<string> _handle_Li = new List<string>();
+        private List<double> _spoolLength_Li = new List<double>();
+        private FileWatcher fiw = new FileWatcher();
+
         // 그리드뷰 버튼 클릭을 위한 인덱스.
-        PipeInfo pipeInfo = new PipeInfo();
-        DatabaseIO db = new DatabaseIO();
-        string db_path = "";
-        string stepFileSave_path = "";
-        string groupName = "";
+        private PipeInfo pipeInfo = new PipeInfo();
+        private DatabaseIO db = new DatabaseIO();
+        private string db_path = "";
+        private string stepFileSave_path = "";
+        private string groupName = "";
+        
         public WinForm_STEP()
         {
             InitializeComponent();
@@ -99,8 +103,7 @@ namespace PipeInfo
         private void WinForm_STEP_Load(object sender, EventArgs e)
         {
             //FileWatcher와 이벤트 연결하기.
-            recive_SpoolList_event += fiw.ReceiveSpoolList;
-            button_Set_SpoolNumber.Enabled = false;
+            _recive_SpoolList_event += fiw.ReceiveSpoolList;
         }
 
         private void button_db_pathOk_Click(object sender, EventArgs e)
@@ -146,7 +149,7 @@ namespace PipeInfo
      
         private void dataGridView_GroupList_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-
+            dataGridView_GroupList.SelectionMode = DataGridViewSelectionMode.CellSelect;
             if (dataGridView_GroupList.RowCount.ToString() != "0")
             {
                 // STEP파일을 내보내기 전(Pipe를 그리기전) 3D 객체들을 모두 지우고 시작
@@ -216,14 +219,19 @@ namespace PipeInfo
                     is_SaveFile = saveFaileDialog();
                     
                     bool is_PathInBlank = stepFileSave_path.Contains(" ");
-
+                    // 사용중인 Thread 종료.
+                    if(_thread != null)
+                    {
+                        _thread.Abort();
+                    }
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
                         (_spool_Li, _handle_Li, _spoolLength_Li) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
-                        button_Set_SpoolNumber.Enabled = true;
-                        button_Set_SpoolNumber.BackColor = Color.DarkKhaki;
-                        MessageBox.Show("STEP파일이 생성 되었습니다.\nSTEP에 스풀정보를 입력하기 위해서는 아래 버튼을 눌러주세요.", "STEP File Export");
+                        
+                        // STEP파일 사용확인. STEP파일 생성 후 수정.
+                        _thread = new Thread(check_StepFile);
+                        _thread.Start();
                     }
                     else
                     {
@@ -233,24 +241,38 @@ namespace PipeInfo
             }
         }
 
-
-        private void button1_Click_1(object sender, EventArgs e)
+        // STEP파일이 생성이 되고나서 사용해제가 되고 나면 스풀길이 적용.
+        public void check_StepFile()
         {
-            bool isWrite = false;
-            isWrite = fiw.stepFileWriteSpoolNumber();
-            button_Set_SpoolNumber.Enabled = false;
-            button_Set_SpoolNumber.BackColor = Color.LightGray;
-            if (isWrite == true)
+            bool file_used = true;
+            while (file_used)
             {
-                MessageBox.Show("STEP파일에 스풀정보 입력이 되었습니다.(스풀정보:길이)", "STEP File Export");
+                file_used = fiw.CheckFileLocked(stepFileSave_path);
+                if (file_used == false)
+                {
+                    MessageBox.Show("STEP파일이 생성 되었습니다.", "STEP File Export");
+                    //STEP 파일 수정 : 길이정보및 스풀이름 적어주기.
+                    fiw.stepFileWriteSpoolNumber();
+                    break;
+                }
+                Thread.Sleep(100);
             }
         }
 
-        private void toolTip1_Popup(object sender, PopupEventArgs e)
-        {
+        // Chech Stepfile 함수 적용으로 기능 삭제.
+        //private void button1_Click_1(object sender, EventArgs e)
+        //{
+        //    bool isWrite = false;
+        //    isWrite = fiw.stepFileWriteSpoolNumber();
+        //    button_Set_SpoolNumber.Enabled = false;
+        //    button_Set_SpoolNumber.BackColor = Color.LightGray;
+        //    if (isWrite == true)
+        //    {
+        //        MessageBox.Show("스풀정보 입력이 완료되었습니다.", "STEP File Export");
+        //    }
+        //}
 
-        }
-
+    
         private void button_Export_PipeList_Click(object sender,EventArgs a)
         {
             // 파이프 리스트가 0이상일때.. 작동하도록.. 

@@ -7,7 +7,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <StartProgram>C:\Program Files\Autodesk\AutoCAD 2021\acad.exe</StartProgram>
     <StartAction>Program</StartAction>
-    <StartArguments>/language "ko-KR"/product ACADM /p "&lt;&lt;ACADMPP&gt;&gt;"</StartArguments>
+    <StartArguments>/language "ko-KR" /product ACADM /p  "&lt;&lt;ACADMPP&gt;&gt;"</StartArguments>
+    <StartWorkingDirectory>
+    </StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup>
     <ProjectView>ShowAllFiles</ProjectView>

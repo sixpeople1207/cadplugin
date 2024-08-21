@@ -82,6 +82,7 @@ namespace PipeInfo
                 // 나중에 스풀넘버 좌우에 ''를 적어줘야한다. 
                 string[] new_LineSp = new string[3];
                 string new_Line = string.Empty;
+
                     using (var reader = new StreamReader(_full_path, Encoding.UTF8))
                     {
                         while (!reader.EndOfStream)
@@ -99,7 +100,7 @@ namespace PipeInfo
                                     // 24.8 컷팅기 스풀번호 인식리미트 > 도면번호+스풀번호:길이
                                     new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + ":"+ Math.Round(_spoolLenth_Li[j],0) + "\'" + new_LineSp[2];
                                     st.Add(new_Line);
-                                }
+                                    }   
                                 }
                             }
                             else
@@ -110,15 +111,33 @@ namespace PipeInfo
                         }
                     }
 
-                //string filename = Path.GetDirectoryName(_full_path)+"\\" + Path.GetFileNameWithoutExtension(_full_path) + "_스풀넘버.STP";
-                File.WriteAllLines(Path.GetDirectoryName(_full_path) + "\\" + Path.GetFileNameWithoutExtension(_full_path) + "_스풀넘버.STP", st.ToArray());
+                //string filename = Path.GetDirectoryName(_full_path)+"\\" + Path.GetFileNameWithoutExtension(_full_path) + "_스풀넘버.STP"; => 한글삭제
+                File.WriteAllLines(Path.GetDirectoryName(_full_path) + "\\" + Path.GetFileNameWithoutExtension(_full_path) + ".STP", st.ToArray());
                 isWrite = true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show("경고:파일이 사용중입니다.");
+                MessageBox.Show("경고:파일이 사용중입니다.", ex.ToString());
             }
             return isWrite;
+        }
+        public bool CheckFileLocked(string filePath)
+        {
+            try
+            {
+                FileInfo file = new FileInfo(filePath);
+
+                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    stream.Close();
+                }
+            }
+            catch (IOException)
+            {
+                return true;
+            }
+
+            return false;
         }
         // 6. 감시할 폴더 내부 변경시 event 호출
         public void Changed(object source, FileSystemEventArgs e)

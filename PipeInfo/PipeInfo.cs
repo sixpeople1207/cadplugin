@@ -12,6 +12,7 @@ using DINNO.DO3D.MEP;
 using DINNO.DO3D.MEP.InputHandler;
 using DINNO.DO3D.MEP.Instances;
 using DINNO.DO3D.SceneGraph.Graphics.Math;
+using DINNO.DO3D.SceneGraph.PointCloud.E57;
 using DINNO.HU3D.UI.WPF.History;
 using DINNO.HU3D.Workspace;
 using Microsoft.Office.Interop.Excel;
@@ -27,6 +28,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
@@ -1083,7 +1085,7 @@ namespace PipeInfo
                                     if (type.Name.ToString() == "Polyline3d")
                                     {
                                         po_li = (Polyline3d)ent;
-                                        isSpoolLine = true;
+                                         isSpoolLine = true;
                                     }
                                     else
                                     {
@@ -1097,9 +1099,7 @@ namespace PipeInfo
                                     //정렬된 용접포인트를 받아 Database에서 스풀 리스트를 가져온다. 
                                     (List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints) = ddworks_Database.Get_Pipe_Vector_By_SpoolList(orderPoints);
 
-
                                     //폴리라인 끝점부터 텍스트를 Vector에 맞게 배치한다. 
-
                                     // 여기까지 GroupVec를 찾지 못했다면 지시선의 방향에 맞춰 진행한다. 추가 24.1.2
                                     if (groupVecstr == "")
                                     {
@@ -1119,20 +1119,31 @@ namespace PipeInfo
                                         }
                                     }
 
+                                    // 24.8.19 용접공정 판단할 수 있는 옵션이나 SS기능을 확장필요. BULK와 PCW모두 적용할 수 있는 알고리즘. 
+                                    // BULK GAS 이외 공종은 Vec가 한 개 이상인애들이 존재함. 의미 있는 Vec로 일반화 시켜줘야함.
+                                    // Get_Pipe_Vector_By_SpoolList내부에 
+                                    // vec_li = tControl.Correct_Vector(spoolInfo_li, vec_li, newPoints);
 
                                     List<ObjectId> spoolTexts_objIDs = tControl.Draw_Text_WeldPoints(po_li, spoolInfo_li, vec_li, newPoints, groupVecstr, text_Dic); // 라인 끝점을 입력받음.
                                     keyFilter keyFilter = new keyFilter();
 
-                                    //SS 기능 안내 메세지
-                                    string message = "\n[Options] 회전 : G,좌우 반전 : Z,완료 : Esc(계속하려면 Enter)";
-                                    PromptStringOptions pSo = new PromptStringOptions(message);
-                                    PromptResult result = ed.GetString(pSo);
-                                    //ed.WriteMessage(result.ToString());
+                                    if (spoolTexts_objIDs.Count > 0)
+                                    {
+                                        //SS 기능 안내 메세지
+                                        string message = "\n[Options] 회전 : G,좌우 반전 : Z,완료 : Esc(계속하려면 Enter)";
+                                        PromptStringOptions pSo = new PromptStringOptions(message);
+                                        PromptResult result = ed.GetString(pSo);
+                                        //ed.WriteMessage(result.ToString());
 
-                                    //23.7.25 키를 입력받아 텍스트 회전
-                                    //현재 뷰에 따라 디폴트값 정해야함
-                                    //엔터키로 돌리고 SpoolGroup 방향 기준
-                                    tControl.RotateFlip_Texts(vec_li, keyFilter, spoolTexts_objIDs, po_li, text_Dic["text_height"], groupVecstr);
+                                        //23.7.25 키를 입력받아 텍스트 회전
+                                        //현재 뷰에 따라 디폴트값 정해야함
+                                        //엔터키로 돌리고 SpoolGroup 방향 기준
+                                        tControl.RotateFlip_Texts(vec_li, keyFilter, spoolTexts_objIDs, po_li, text_Dic["text_height"], groupVecstr);
+                                    }
+                                    else
+                                    {
+                                        ed.WriteMessage("스풀 정보가 없습니다.");
+                                    }
                                 }
                                 else
                                 {
@@ -3595,8 +3606,8 @@ namespace PipeInfo
                                                 if (groupVecstr == "X") textPosition = new Point3d(basePoint, line.EndPoint.Y, line.EndPoint.Z + text_SideBetween_Dis);
                                                 else if (groupVecstr == "Y") textPosition = new Point3d(line.EndPoint.X, basePoint, line.EndPoint.Z + text_SideBetween_Dis);
                                             }
-
                                         }
+
 
                                         if (textPosition.IsEqualTo(befor_TextPosition))
                                         {
@@ -4280,6 +4291,83 @@ namespace PipeInfo
                     return drawText_spoolTexts_objIDs;
                 }
             }
+
+            //Bulk 공종이외 공종에서는 간혹 플랜지에 엘보가 붙는 경우가 있어 Owner 객체의 Vector가 한 방향으로 떨어지지 않는다. 예)Elbow 그래서 한개의 Vector로 통일시켜준다.(유효한 벡터가 있다면)
+            public List<Vector3d> Correct_Vector(List<string> spoolInfo_li, List<Vector3d> vec_li, List<Point3d> newPoints)
+            {
+                List<Vector3d> new_VecLi = new List<Vector3d>();
+                if (newPoints.Count > 1 && newPoints.Count == spoolInfo_li.Count)
+                {
+                    int vec_X_count = 0;
+                    int vec_Y_count = 0;
+                    int vec_Z_count = 0;
+                    string line_vectors = "";
+                    Vector3d cor_V = new Vector3d();
+                    for (int i = 0; newPoints.Count > i; i += 2)
+                    {
+                        cor_V = newPoints[i].GetVectorTo(newPoints[i + 1]).GetNormal();
+                        if (Math.Round(cor_V.GetNormal().X, 1) == 1 || Math.Round(cor_V.GetNormal().X, 1) == -1)
+                        {
+                            vec_X_count += 1;
+                        }
+                        else if (Math.Round(cor_V.GetNormal().Y, 1) == 1 || Math.Round(cor_V.GetNormal().Y, 1) == -1)
+                        {
+                            vec_Y_count += 1;
+                        }
+                        else if (Math.Round(cor_V.GetNormal().Z, 1) == 1 || Math.Round(cor_V.GetNormal().Z, 1) == -1)
+                        {
+                            vec_Z_count += 1;
+                        }
+                    }
+                    if (vec_X_count > vec_Y_count && vec_X_count > vec_Z_count)
+                    {
+                        line_vectors = "X";
+                        for (int i = 0; vec_li.Count > i; i++)
+                        {
+                            if (i % 2 == 0)
+                            {
+                                vec_li[i] = new Vector3d(1, 0, 0);
+                            }
+                            else
+                            {
+                                vec_li[i] = new Vector3d(-1, 0, 0);
+                            }
+                        }
+                    }
+                    else if (vec_Y_count > vec_X_count && vec_Y_count > vec_Z_count)
+                    {
+                        line_vectors = "Y";
+                        for (int i = 0; vec_li.Count > i; i++)
+                        {
+                            if (i % 2 == 0)
+                            {
+                                vec_li[i] = new Vector3d(0, 1, 0);
+                            }
+                            else
+                            {
+                                vec_li[i] = new Vector3d(0, -1, 0);
+                            }
+                        }
+                    }
+                    else if (vec_Z_count > vec_X_count && vec_Z_count > vec_Y_count)
+                    {
+                        line_vectors = "Z";
+                        for (int i = 0; vec_li.Count > i; i++)
+                        {
+                            if (i % 2 == 0)
+                            {
+                                vec_li[i] = new Vector3d(0, 0, 1);
+                            }
+                            else
+                            {
+                                vec_li[i] = new Vector3d(0, 0, -1);
+                            }
+                        }
+                    }
+
+                }
+                return new_VecLi = vec_li.ToList();
+            }
         }
 
         /* 클래스 이름 : DDWorks_Database
@@ -4295,9 +4383,8 @@ namespace PipeInfo
             private string ownerType_Component = "768"; //TB_POCINSTANCES:OWNER_TYPE 기자재.
             private string ownerType_Pipe = "256"; //TB_POCINSTANCES:OWNER_TYPE 파이프.
             private string pipeInsType_Pipe = "17301760"; //
-                                                          //private string pipeInsType_TakeOff = "17301768";
+                                                         //private string pipeInsType_TakeOff = "17301768";
                                                           //private string pipeInsType_Elbow = "17301771";
-
             private string valveType = "valve"; //valve타입.
             public int pipe_CompareTor = 5; // Db와 CAD 좌표를 비교할때 오차 범위
             public int vec_ComareTor = 4; // Vector List를 만들때 Db와 CAD에서 좌표 비교시 오차 범위
@@ -4337,7 +4424,6 @@ namespace PipeInfo
                 // "Order by disx ASC, disy, disz;", point.X, point.Y, point.Z);
                 return sql;
             }
-
             public string SqlStr_TB_MODELINSTANCES(string owner_id, string ownerType)
             {
                 //DB 테이블 요약 : 
@@ -4855,7 +4941,7 @@ namespace PipeInfo
                 }
                 return pipeInfo_Li;
             }
-
+            
             /*
             * 함수 이름 : Get_Final_POC_Instance_Ids
             * 기능 설명 : PIPE의 마지막 POC.
@@ -5075,7 +5161,7 @@ namespace PipeInfo
                                             string sql_model_template_nm = SqlStr_TB_MODELINSTANCES(owner_id, rdr["OWNER_TYPE"].ToString());
                                             SQLiteCommand command_1 = new SQLiteCommand(sql_model_template_nm, conn);
                                             SQLiteDataReader rdr_1 = command_1.ExecuteReader();
-                                            //ed.WriteMessage(owner_id + "\n");
+                                            
                                             if (rdr_1.HasRows) //rdr 반환값이 있을때만 Read
                                             {
                                                 while (rdr_1.Read())
@@ -5143,18 +5229,42 @@ namespace PipeInfo
                         {
                             //POC Instances 가져오는 SQL문 작성해서 반환. 
                             string sql = SqlStr_TB_POCINSTANCES_By_Point(point);
+                            string instaceId = "";
+                            string component_Type = "";
                             SQLiteCommand command = new SQLiteCommand(sql, conn);
                             SQLiteDataReader rdr = command.ExecuteReader();
 
                             int count = 0; //파이프객체가 몇개인지 카운트.
+                            int count_ConnCompoenet = 0;
                             while (rdr.Read())
                             {
+                                if (rdr["OWNER_TYPE"].ToString() == ownerType_Component)
+                                {
+                                    count_ConnCompoenet += 1;
+                                    instaceId = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
+                                    if (instaceId != "") {
+                                        string type=Get_ComponentType(instaceId).ToUpper();
+                                        if(type != "FLANGE")
+                                        {
+                                            component_Type = type;
+                                        }
+                                    }
+                                }
+                            }
+
+                            SQLiteCommand command_2 = new SQLiteCommand(sql, conn);
+                            SQLiteDataReader rdr_2 = command_2.ExecuteReader();
+                            while (rdr_2.Read())
+                            {
+                                //PCW공종에서 플랜지 엘보 맞대기일 경우나 파이프 없이 콤포넌트와 맞대기에서 정보를 저장하기 위해 Count가 2개가 되면 파이프 정보를 저장하게끔 수정.24.8.20(벌크공종에서는 Filter에서 1차적으로 컴포넌트를 걸러냄) 
+                               
                                 // 파이프인 객체의 오너아이디를 가져와서 연결된 POC정보를 가져온다.(2포인트가 나옴)
-                                if (rdr["OWNER_TYPE"].ToString() == ownerType_Pipe)
+                                // 2포인트 중 Owner Type이 Pipe, Component이면 Bulk , 모두 Component이면 PCW공종 
+                                if (rdr_2["OWNER_TYPE"].ToString() == ownerType_Pipe || (component_Type.Contains("FLANGE")==false && count_ConnCompoenet==2)) //24.8.19 용접공정일때는 오너객체가 콤포넌트 인애들도 들어가야함. =>  || rdr["OWNER_TYPE"].ToString() == ownerType_Component) 이슈 : vec_li에 엘보객체를 넣으면 벡터가 x,z등 두개값이 들어감. 일반화 필요. 
                                 {
                                     count++;
                                     List<Point3d> points = new List<Point3d>();
-                                    string instance_id = BitConverter.ToString((byte[])rdr["OWNER_INSTANCE_ID"]).Replace("-", "");
+                                    string instance_id = BitConverter.ToString((byte[])rdr_2["OWNER_INSTANCE_ID"]).Replace("-", "");
                                     string sql_ins = SqlStr_TB_POINSTANCES_By_OWNER_INS_ID(instance_id);
                                     string spool_info = Get_Pipe_Spool_Info_By_OwnerInsId(instance_id);
                                     if (spool_info != null && spool_info != "") { spool_info_li.Add(spool_info); };
@@ -5167,7 +5277,7 @@ namespace PipeInfo
                                     {
                                         while (rdr_1.Read())
                                         {
-                                            if (spool_info != "")
+                                            if (spool_info != "" && rdr_1["OWNER_TYPE"].ToString() == ownerType_Pipe || (component_Type.Contains("FLANGE") == false && count_ConnCompoenet == 2))
                                             {
                                                 points.Add(new Point3d((double)rdr_1["POSX"], (double)rdr_1["POSY"], (double)rdr_1["POSZ"]));
                                             }
@@ -5182,7 +5292,22 @@ namespace PipeInfo
                                                 if (Math.Abs(weldPoint.X - points[0].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[0].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[0].Z) < vec_ComareTor)
                                                 {
                                                     Vector3d vec = (points[1] - points[0]).GetNormal();
+                                                    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
+                                                    //24.8.20 
+                                                    if (Math.Abs(Math.Round(vec.X, 1)) == 1 && Math.Abs(Math.Round(vec.Y, 1)) != 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
+                                                    {
+                                                        vec = new Vector3d(vec.X, 0, 0);
+                                                    }
+                                                    else if (Math.Abs(Math.Round(vec.X, 1)) != 1 && Math.Abs(Math.Round(vec.Y, 1)) == 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
+                                                    {
+                                                        vec = new Vector3d(0, vec.Y, 0);
+                                                    }
+                                                    else
+                                                    {
+                                                        vec = new Vector3d(0, 0, vec.Z);
+                                                    }
                                                     vec_li.Add(vec);
+
                                                     //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
                                                     if (count == 2)
                                                     {
@@ -5192,6 +5317,20 @@ namespace PipeInfo
                                                 else if (Math.Abs(weldPoint.X - points[1].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[1].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[1].Z) < vec_ComareTor)
                                                 {
                                                     Vector3d vec = (points[0] - points[1]).GetNormal();
+                                                    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
+                                                    //24.8.20 
+                                                    if (Math.Abs(Math.Round(vec.X,1))==1 && Math.Abs(Math.Round(vec.Y, 1)) != 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
+                                                    {
+                                                        vec = new Vector3d(vec.X, 0, 0);
+                                                    }
+                                                    else if(Math.Abs(Math.Round(vec.X, 1)) != 1 && Math.Abs(Math.Round(vec.Y, 1)) == 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
+                                                    {
+                                                        vec = new Vector3d(0, vec.Y, 0);
+                                                    }
+                                                    else
+                                                    {
+                                                        vec = new Vector3d(0, 0, vec.Z);
+                                                    }
                                                     vec_li.Add(vec);
                                                     //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
                                                     if (count == 2)
@@ -5200,7 +5339,9 @@ namespace PipeInfo
                                                     }
                                                 }
                                                 index++;
+
                                             }
+
                                         }
                                     }
 
@@ -5218,10 +5359,42 @@ namespace PipeInfo
                         conn.Close();
                     }
                 }
+                
                 return (spool_info_li, vec_li, weldGroup);
             }
             /* DDWorks Database Class 함수 끝 */
-
+            public string Get_ComponentType(string instaceId)
+            {
+               
+                string connstr = "Data Source=" + db_path;
+                string component_Type = "";
+                using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                {
+                    conn.Open();
+                    string sql = string.Format("SELECT CATEGORY_NM from TB_MODELCATEGORIES as MC " +
+                   "INNER JOIN " +
+                   "TB_CATEGORIES as CG " +
+                   "ON " +
+                   "MC.CATEGORY_ID = CG.CATEGORY_ID " +
+                   "INNER JOIN " +
+                   "TB_MODELTEMPLATES as MT " +
+                   "ON " +
+                   "MT.MODEL_TEMPLATE_ID= MC.MODEL_TEMPLATE_ID " +
+                   "INNER JOIN " +
+                   "TB_MODELINSTANCES as MI " +
+                   "ON " +
+                   "MI.MODEL_TEMPLATE_ID=MC.MODEL_TEMPLATE_ID AND MI.INSTANCE_ID= x'{0}';", instaceId);
+                    SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                    SQLiteDataReader rdr = comm.ExecuteReader();
+                    while (rdr.Read())
+                    {
+                        component_Type = (string)rdr["CATEGORY_NM"];
+                    }
+                    rdr.Close();
+                    conn.Dispose();
+                }
+                return component_Type;
+             }
             public List<Vector3d> Get_Pipe_Vector_By_Points(List<Point3d> weldGroup)
             {
                 List<Vector3d> vec_li = new List<Vector3d>();
