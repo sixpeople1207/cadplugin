@@ -199,7 +199,7 @@ namespace PipeInfo
                                     string length_str = Math.Round((double)rdr_ready["LENGTH1"],1).ToString();
                                     double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
                                     double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
-                                    string hole = "-"; 
+                                    string hole = "Hole"; 
                                     string pipeSize = "";
                                     string material_Nm = "";
                                    
@@ -209,17 +209,27 @@ namespace PipeInfo
                                     material_Nm = rdr_ready["MATERIAL_NM"].ToString();
                                     pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
 
-                                    //파이프 STD객체중 Pipe인 객체만 걸러낸다. 
+                                    //파이프 STD객체중 Pipe인 객체만 걸러낸다. POC 2개이상은 Takeoff
                                     if (connectInt < 2)
                                     {
-                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSize_Limit) // || hole == "Hole") //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다. -> Hole은 제외, 250A 이상은 사이즈 리미트
+                                        if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSize_Limit) //Pipe인데 25.4이거나 Hole만 그리드 뷰에 적는다. -> Hole은 제외, 250A 이상은 사이즈 리미트
                                         {
                                             pipeInsInfo.Add(instanceId);
                                             pipeInsInfo.Add(pipeSize);
                                             pipeInsInfo.Add(material_Nm);
                                             pipeInsInfo.Add(length_str);
-                                            pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
+                                            pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음)
                                         }
+                                    }
+
+                                    //한 파이프에 POC Order가 2개 이상인 Take-off 객체만 걸러낸다. 
+                                    if(connectInt > 1)
+                                    {
+                                        pipeInsInfo.Add(instanceId);
+                                        pipeInsInfo.Add(pipeSize);
+                                        pipeInsInfo.Add(material_Nm);
+                                        pipeInsInfo.Add("0");
+                                        pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
                                     }
                                 }
                             }

@@ -1,0 +1,534 @@
+;|
+
+ Using ACADINFO.LSP version 24.0
+
+ Your Name           : 
+ Your E-mail Address : 
+ Your Phone Number   : 
+ Problem Description : 
+
+
+
+
+
+ Steps To Reproduce
+   1. 
+   2. 
+   3. 
+   4. 
+   5. 
+   ...
+
+
+ ---------------------- GENERAL INFORMATION ---------------------
+
+User Name: "Dinno"
+Computer Name: "DESKTOP-76TV585"
+Platform: "Microsoft Windows NT Version 10.0 (x64)"
+
+ ------------------ EXPRESS TOOLS INFORMATION -------------------
+
+acad2021doc.lsp Express Tools load: "No load statement for Express Tools."
+C:\Program Files\Autodesk\AutoCAD 2021\support\ko-KR\acad2021doc.lsp
+ACETUTIL.ARX FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\Express\acetutil.arx"
+ACETTEST.FAS FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\Express\acettest.fas"
+ACETUTIL.FAS FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\Express\acetutil.fas"
+ACETAUTO.LSP FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\Express\acetauto.lsp"
+ACETMAIN.MNL FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\support\ko-KR\acetmain.mnl"
+
+(menugroup "EXPRESS") = "EXPRESS"
+
+ ------------------- FILE LOADING INFORMATION -------------------
+
+acad2021.lsp FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\support\acad2021.lsp"
+acad2021doc.lsp FOUND AT: "C:\Program Files\Autodesk\AutoCAD 2021\support\ko-KR\acad2021doc.lsp"
+
+Tests for successful load of LISP initialization files.
+Load test *FAILED*. File not found: acad2000.lsp
+Load test *FAILED*. File not found: acad2000doc.lsp
+Load test passed. File: acettest.fas
+Load test passed. File: acetutil.fas
+Load test passed. File: acetmain.mnl
+ ------------------------- TYPELIB TEST -------------------------
+
+Cannot open registry key 0 for AcAx24enu.tlb check
+
+
+(arx) -> ("acadm.arx" "acadm.crx" "acadmmx.arx" "acapp.arx" "acapp.crx" "acauthenviron.arx" "acauthenviron.crx" "acautoloader.arx" "acautoloader.crx" "acblock.crx" "acconnectwebservices.arx" "accoremgd.dll" "acdim.arx" "acdim.crx" "acetutil.arx" "acexperience.arx" "acfdeval.crx" "acgeomentobj.dbx" "acgsconfig.arx" "acgsconfig.crx" "acjscorestub.crx" "acme.crx" "acmeoe.crx" "acmgd.dll" "acmsymbb.arx" "acmsymbb.crx" "acobjclassimp.arx" "acocschemautil.arx" "acopm.arx" "acopmext.arx" "acparameter.arx" "acparameter.crx" "acpexctl.arx" "acpi.arx" "acpublish.arx" "acpublish.crx" "acrevcloud.crx" "acsceneoe.dbx" "acsign.arx" "acvdiff.arx" "acvdiff.crx" "acvmtools.arx" "acvmtools.crx" "acxdiff.arx" "acxdiff.crx" "amdt_attributes.crx" "amdt_browser.arx" "amdt_stdimp.crx" "amdt_transmittal.arx" "amexperience.arx" "amgdim.arx" "amgdim.crx" "amglay.arx" "amglay.crx" "amgtitle.arx" "amgtitle.crx" "amgutil.arx" "amgutil.crx" "ammgdinterop.dll" "ammgdinteropreverse.dll" "assembly.arx" "assembly.crx" "cit.arx" "cit.crx" "desktop.arx" "dxgui.arx" "g3vace.arx" "g3vace.crx" "g3vamcmd.arx" "g3vamcmd.crx" "g3vpartauthenviron.arx" "g3vppcustobj.crx" "ge_acad.crx" "ge_load.arx" "ge_load.crx" "genbh15.arx" "genbh15.crx" "grefacad.crx" "mapiam.arx" "mcadapi.crx" "mcadcom.arx" "vl_u.arx" "vl_u.crx") 
+
+ ------------------- SYSTEM VARIABLE SETTINGS -------------------
+|;
+; read-only - ACADPREFIX C:\Users\Dinno\AppData\Roaming\Autodesk\AutoCAD Mechanical 2021\R24.0\kor\Acadm;C:\Program Files\Autodesk\AutoCAD 2021\acadm;C:\Program Files\Autodesk\AutoCAD 2021\acadm\g3v;C:\Program Files\Autodesk\AutoCAD 2021\acadm\gen;C:\Program Files\Autodesk\AutoCAD 2021\acadm\sys;C:\Program Files\Common Files\Autodesk Shared\;C:\Program Files\Autodesk\AutoCAD 2021\acadm\Support;C:\Program Files\Autodesk\AutoCAD 2021\acadm\Migration;C:\Program Files\Autodesk\AutoCAD 2021\Express;C:\Program Files\Autodesk\AutoCAD 2021\acadm\ko-KR;C:\Users\Dinno\AppData\Roaming\Autodesk\AutoCAD Mechanical 2021\R24.0\kor\support;C:\Program Files\Autodesk\AutoCAD 2021\support;C:\Program Files\Autodesk\AutoCAD 2021\support\ko-KR;C:\Program Files\Autodesk\AutoCAD 2021\fonts;C:\Program Files\Autodesk\AutoCAD 2021\help;C:\Program Files\Autodesk\AutoCAD 2021\support\color;C:\Program Files (x86)\Autodesk\ApplicationPlugins\Autodesk AppManager 2020-2021.bundle\Contents\Windows;C:\Program Files (x86)\Autodesk\ApplicationPlugins\Autodesk AppManager 2020-2021.bundle\Contents\Windows\2021;C:\Program Files (x86)\Autodesk\ApplicationPlugins\Autodesk FeaturedApps 2020-2021.bundle\Contents\Resources;C:\Program Files (x86)\Autodesk\ApplicationPlugins\Autodesk FeaturedApps 2020-2021.bundle\Contents\Windows\2021\Win64;C:\Program Files\Autodesk\AutoCAD 2021\drv;
+; read-only - ACADVER 24.0s (LMS Tech)
+; read-only - ADCSTATE 0
+; read-only - AREA 0
+; read-only - ASSISTSTATE nil 
+; read-only - BACKZ 0
+; read-only - BLOCKEDITOR 0
+; read-only - CDATE 20240905.1342
+; read-only - CLEANSCREENSTATE 0
+; read-only - CMDACTIVE 0
+; read-only - CMDNAMES 
+; read-only - CPLOTSTYLE ByColor
+; read-only - CPROFILE <<ACADMPP>>
+; read-only - CPUTICKS 374601472538134
+; read-only - CURRENTPROFILE nil 
+; read-only - DATE 2460559.571
+; read-only - DBCSTATE 0
+; read-only - DBMOD 21
+; read-only - DEFLPLSTYLE ByColor
+; read-only - DEFPLSTYLE ByColor
+; read-only - DIASTAT 0
+; read-only - DIMSTYLE AM_ISO
+; read-only - DISTANCE 0
+; read-only - DRSTATE 0
+; read-only - DWGCODEPAGE ANSI_949
+; read-only - DWGNAME Drawing1.dwg
+; read-only - DWGPREFIX C:\Users\Dinno\Documents\
+; read-only - DWGTITLED 0
+; read-only - EXTMAX (5250.8 57.15 482.5) 
+; read-only - EXTMIN (-57.15 -57.15 -482.5) 
+; read-only - FRONTZ 0
+; read-only - FULLOPEN 1
+; read-only - HANDLES 1
+; read-only - LASTANGLE 0
+; read-only - LASTPROMPT Performing load tests...
+; read-only - LENSLENGTH 50
+; read-only - LOCALE KO
+; read-only - LOCALROOTPREFIX C:\Users\Dinno\AppData\Local\Autodesk\AutoCAD Mechanical 2021\R24.0\kor\
+; read-only - LOGINNAME Dinno
+; read-only - MENUNAME C:\Users\Dinno\AppData\Roaming\Autodesk\AutoCAD Mechanical 2021\R24.0\kor\acadm\acadm
+; read-only - MILLISECS 514187031
+; read-only - MSMSTATE 0
+; read-only - MYDOCUMENTSPREFIX C:\Users\Dinno\Documents
+; read-only - NODENAME ac$
+; read-only - OPMSTATE 1
+; read-only - PERIMETER 0
+; read-only - PFACEVMAX 4
+; read-only - PLATFORM Microsoft Windows NT Version 10.0 (x64)
+; read-only - POPUPS 1
+; read-only - PRODUCT AutoCAD
+; read-only - PROGRAM acad
+; read-only - PSTYLEMODE 1
+; read-only - REFEDITNAME 
+; read-only - ROAMABLEROOTPREFIX C:\Users\Dinno\AppData\Roaming\Autodesk\AutoCAD Mechanical 2021\R24.0\kor\
+; read-only - SAVEFILE C:\Users\Dinno\AppData\Local\Temp\Drawing1_1_1189_53112d60.sv$
+; read-only - SAVENAME 
+; read-only - SCREENBOXES 0
+; read-only - SCREENMODE 3
+; read-only - SCREENSIZE (3065.0 1187.0) 
+; read-only - SSFOUND 
+; read-only - SSMSTATE 0
+; read-only - SYSCODEPAGE ANSI_949
+; read-only - TARGET (3013.05 -498.523 -1506.31) 
+; read-only - TDCREATE 2460559.5485
+; read-only - TDINDWG 0.0225
+; read-only - TDUCREATE 2460559.1735
+; read-only - TDUPDATE 2460559.5485
+; read-only - TDUSRTIMER 0.0225
+; read-only - TDUUPDATE 2460559.1735
+; read-only - TEMPPREFIX C:\Users\Dinno\AppData\Local\Temp\
+; read-only - TPSTATE 0
+; read-only - UCSNAME 
+; read-only - UCSORG (0.0 0.0 0.0) 
+; read-only - UCSXDIR (1.0 0.0 0.0) 
+; read-only - UCSYDIR (0.0 1.0 0.0) 
+; read-only - UNDOCTL 49
+; read-only - UNDOCTL 49
+; read-only - UNDOMARKS 0
+; read-only - VIEWCTR (3393.58 57.6964 0.0) 
+; read-only - VIEWDIR (475.414 694.898 1881.87) 
+; read-only - VIEWMODE 0
+; read-only - VIEWSIZE 625.1307
+; read-only - VIEWTWIST 0
+; read-only - VPMAXIMIZEDSTATE 0
+; read-only - VSMAX (-19519.7 4458.89 0.0) 
+; read-only - VSMIN (24713.4 -4458.89 0.0) 
+; read-only - WORLDUCS 1
+; read-only - WRITESTAT 1
+; read-only - _PKSER 000-00000000
+; read-only - _SERVER 0
+; read-only - _VERNUM R.47.0.0 (UNICODE)
+(setvar "ACADLSPASDOC" 0)
+(setvar "AFLAGS" 16)
+(setvar "ANGBASE" 0)
+(setvar "ANGDIR" 0)
+(setvar "APBOX" 0)
+(setvar "APERTURE" 10)
+(setvar "ATTDIA" 1)
+(setvar "ATTMODE" 1)
+(setvar "ATTREQ" 1)
+(setvar "AUDITCTL" 0)
+(setvar "AUNITS" 0)
+(setvar "AUPREC" 0)
+(setvar "AUTOSNAP" 39)
+(setvar "AUXSTAT" 0)
+(setvar "AXISUNIT" '(0.0 0.0) )
+(setvar "BACKGROUNDPLOT" 2)
+(setvar "BACTIONCOLOR" "7")
+(setvar "BDEPENDENCYHIGHLIGHT" 1)
+(setvar "BGRIPOBJSIZE" 8)
+(setvar "BINDTYPE" 0)
+(setvar "BLIPMODE" 0)
+(setvar "BPARAMETERCOLOR" "170")
+(setvar "BPARAMETERSIZE" 12)
+(setvar "BTMARKDISPLAY" 1)
+(setvar "BVMODE" 0)
+(setvar "CALCINPUT" 1)
+(setvar "CECOLOR" "BYLAYER")
+(setvar "CIPMODE" nil )
+(setvar "CELTSCALE" 1)
+(setvar "CELTYPE" "ByLayer")
+(setvar "CELWEIGHT" -1)
+(setvar "CHAMFERA" 0)
+(setvar "CHAMFERB" 0)
+(setvar "CHAMFERC" 0)
+(setvar "CHAMFERD" 0)
+(setvar "CHAMMODE" 0)
+(setvar "CIRCLERAD" 0)
+;(setvar "CLAYER" "0")
+(setvar "CMDDIA" 0)
+(setvar "CMDECHO" 1)
+(setvar "CMDINPUTHISTORYMAX" 20)
+(setvar "CMLJUST" 0)
+(setvar "CMLSCALE" 20)
+(setvar "CMLSTYLE" "STANDARD")
+(setvar "COMPASS" 0)
+(setvar "COORDS" 1)
+;(setvar "CPLOTSTYLE" "ByColor")
+(setvar "CTAB" "Model")
+(setvar "CTABLESTYLE" "Standard")
+(setvar "CURSORSIZE" 5)
+;(setvar "CVPORT" 2)
+(setvar "DCTCUST" "C:/Users/Dinno/AppData/Roaming/Autodesk/AutoCAD Mechanical 2021/R24.0/kor/support/sample.cus")
+(setvar "DCTMAIN" "enu")
+(setvar "DELOBJ" 3)
+(setvar "DEMANDLOAD" 3)
+(setvar "DIMADEC" 0)
+(setvar "DIMALT" 0)
+(setvar "DIMALTD" 2)
+(setvar "DIMALTF" 0.0394)
+(setvar "DIMALTRND" 0)
+(setvar "DIMALTTD" 4)
+(setvar "DIMALTTZ" 0)
+(setvar "DIMALTU" 2)
+(setvar "DIMALTZ" 0)
+(setvar "DIMAPOST" """)
+(setvar "DIMASSOC" 2)
+(setvar "DIMASZ" 3.5)
+(setvar "DIMATFIT" 3)
+(setvar "DIMAUNIT" 0)
+(setvar "DIMAZIN" 2)
+;(setvar "DIMBLK" "")
+;(setvar "DIMBLK1" "")
+;(setvar "DIMBLK2" "")
+(setvar "DIMCEN" 0)
+(setvar "DIMCLRD" 256)
+(setvar "DIMCLRE" 256)
+(setvar "DIMCLRT" 2)
+(setvar "DIMDEC" 2)
+(setvar "DIMDLE" 0)
+(setvar "DIMDLI" 10)
+(setvar "DIMDSEP" ".")
+(setvar "DIMEXE" 1)
+(setvar "DIMEXO" 1)
+(setvar "DIMFIT" 3)
+(setvar "DIMFRAC" 0)
+(setvar "DIMGAP" 1.5)
+(setvar "DIMJUST" 0)
+;(setvar "DIMLDRBLK" "")
+(setvar "DIMLFAC" 1)
+(setvar "DIMLIM" 0)
+(setvar "DIMLUNIT" 2)
+(setvar "DIMLWD" -1)
+(setvar "DIMLWE" -1)
+(setvar "DIMPOST" "")
+(setvar "DIMRND" 0)
+(setvar "DIMSAH" 0)
+(setvar "DIMSCALE" 1)
+(setvar "DIMSD1" 0)
+(setvar "DIMSD2" 0)
+(setvar "DIMSE1" 0)
+(setvar "DIMSE2" 0)
+(setvar "DIMSHO" 1)
+(setvar "DIMSOXD" 0)
+(setvar "DIMTAD" 1)
+(setvar "DIMTDEC" 3)
+(setvar "DIMTFAC" 0.71)
+(setvar "DIMTIH" 0)
+(setvar "DIMTIX" 0)
+(setvar "DIMTM" 0.1)
+(setvar "DIMTMOVE" 0)
+(setvar "DIMTOFL" 1)
+(setvar "DIMTOH" 0)
+(setvar "DIMTOL" 0)
+(setvar "DIMTOLJ" 0)
+(setvar "DIMTP" 0.1)
+(setvar "DIMTSZ" 0)
+(setvar "DIMTVP" 0)
+;(setvar "DIMTXSTY" "Standard")
+(setvar "DIMTXT" 3.5)
+(setvar "DIMTZIN" 8)
+(setvar "DIMUNIT" 2)
+(setvar "DIMUPT" 0)
+(setvar "DIMZIN" 8)
+(setvar "DISPSILH" 0)
+(setvar "DONUTID" 0.5)
+(setvar "DONUTOD" 1)
+(setvar "DRAGMODE" 2)
+(setvar "DRAGP1" 5000)
+(setvar "DRAGP2" 10)
+(setvar "DRAWORDERCTL" 3)
+(setvar "DWGCHECK" 1)
+(setvar "DYNDIGRIP" 31)
+(setvar "DYNDIVIS" 1)
+(setvar "DYNMODE" 3)
+(setvar "DYNPICOORDS" 0)
+(setvar "DYNPIFORMAT" 0)
+(setvar "DYNPIVIS" 1)
+(setvar "DYNPROMPT" 1)
+(setvar "DYNTOOLTIPS" 1)
+(setvar "EDGEMODE" 0)
+(setvar "ELEVATION" 0)
+(setvar "EXPERT" 0)
+(setvar "EXPLMODE" 1)
+(setvar "EXTNAMES" 1)
+(setvar "FACETRATIO" 0)
+(setvar "FACETRES" 8)
+(setvar "FIELDDISPLAY" 1)
+(setvar "FIELDEVAL" 31)
+(setvar "FILEDIA" 1)
+(setvar "FILLETRAD" 0)
+(setvar "FILLMODE" 1)
+;(setvar "FONTALT" "simplex.shx")
+;(setvar "FONTMAP" "C:/Users/Dinno/AppData/Roaming/Autodesk/AutoCAD Mechanical 2021/R24.0/kor/support/acad.fmp")
+(setvar "GFANG" 0)
+(setvar "GFCLR1" "5")
+(setvar "GFCLR2" "2")
+(setvar "GFCLRLUM" 1)
+(setvar "GFCLRSTATE" 0)
+(setvar "GFNAME" 1)
+(setvar "GFSHIFT" 0)
+(setvar "GRIDMODE" 1)
+(setvar "GRIDUNIT" '(10.0 10.0) )
+(setvar "GRIPBLOCK" 0)
+(setvar "GRIPCOLOR" 150)
+(setvar "GRIPHOT" 12)
+(setvar "GRIPHOVER" 11)
+(setvar "GRIPOBJLIMIT" 100)
+(setvar "GRIPS" 2)
+(setvar "GRIPSIZE" 10)
+(setvar "GRIPTIPS" 1)
+(setvar "HALOGAP" 0)
+(setvar "HIDEPRECISION" 1)
+(setvar "HIDETEXT" 1)
+(setvar "HIGHLIGHT" 1)
+(setvar "HPANG" 0)
+(setvar "HPASSOC" 1)
+(setvar "HPBOUND" 1)
+(setvar "HPDOUBLE" 0)
+(setvar "HPDRAWORDER" 3)
+(setvar "HPGAPTOL" 0)
+(setvar "HPINHERIT" 0)
+;(setvar "HPNAME" "ANSI31")
+(setvar "HPOBJWARNING" 10000)
+(setvar "HPORIGIN" '(0.0 0.0) )
+(setvar "HPORIGINMODE" 0)
+(setvar "HPSCALE" 1)
+(setvar "HPSEPARATE" 0)
+(setvar "HPSPACE" 1)
+(setvar "HYPERLINKBASE" "")
+(setvar "IMAGEHLT" 0)
+(setvar "INDEXCTL" 0)
+(setvar "INETLOCATION" "http://www.autodesk.co.kr")
+(setvar "INPUTHISTORYMODE" 15)
+(setvar "INSBASE" '(0.0 0.0 0.0) )
+;(setvar "INSNAME" "")
+(setvar "INSUNITS" 4)
+(setvar "INSUNITSDEFSOURCE" 4)
+(setvar "INSUNITSDEFTARGET" 4)
+(setvar "INTERSECTIONCOLOR" 257)
+(setvar "INTERSECTIONDISPLAY" 0)
+(setvar "ISAVEBAK" 1)
+(setvar "ISAVEPERCENT" 0)
+(setvar "ISOLINES" 4)
+(setvar "LASTPOINT" '(1960.94 248.491 0.0) )
+(setvar "LAYOUTREGENCTL" 2)
+(setvar "LAZYLOAD" 0)
+(setvar "LIMCHECK" 0)
+(setvar "LIMMAX" '(420.0 297.0) )
+(setvar "LIMMIN" '(0.0 0.0) )
+(setvar "LISPINIT" 1)
+(setvar "LOCKUI" 0)
+;(setvar "LOGFILEMODE" 0)
+;(setvar "LOGFILEPATH" "C:/Users/Dinno/AppData/Local/Autodesk/AutoCAD Mechanical 2021/R24.0/kor/")
+(setvar "LTSCALE" 1)
+(setvar "LUNITS" 2)
+(setvar "LUPREC" 4)
+(setvar "LWDEFAULT" 25)
+(setvar "LWDISPLAY" 0)
+(setvar "LWUNITS" 1)
+(setvar "MAXACTVP" 64)
+(setvar "MAXSORT" 1000)
+(setvar "MBUTTONPAN" 1)
+(setvar "MEASUREINIT" 1)
+(setvar "MEASUREMENT" 1)
+(setvar "MENUCTL" 1)
+(setvar "MENUECHO" 0)
+(setvar "MIRRTEXT" 0)
+(setvar "MODEMACRO" "")
+(setvar "MSOLESCALE" 1)
+;(setvar "MTEXTED" "내부")
+(setvar "MTEXTFIXED" 2)
+(setvar "MTJIGSTRING" "abc")
+(setvar "NOMUTT" 0)
+(setvar "OBSCUREDCOLOR" 257)
+(setvar "OBSCUREDLTYPE" 0)
+(setvar "OFFSETDIST" -1)
+(setvar "OFFSETGAPTYPE" 0)
+(setvar "OLEFRAME" 2)
+(setvar "OLEHIDE" 0)
+(setvar "OLEQUALITY" 3)
+(setvar "OLESTARTUP" 0)
+(setvar "ORTHOMODE" 0)
+(setvar "OSMODE" 4135)
+(setvar "OSNAPCOORD" 2)
+(setvar "OSNAPHATCH" 0)
+(setvar "OSNAPNODELEGACY" 0)
+(setvar "OSNAPZ" 0)
+(setvar "PALETTEOPAQUE" 0)
+(setvar "PAPERUPDATE" 0)
+(setvar "PDMODE" 0)
+(setvar "PDSIZE" 0)
+(setvar "PEDITACCEPT" 0)
+(setvar "PELLIPSE" 0)
+;(setvar "PHANDLE" 0)
+(setvar "PICKADD" 2)
+(setvar "PICKAUTO" 5)
+(setvar "PICKBOX" 10)
+(setvar "PICKDRAG" 2)
+(setvar "PICKFIRST" 1)
+(setvar "PICKSTYLE" 1)
+(setvar "PLINEGEN" 0)
+(setvar "PLINETYPE" 1)
+(setvar "PLINEWID" 0)
+;(setvar "PLOTID" nil )
+;(setvar "PLOTLEGACY" nil )
+(setvar "PLOTOFFSET" 0)
+(setvar "PLOTROTMODE" 2)
+;(setvar "PLOTTER" nil )
+(setvar "PLQUIET" 0)
+(setvar "POLARADDANG" "")
+(setvar "POLARANG" 0.5236)
+(setvar "POLARDIST" 0)
+(setvar "POLARMODE" 0)
+(setvar "POLYSIDES" 4)
+(setvar "PREVIEWFILTER" 3)
+;(setvar "PROJECTNAME" ".")
+(setvar "PROJMODE" 1)
+(setvar "PROXYGRAPHICS" 1)
+(setvar "PROXYNOTICE" 1)
+(setvar "PROXYSHOW" 1)
+(setvar "PSLTSCALE" 1)
+(setvar "PSPROLOG" "")
+(setvar "PSQUALITY" 75)
+(setvar "PSTYLEPOLICY" 1)
+(setvar "PSVPSCALE" 0)
+;(setvar "PUCSBASE" "")
+(setvar "QTEXTMODE" 0)
+(setvar "QUEUEDREGENMAX" 2147483647)
+(setvar "RASTERDPI" 300)
+(setvar "RASTERPREVIEW" nil )
+(setvar "RECOVERYMODE" 2)
+(setvar "REGENMODE" 1)
+(setvar "REMEMBERFOLDERS" 1)
+(setvar "REPORTERROR" 1)
+(setvar "RTDISPLAY" 1)
+(setvar "SAVEFILEPATH" "C:/Users/Dinno/AppData/Local/Temp/")
+(setvar "SAVETIME" 10)
+(setvar "SDI" 0)
+(setvar "SELECTIONAREA" 1)
+(setvar "SELECTIONAREAOPACITY" 25)
+(setvar "SELECTIONPREVIEW" 3)
+(setvar "SHADEDGE" 3)
+(setvar "SHADEDIF" 70)
+(setvar "SHORTCUTMENU" 11)
+;(setvar "SHPNAME" "")
+(setvar "SIGWARN" 1)
+(setvar "SKETCHINC" 1)
+(setvar "SKPOLY" 0)
+(setvar "SNAPANG" 0)
+(setvar "SNAPBASE" '(0.0 0.0) )
+(setvar "SNAPISOPAIR" 0)
+(setvar "SNAPMODE" 0)
+(setvar "SNAPSTYL" 0)
+(setvar "SNAPTYPE" 0)
+(setvar "SNAPUNIT" '(10.0 10.0) )
+(setvar "SOLIDCHECK" 1)
+(setvar "SORTENTS" 127)
+(setvar "SPACESWITCH" 0)
+(setvar "SPLFRAME" 0)
+(setvar "SPLINESEGS" 8)
+(setvar "SPLINETYPE" 6)
+(setvar "SSLOCATE" 1)
+(setvar "SSMAUTOOPEN" 1)
+(setvar "SSMOPENREFRESH" nil )
+(setvar "STANDARDSVIOLATION" 2)
+(setvar "STARTUP" 3)
+;(setvar "STYLESHEET" nil )
+(setvar "SURFTAB1" 6)
+(setvar "SURFTAB2" 6)
+(setvar "SURFTYPE" 6)
+(setvar "SURFU" 6)
+(setvar "SURFV" 6)
+(setvar "TABMODE" 0)
+(setvar "TBCUSTOMIZE" 1)
+(setvar "TEMPOVERRIDES" 1)
+(setvar "TEXTEVAL" 0)
+(setvar "TEXTFILL" 1)
+(setvar "TEXTQLTY" 50)
+(setvar "TEXTSIZE" 2.5)
+;(setvar "TEXTSTYLE" "Standard")
+(setvar "THICKNESS" 0)
+(setvar "TILEMODE" 1)
+(setvar "TOOLTIPS" 1)
+(setvar "TRACEWID" 1)
+(setvar "TRACKPATH" 0)
+(setvar "TRAYICONS" 1)
+(setvar "TRAYNOTIFY" 1)
+(setvar "TRAYTIMEOUT" 0)
+(setvar "TREEDEPTH" 3020)
+(setvar "TREEMAX" 10000000)
+(setvar "TRIMMODE" 1)
+(setvar "TSPACEFAC" 1)
+(setvar "TSPACETYPE" 1)
+(setvar "TSTACKALIGN" 1)
+(setvar "TSTACKSIZE" 70)
+;(setvar "UCSAXISANG" 1.5708)
+;(setvar "UCSBASE" "")
+(setvar "UCSFOLLOW" 0)
+(setvar "UCSICON" 3)
+(setvar "UCSORTHO" 1)
+(setvar "UCSVIEW" 1)
+(setvar "UCSVP" 1)
+(setvar "UNITMODE" 0)
+(setvar "UPDATETHUMBNAIL" 15)
+(setvar "VISRETAIN" 1)
+(setvar "VTDURATION" 750)
+(setvar "VTENABLE" 3)
+(setvar "VTFPS" 7)
+(setvar "WHIPARC" 1)
+(setvar "WHIPTHREAD" 1)
+(setvar "WMFBKGND" 0)
+(setvar "WMFFOREGND" 0)
+(setvar "WORLDVIEW" 1)
+(setvar "XCLIPFRAME" 2)
+(setvar "XEDIT" 1)
+(setvar "XFADECTL" 70)
+(setvar "XLOADCTL" 2)
+;(setvar "XLOADPATH" "C:/Users/Dinno/AppData/Local/Temp/")
+(setvar "XREFCTL" 0)
+(setvar "XREFNOTIFY" 2)
+(setvar "XREFTYPE" 0)
+(setvar "ZOOMFACTOR" 60)
+(setvar "_TOOLPALETTEPATH" "C:/Users/Dinno/AppData/Roaming/Autodesk/AutoCAD Mechanical 2021/R24.0/kor/support/ToolPalette")

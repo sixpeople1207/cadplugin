@@ -70,6 +70,7 @@ namespace PipeInfo
             ofd.Filter = "DDWorks DatabaseFile(*.db)|*.db";
             if (ofd.ShowDialog().ToString() == "OK")
             {
+
                 textBox_DBPath.Text = ofd.FileName;
                 db_path = ofd.FileName;
                 return true;
@@ -277,7 +278,7 @@ namespace PipeInfo
         {
             // 파이프 리스트가 0이상일때.. 작동하도록.. 
             List<string> header = new List<string>()
-            { "번호","관경","재질","파이프 길이","스풀이름" };
+            { "번호","관경","재질","파이프 길이","스풀이름","Hole" };
             ExcelObject excel = new ExcelObject(header);
             Compare comparePoint = new Compare();
 
@@ -310,6 +311,7 @@ namespace PipeInfo
                     spoolNambe = db.Get_SpoolInfo_By_InstanceID(pipeInstance_li[i]);
                     excel.excel_InsertData(j, 5, spoolNambe, false);
 
+                    excel.excel_InsertData(j, 6, pipeInstance_li[i + (int)stepPipeInfo.IsHole], false);
                 }
                 excel.excel_save();
             }

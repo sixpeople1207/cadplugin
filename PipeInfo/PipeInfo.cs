@@ -1803,7 +1803,7 @@ namespace PipeInfo
 
             ObjectId cylinderObj_ID = new ObjectId();
             ObjectId saveObj_ID = new ObjectId();
-
+            bool isHole = false;
             double pipeThk = 0;
 
             //PipeInstances 의 정보를 저장.
@@ -1867,27 +1867,29 @@ namespace PipeInfo
                             }
                     }
 
-                    //if (pipeInfo_Pos_li.Count > 2)
-                    //{
-                    //    List<string> takeoff_Size_Li = dbIO.Get_TakeOff_Size_By_InstanceId(pipeIns);
+                //if (pipeInfo_Pos_li.Count > 2)
+                //{
+                //    List<string> takeoff_Size_Li = dbIO.Get_TakeOff_Size_By_InstanceId(pipeIns);
 
-                    //    if (takeoff_Size_Li.Count == pipeInfo_Dia_Li.Count - 2 && takeoff_Size_Li[0] != "0") //찾은 테크오프 사이즈와 PIPE에 
-                    //    {
-                    //        for (int i = 0; i < takeoff_Size_Li.Count; i++)
-                    //        {
-                    //            pipeInfo_Dia_Li[i + 2] = double.Parse(takeoff_Size_Li[i]);
-                    //        }
-                    //    }
-                    //}
+                //    if (takeoff_Size_Li.Count == pipeInfo_Dia_Li.Count - 2 && takeoff_Size_Li[0] != "0") //찾은 테크오프 사이즈와 PIPE에 
+                //    {
+                //        for (int i = 0; i < takeoff_Size_Li.Count; i++)
+                //        {
+                //            pipeInfo_Dia_Li[i + 2] = double.Parse(takeoff_Size_Li[i]);
+                //        }
+                //    }
+                //}
 
-                    /* Take Off 처리 객체 3D 뽕따기
-                    - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
-                    - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
-                    - 임의의 길이값을 추가해주고 Subtract함. 
-                    */
+                /* Take Off 처리 객체 3D 뽕따기
+                - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
+                - Take Off 위치는 기존 POC에서 빼줘서 MOVE해준다. (TakeOff POC와 본체의 크기가 다를 수 있음)
+                - 임의의 길이값을 추가해주고 Subtract함. 
+                */
+               
                     if (pipeInfo_Pos_li.Count > 2)
                     {
                         acDoc.LockDocument();
+                    isHole = true;
                         using (Transaction acTrans = db.TransactionManager.StartTransaction())
                         {
                             BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
@@ -2061,6 +2063,12 @@ namespace PipeInfo
                         //ed.SetImpliedSelection(saveObjIDs);
                     }
                     acTrans.Commit();
+                }
+
+                //파이프에 Hole이 포함되어 있다면 파일 경로뒤에 Hole을 붙여줌(전체경로 길이에서 ".STP" 4자리 앞에 _Hole)
+                if (isHole == true)
+                {
+                    savepath = savepath.Insert(savepath.Length-4, "_hole");
                 }
                 acDoc.SendStringToExecute(String.Format("STEPOUT {0}\n", savepath), true, false, false);
                 pipes_AutoMove_Array(stepfileSave_Ids);
@@ -5282,32 +5290,17 @@ namespace PipeInfo
                                                 points.Add(new Point3d((double)rdr_1["POSX"], (double)rdr_1["POSY"], (double)rdr_1["POSZ"]));
                                             }
                                         }
+                                        //맞대기 처리
                                         if (points.Count == 2)
                                         {
                                             int index = 0; //맞대기 용접 인덱스
+                                            //선택된 웰드포인트를 하나씩 돌며 가장 근접한 Point를 찾는다. 
                                             foreach (var weldPoint in weldGroup)
                                             {
-                                                //CAD좌표는 DDWORKS 좌표에서 4번째에서 반올림한 좌표.
-                                                //오너 아이디에서 반환된 Points와 weldPoint가 일치하면 
                                                 if (Math.Abs(weldPoint.X - points[0].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[0].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[0].Z) < vec_ComareTor)
                                                 {
                                                     Vector3d vec = (points[1] - points[0]).GetNormal();
-                                                    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
-                                                    //24.8.20 
-                                                    if (Math.Abs(Math.Round(vec.X, 1)) == 1 && Math.Abs(Math.Round(vec.Y, 1)) != 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
-                                                    {
-                                                        vec = new Vector3d(vec.X, 0, 0);
-                                                    }
-                                                    else if (Math.Abs(Math.Round(vec.X, 1)) != 1 && Math.Abs(Math.Round(vec.Y, 1)) == 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
-                                                    {
-                                                        vec = new Vector3d(0, vec.Y, 0);
-                                                    }
-                                                    else
-                                                    {
-                                                        vec = new Vector3d(0, 0, vec.Z);
-                                                    }
                                                     vec_li.Add(vec);
-
                                                     //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
                                                     if (count == 2)
                                                     {
@@ -5317,20 +5310,6 @@ namespace PipeInfo
                                                 else if (Math.Abs(weldPoint.X - points[1].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[1].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[1].Z) < vec_ComareTor)
                                                 {
                                                     Vector3d vec = (points[0] - points[1]).GetNormal();
-                                                    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
-                                                    //24.8.20 
-                                                    if (Math.Abs(Math.Round(vec.X,1))==1 && Math.Abs(Math.Round(vec.Y, 1)) != 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
-                                                    {
-                                                        vec = new Vector3d(vec.X, 0, 0);
-                                                    }
-                                                    else if(Math.Abs(Math.Round(vec.X, 1)) != 1 && Math.Abs(Math.Round(vec.Y, 1)) == 1 && Math.Abs(Math.Round(vec.Z, 1)) != 1)
-                                                    {
-                                                        vec = new Vector3d(0, vec.Y, 0);
-                                                    }
-                                                    else
-                                                    {
-                                                        vec = new Vector3d(0, 0, vec.Z);
-                                                    }
                                                     vec_li.Add(vec);
                                                     //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
                                                     if (count == 2)
@@ -5339,8 +5318,72 @@ namespace PipeInfo
                                                     }
                                                 }
                                                 index++;
-
                                             }
+
+                                            // 엘보일때? 
+                                            // 
+                                            //CAD좌표는 DDWORKS 좌표에서 4번째에서 반올림한 좌표.
+                                            //오너 아이디에서 반환된 Points와 weldPoint가 일치하면  
+                                            //if (Math.Abs(weldPoint.X - points[0].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[0].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[0].Z) < vec_ComareTor)
+                                            //{
+                                            //    Vector3d vec = (points[1] - points[0]).GetNormal();
+                                            //    //PCW 공종시 엘보와 웰딩포인트를 계산하기 위한 계산식 추가(24.8.21)
+                                            //    //Vector3d vec = (points[1] - points[0]).GetNormal();
+                                            //    var x = Math.Truncate(vec.X);
+                                            //    var y = Math.Truncate(vec.Y);
+                                            //    var z = Math.Truncate(vec.Z);
+                                            //    vec = new Vector3d(x, y, z);
+                                            //    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
+                                            //    //24.8.20 
+                                            //    if (Math.Abs(Math.Round(vec.X, 0)) == 1 && Math.Abs(Math.Round(vec.Y, 0)) != 1 && Math.Abs(Math.Round(vec.Z, 0)) != 1)
+                                            //    {
+                                            //        vec = new Vector3d(vec.X, 0, 0);
+                                            //    }
+                                            //    else if (Math.Abs(Math.Round(vec.X, 0)) != 1 && Math.Abs(Math.Round(vec.Y, 0)) == 1 && Math.Abs(Math.Round(vec.Z, 0)) != 1)
+                                            //    {
+                                            //        vec = new Vector3d(0, vec.Y, 0);
+                                            //    }
+                                            //    else
+                                            //    {
+                                            //        vec = new Vector3d(0, 0, vec.Z);
+                                            //    }
+                                            //    vec_li.Add(vec);
+
+                                            //    //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
+                                            //    if (count == 2)
+                                            //    {
+                                            //        index_li.Add(index);
+                                            //    }
+                                            //}
+                                            //else if (Math.Abs(weldPoint.X - points[1].X) < vec_ComareTor && Math.Abs(weldPoint.Y - points[1].Y) < vec_ComareTor && Math.Abs(weldPoint.Z - points[1].Z) < vec_ComareTor)
+                                            //{
+                                            //    Vector3d vec = (points[0] - points[1]).GetNormal();
+                                            //    //Vector3d vec = (points[0] - points[1]).GetNormal();
+                                            //    var x = Math.Truncate(vec.X);
+                                            //    var y = Math.Truncate(vec.Y);
+                                            //    var z = Math.Truncate(vec.Z);
+                                            //    vec = new Vector3d(x, y, z);
+                                            //    //만약 Vector가 하나의  방향이 아니고 여러 방향일때 (Elbow) 가장 1에 근접한 벡터를 반환한다.
+                                            //    //24.8.20 
+                                            //    if (Math.Abs(Math.Round(vec.X, 0)) == 1 && Math.Abs(Math.Round(vec.Y, 0)) != 1 && Math.Abs(Math.Round(vec.Z, 0)) != 1)
+                                            //    {
+                                            //        vec = new Vector3d(vec.X, 0, 0);
+                                            //    }
+                                            //    else if (Math.Abs(Math.Round(vec.X, 0)) != 1 && Math.Abs(Math.Round(vec.Y, 0)) == 1 && Math.Abs(Math.Round(vec.Z, 0)) != 1)
+                                            //    {
+                                            //        vec = new Vector3d(0, vec.Y, 0);
+                                            //    }
+                                            //    else
+                                            //    {
+                                            //        vec = new Vector3d(0, 0, vec.Z);
+                                            //    }
+                                            //    vec_li.Add(vec);
+                                            //    //맞대기 용접일때처리. 2번째 파이프 객체를 찾았을때(256) 좌표의 인덱스에 해당하는 좌표를 넣어준다.
+                                            //    if (count == 2)
+                                            //    {
+                                            //        index_li.Add(index);
+                                            //    }
+                                            //}
 
                                         }
                                     }
