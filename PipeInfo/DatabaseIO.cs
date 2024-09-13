@@ -196,13 +196,19 @@ namespace PipeInfo
                                 if (rdr_ready["CONNECTION_ORDER"].ToString() != "1") //그리드뷰에서 POC1개의 정보만 보여주기 위해 1개는 걸러냄.
                                 {
                                     string instanceId = BitConverter.ToString((byte[])rdr_ready["OWNER_INSTANCE_ID"]).Replace("-", "");
-                                    string length_str = Math.Round((double)rdr_ready["LENGTH1"],1).ToString();
                                     double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
                                     double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
                                     string hole = "Hole"; 
                                     string pipeSize = "";
                                     string material_Nm = "";
-                                   
+                                    double pipeDepth = 0;
+
+                                    //파이프에 Depth값을 적용(Pipe와 연결된 기자재에 Depth값이 있으면 절대값을 모두 더해서 파이프 길이에서 빼준다)
+                                    pipeDepth = Get_PipeDepth_Info_By_PipInstace(instanceId);
+                                    if (pipeDepth > 0)
+                                    {
+                                        length = length - pipeDepth;
+                                    }
                                     //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                     string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                     Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
@@ -217,7 +223,7 @@ namespace PipeInfo
                                             pipeInsInfo.Add(instanceId);
                                             pipeInsInfo.Add(pipeSize);
                                             pipeInsInfo.Add(material_Nm);
-                                            pipeInsInfo.Add(length_str);
+                                            pipeInsInfo.Add(length.ToString());
                                             pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음)
                                         }
                                     }
@@ -249,9 +255,44 @@ namespace PipeInfo
 
             return pipeInsInfo;
         }
-        /// <summary>
-        /// 파이프 배치를 위해서 Tube와 Take off Tube를 제외한 Pipe 리스트만 반환
-        /// </summary>
+        
+        public double Get_PipeDepth_Info_By_PipInstace(string instanceId)
+        {
+            string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
+                "WHERE POC_TEMPLATE_ID " +
+                "IN " +
+                "(SELECT POC_TEMPLATE_ID " +
+                "FROM TB_POCINSTANCES " +
+                "WHERE INSTANCE_ID " +
+                "IN " +
+                "(SELECT CONNECTED_POC_ID " +
+                "FROM TB_POCINSTANCES " +
+                "WHERE hex(OWNER_INSTANCE_ID) like '{0}'));",instanceId);
+            double depth = 0;
+            string connstr = this.connstr;
+            try
+            {
+                if (db_path != "")
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(connstr))
+                    {
+                        conn.Open();
+                        SQLiteCommand comm = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr_ready = comm.ExecuteReader();
+
+                        while (rdr_ready.Read()) {
+                            depth += Math.Abs((double)rdr_ready["DEPTH"]);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString(),"DDWorks CAD PlugIn");
+            }
+           return depth;
+        }
+        
         public List<double> Get_PipeList_By_GroupName(string groupName)
         {
             List<string> pipeInfor = new List<string>();
