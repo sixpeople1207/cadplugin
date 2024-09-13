@@ -1814,7 +1814,7 @@ namespace PipeInfo
                 * pipeInfo_ID_li는 해당 파이프 인스턴스에 POC가 여러개(TakeOff까지) 존재하기 때문에 리스트로 반환하고 거기서 정보를 가공해서 사용.
                 */
 
-                (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li, xyzr_Angle_Li) = ddwDB.Get_PipeInformation_By_GroupName(groupName, pipeIns);
+                (pipeInfo_ID_li, pipeInfo_Pos_li, pipeInfo_Length_li, pipeInfo_Dia_Li, xyzr_Angle_Li) = dbIO.Get_PipeInformation_By_GroupName(groupName, pipeIns);
                 
                 //실제 파이프 갯수만 가져온다. POC 정보를 제외한 실제 파이프 갯수. 
                 pipeList = ddwDB.Get_PipeList_By_GroupName(groupName);
@@ -4497,6 +4497,7 @@ namespace PipeInfo
                         DocumentCollection dm = Application.DocumentManager;
                         Database destDb = dm.MdiActiveDocument.Database;
                         Editor ed = dm.MdiActiveDocument.Editor;
+
                         if (db_path != null)
                         {
                             string connstr = "Data Source=" + db_path;

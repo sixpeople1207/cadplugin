@@ -256,6 +256,11 @@ namespace PipeInfo
             return pipeInsInfo;
         }
         
+        /// <summary>
+        /// 용접공정에 파이프피팅(플랜지등)에 Depth값을 반환. 통상 Depth는 파이프 끝단에 있으나 좌.우 Depth(절대값)을 더해서 반환. 
+        /// </summary>
+        /// <param name="instanceId"></param>
+        /// <returns></returns>
         public double Get_PipeDepth_Info_By_PipInstace(string instanceId)
         {
             string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
@@ -292,7 +297,116 @@ namespace PipeInfo
             }
            return depth;
         }
-        
+
+        /// <summary>
+        /// STEP을 그리기 위한 그룹 이름을 기준으로 파이프 인스턴스를 가져오고
+        /// 파이프 인스턴스중 PIPE TYPE이 17301760인 객체만 가져와서 POC위치, 길이, 파이프 사이즈정보를 리스트로 넘겨준다.
+        /// </summary>
+        /// <param name="groupName"></param>
+        /// <param name="instanceID"></param>
+        /// <returns></returns>
+        public (List<string>, List<Point3d>, List<double>, List<double>, List<double>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
+        {
+            List<string> pipesInfor = new List<string>();
+            List<Point3d> pipesPos = new List<Point3d>();
+            List<double> pipesLength = new List<double>();
+            List<double> pipesDia = new List<double>();
+            List<double> xyzrAngle = new List<double>();
+
+            //파이프의 Depth값을 가져와 파이프 길이에서 빼준다. 
+            double depth = Get_PipeDepth_Info_By_PipInstace(instanceID);
+
+            try
+            {
+                if (this.db_path != null)
+                {
+                    using (SQLiteConnection conn = new SQLiteConnection(this.connstr))
+                    {
+                        conn.Open();
+                        string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                                    "From TB_INSTANCEGROUPMEMBERS as GM " +
+                                    "INNER JOIN TB_PIPEINSTANCES as PI " +
+                                    "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
+                                    "AND GM.INSTANCE_GROUP_ID = " +
+                                    "(SELECT INSTANCE_GROUP_ID From TB_INSTANCEGROUPS  " +
+                                    "WHERE TB_INSTANCEGROUPS.INSTANCE_GROUP_NM = '{0}') " +
+                                    "INNER JOIN TB_POCINSTANCES as PO " +
+                                    "ON PI.INSTANCE_ID = PO.OWNER_INSTANCE_ID AND PI.PIPE_TYPE='{1}' " +
+                                    "INNER JOIN TB_PIPESIZE as PS " +
+                                    "ON PO.PIPESIZE_ID = PS.PIPESIZE_ID " +
+                                    "INNER JOIN TB_PIPESTD as PD " +
+                                    "ON PS.PIPESTD_ID = PD.PIPESTD_ID " +
+                                    "WHERE hex(PI.INSTANCE_ID) like '{2}' " +
+                                    "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe, instanceID);
+                        if (sql != "")
+                        {
+                            SQLiteCommand cmd = new SQLiteCommand(sql, conn);
+                            SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                            string instanceId = "";
+                            while (rdr_ready.Read())
+                            {
+                                //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
+                                string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
+                                Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+                                double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
+
+                                //Depth값을 파이프 길이에서 빼준다.
+                                if (depth > 0)
+                                {
+                                    length = length - depth;
+                                }
+
+                                double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
+                                double pipeSizeLimit = 260;
+                                //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
+                                if (connectInt < 2)
+                                {
+                                    if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSizeLimit)
+                                    {
+                                        instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                        pipesInfor.Add(instanceId);
+                                        pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                        pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                        pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                        xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                        xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                    }
+                                    else
+                                    {
+                                        break;
+                                    }
+                                }
+                                else if (connectInt > 1)
+                                {
+                                    instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
+                                    pipesInfor.Add(instanceId);
+                                    pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                    pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                    pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                    xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                    xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                    xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                    xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+
+                                }
+
+
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
+            }
+            // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
+            return (pipesInfor, pipesPos, pipesLength, pipesDia, xyzrAngle);
+
+        }
+
         public List<double> Get_PipeList_By_GroupName(string groupName)
         {
             List<string> pipeInfor = new List<string>();

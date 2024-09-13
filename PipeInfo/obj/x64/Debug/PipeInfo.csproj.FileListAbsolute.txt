@@ -402,8 +402,9 @@ C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.Up2Date
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\29.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\31.dll.config
 C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\31.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\31.pdb
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\31.dll
-C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\31.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\32.dll.config
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\32.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\bin\x64\Debug\32.pdb
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\32.dll
+C:\Users\Dinno\source\repos\cadplugin (2)\PipeInfo\obj\x64\Debug\32.pdb
