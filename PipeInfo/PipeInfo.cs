@@ -1768,7 +1768,7 @@ namespace PipeInfo
         /*
          * 기능 : DDWorks DB에서 파이프 정보를 가져와 STEP파일로 Export하는 기능 
          */
-        public (List<string>, List<string>, List<double>) export_Pipes_StepFiles(string groupName, string savepath)
+        public (List<string>, List<string>, List<double>, bool) export_Pipes_StepFiles(string groupName,string savepath)
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
@@ -1889,7 +1889,7 @@ namespace PipeInfo
                     if (pipeInfo_Pos_li.Count > 2)
                     {
                         acDoc.LockDocument();
-                    isHole = true;
+                        isHole = true;
                         using (Transaction acTrans = db.TransactionManager.StartTransaction())
                         {
                             BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
@@ -2075,7 +2075,7 @@ namespace PipeInfo
             }
 
             // 스풀정보 반환, 3D파이프 핸들 반환
-            return (spoolNum_Li, pipeHandle_Li, spoolLength_Li);
+            return (spoolNum_Li, pipeHandle_Li, spoolLength_Li, isHole);
 
         }
 

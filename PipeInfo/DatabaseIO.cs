@@ -366,7 +366,7 @@ namespace PipeInfo
                                         instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                         pipesInfor.Add(instanceId);
                                         pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                        pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                        pipesLength.Add(length);
                                         pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
                                         xyzrAngle.Add((double)rdr_ready["XANGLE"]);
                                         xyzrAngle.Add((double)rdr_ready["YANGLE"]);
@@ -383,7 +383,7 @@ namespace PipeInfo
                                     instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                     pipesInfor.Add(instanceId);
                                     pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                    pipesLength.Add((double)rdr_ready["LENGTH1"]);
+                                    pipesLength.Add(length);
                                     pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
                                     xyzrAngle.Add((double)rdr_ready["XANGLE"]);
                                     xyzrAngle.Add((double)rdr_ready["YANGLE"]);

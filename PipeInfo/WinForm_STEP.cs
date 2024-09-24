@@ -90,8 +90,7 @@ namespace PipeInfo
             {
                 stepFileSave_path = ofd.FileName;
                 string path_split = Path.GetDirectoryName(stepFileSave_path);
-                //파일 감시 
-                fiw.initWatcher(stepFileSave_path);
+              
                 return true;
             }
             else
@@ -218,7 +217,7 @@ namespace PipeInfo
                 {
                     bool is_SaveFile = false;
                     is_SaveFile = saveFaileDialog();
-                    
+                    bool isHole = false;
                     bool is_PathInBlank = stepFileSave_path.Contains(" ");
                     // 사용중인 Thread 종료.
                     if(_thread != null)
@@ -227,9 +226,15 @@ namespace PipeInfo
                     }
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
-                        (_spool_Li, _handle_Li, _spoolLength_Li) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
+                        (_spool_Li, _handle_Li, _spoolLength_Li, isHole) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
-                        
+                        if (isHole == true)
+                        {
+                            stepFileSave_path = stepFileSave_path.Insert(stepFileSave_path.Length - 4, "_hole");
+                        }
+
+                        //파일 감시 
+                        fiw.initWatcher(stepFileSave_path);
                         // STEP파일 사용확인. STEP파일 생성 후 수정.
                         _thread = new Thread(check_StepFile);
                         _thread.Start();
