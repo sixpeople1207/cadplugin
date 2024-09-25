@@ -263,16 +263,26 @@ namespace PipeInfo
         /// <returns></returns>
         public double Get_PipeDepth_Info_By_PipInstace(string instanceId)
         {
+            //string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
+            //    "WHERE POC_TEMPLATE_ID " +
+            //    "IN " +
+            //    "(SELECT POC_TEMPLATE_ID " +
+            //    "FROM TB_POCINSTANCES " +
+            //    "WHERE INSTANCE_ID " +
+            //    "IN " +
+            //    "(SELECT CONNECTED_POC_ID " +
+            //    "FROM TB_POCINSTANCES " +
+            //    "WHERE hex(OWNER_INSTANCE_ID) like '{0}'));",instanceId);
             string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
-                "WHERE POC_TEMPLATE_ID " +
-                "IN " +
-                "(SELECT POC_TEMPLATE_ID " +
-                "FROM TB_POCINSTANCES " +
-                "WHERE INSTANCE_ID " +
-                "IN " +
-                "(SELECT CONNECTED_POC_ID " +
-                "FROM TB_POCINSTANCES " +
-                "WHERE hex(OWNER_INSTANCE_ID) like '{0}'));",instanceId);
+                " as PM INNER JOIN TB_POCINSTANCES as PI WHERE PM.POC_TEMPLATE_ID = " +
+                " PI.POC_TEMPLATE_ID " +
+                " AND " +
+                " PM.POC_TEMPLATE_ID" +
+                " IN(SELECT POC_TEMPLATE_ID FROM TB_POCINSTANCES WHERE INSTANCE_ID " +
+                " IN " +
+                " (SELECT CONNECTED_POC_ID FROM TB_POCINSTANCES WHERE hex(OWNER_INSTANCE_ID) like '{0}'));"
+                , instanceId);
+
             double depth = 0;
             string connstr = this.connstr;
             try
@@ -349,7 +359,6 @@ namespace PipeInfo
                                 string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                 Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
                                 double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
-
                                 //Depth값을 파이프 길이에서 빼준다.
                                 if (depth > 0)
                                 {
