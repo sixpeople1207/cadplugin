@@ -42,26 +42,33 @@ namespace PipeInfo
         public List<string> get_DB_GroupList()
         {
             List<String> groupList = new List<string>();
-            if(db_path != "")
+            try
             {
-                string connStr = "Data Source=" + db_path;
-                using (SQLiteConnection conn = new SQLiteConnection(connStr))
+                if (db_path != "")
                 {
-                    conn.Open();
-                    string sql = "SELECT INSTANCE_GROUP_NM " +
-                        "FROM TB_INSTANCEGROUPS " +
-                        "WHERE NOT hex(INSTANCE_GROUP_PARENT_ID) like '00000000000000000000000000000000';";
-                    SQLiteCommand command = new SQLiteCommand(sql, conn);
-                    SQLiteDataReader rdr = command.ExecuteReader();
-                    while (rdr.Read())
+                    string connStr = "Data Source=" + db_path;
+                    using (SQLiteConnection conn = new SQLiteConnection(connStr))
                     {
-                        groupList.Add(rdr["INSTANCE_GROUP_NM"].ToString());
+                        conn.Open();
+                        string sql = "SELECT INSTANCE_GROUP_NM " +
+                            "FROM TB_INSTANCEGROUPS " +
+                            "WHERE NOT hex(INSTANCE_GROUP_PARENT_ID) like '00000000000000000000000000000000';";
+                        SQLiteCommand command = new SQLiteCommand(sql, conn);
+                        SQLiteDataReader rdr = command.ExecuteReader();
+                        while (rdr.Read())
+                        {
+                            groupList.Add(rdr["INSTANCE_GROUP_NM"].ToString());
+                        }
                     }
                 }
+                else
+                {
+                    MessageBox.Show("Error : 데이터베이스 파일이 없습니다.\n 경로를 확인해주세요.");
+                }
             }
-            else
+            catch (Exception e)
             {
-                MessageBox.Show("Error : 데이터베이스 파일이 없습니다.\n 경로를 확인해주세요.");
+                MessageBox.Show(e.ToString());
             }
              return groupList;
         }
@@ -263,6 +270,7 @@ namespace PipeInfo
         /// <returns></returns>
         public double Get_PipeDepth_Info_By_PipInstace(string instanceId)
         {
+            //아래 두 쿼리는 문제가 발생. 조인에서는 중복이 너무 많이 뜨고, 아래쿼리는 파이프양옆에 피팅이 붙어서 같은 TemplateId가 붙으면 1개만 나오는현상.
             //string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
             //    "WHERE POC_TEMPLATE_ID " +
             //    "IN " +
@@ -275,15 +283,24 @@ namespace PipeInfo
             //    "WHERE hex(OWNER_INSTANCE_ID) like '{0}'));",instanceId);
 
             //Inner조인을 하고 POC TEMPLATE에 맞는 Depth값을 때 중복값이 생기게 되기 때문에 Select뒤에 DISTINCT옵션을 써서 제거.
-            string sql = string.Format("SELECT DISTINCT DEPTH FROM TB_POCTEMPLATES " +
-                " as PM INNER JOIN TB_POCINSTANCES as PI WHERE PM.POC_TEMPLATE_ID = " +
-                " PI.POC_TEMPLATE_ID " +
-                " AND " +
-                " PM.POC_TEMPLATE_ID" +
-                " IN(SELECT POC_TEMPLATE_ID FROM TB_POCINSTANCES WHERE INSTANCE_ID " +
-                " IN " +
-                " (SELECT CONNECTED_POC_ID FROM TB_POCINSTANCES WHERE hex(OWNER_INSTANCE_ID) like '{0}'));"
-                , instanceId);
+            //string sql = string.Format("SELECT DISTINCT DEPTH FROM TB_POCTEMPLATES " +
+            //    " as PM INNER JOIN TB_POCINSTANCES as PI WHERE PM.POC_TEMPLATE_ID = " +
+            //    " PI.POC_TEMPLATE_ID " +
+            //    " AND " +
+            //    " PM.POC_TEMPLATE_ID" +
+            //    " IN(SELECT POC_TEMPLATE_ID FROM TB_POCINSTANCES WHERE INSTANCE_ID " +
+            //    " IN " +
+            //    " (SELECT CONNECTED_POC_ID FROM TB_POCINSTANCES WHERE hex(OWNER_INSTANCE_ID) like '{0}'));"
+            //    , instanceId);
+
+            //쿼리를 아래와 같이 진행하고 결과값으로 수동으로 쿼리를 돌리기로 함.
+            string sql = string.Format("SELECT POC_TEMPLATE_ID " +
+                "FROM TB_POCINSTANCES " +
+                "WHERE INSTANCE_ID " +
+                "IN " +
+                "(SELECT CONNECTED_POC_ID " +
+                "FROM TB_POCINSTANCES " +
+                "WHERE hex(OWNER_INSTANCE_ID) like '{0}');", instanceId);
 
             double depth = 0;
             string connstr = this.connstr;
@@ -296,9 +313,18 @@ namespace PipeInfo
                         conn.Open();
                         SQLiteCommand comm = new SQLiteCommand(sql, conn);
                         SQLiteDataReader rdr_ready = comm.ExecuteReader();
-
+                        
+                        //POC TEMPLATE ID를 여러개 찾고 IN으로 붙였더니 가끔 같은 결과값이 있으면 1개만 출력되는 현상이 있어서 Command를 두 번사용.[24.9.27]
                         while (rdr_ready.Read()) {
-                            depth += Math.Abs((double)rdr_ready["DEPTH"]);
+                            string id = BitConverter.ToString((byte[])rdr_ready["POC_TEMPLATE_ID"]).Replace("-", "");
+                            string sql_2 = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES WHERE hex(POC_TEMPLATE_ID) like '{0}'; ", id);
+                            SQLiteCommand comm_2 = new SQLiteCommand(sql_2, conn);
+                            SQLiteDataReader rdr_ready_2 = comm_2.ExecuteReader();
+                            
+                            while (rdr_ready_2.Read()) 
+                            { 
+                            depth += Math.Abs((double)rdr_ready_2["DEPTH"]);
+                            }
                         }
                     }
                 }
