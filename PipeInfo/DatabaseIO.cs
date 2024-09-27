@@ -273,7 +273,9 @@ namespace PipeInfo
             //    "(SELECT CONNECTED_POC_ID " +
             //    "FROM TB_POCINSTANCES " +
             //    "WHERE hex(OWNER_INSTANCE_ID) like '{0}'));",instanceId);
-            string sql = string.Format("SELECT DEPTH FROM TB_POCTEMPLATES " +
+
+            //Inner조인을 하고 POC TEMPLATE에 맞는 Depth값을 때 중복값이 생기게 되기 때문에 Select뒤에 DISTINCT옵션을 써서 제거.
+            string sql = string.Format("SELECT DISTINCT DEPTH FROM TB_POCTEMPLATES " +
                 " as PM INNER JOIN TB_POCINSTANCES as PI WHERE PM.POC_TEMPLATE_ID = " +
                 " PI.POC_TEMPLATE_ID " +
                 " AND " +
