@@ -310,12 +310,19 @@ namespace PipeInfo
                     }
                     excel.excel_InsertData(j, 2, pipeInstance_li[i + (int)stepPipeInfo.PipeSize], false);
                     excel.excel_InsertData(j, 3, pipeInstance_li[i + (int)stepPipeInfo.PipeMaterial], false);
-                    excel.excel_InsertData(j, 4, pipeInstance_li[i + (int)stepPipeInfo.PipeLength], false);
+
+                    if(pipeInstance_li[i + (int)stepPipeInfo.PipeLength] != "0")
+                    {
+                        excel.excel_InsertData(j, 4, pipeInstance_li[i + (int)stepPipeInfo.PipeLength], false);
+                    }
+                    else //Take Off 길이값은 0으로 화면에 출력하되 엑셀에는 -로 표시.
+                    {
+                        excel.excel_InsertData(j, 4, "-", false);
+                    }
 
                     //스풀 정보 
                     spoolNambe = db.Get_SpoolInfo_By_InstanceID(pipeInstance_li[i]);
                     excel.excel_InsertData(j, 5, spoolNambe, false);
-
                     excel.excel_InsertData(j, 6, pipeInstance_li[i + (int)stepPipeInfo.IsHole], false);
                 }
                 excel.excel_save();

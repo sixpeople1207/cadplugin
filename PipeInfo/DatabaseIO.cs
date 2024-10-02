@@ -198,6 +198,9 @@ namespace PipeInfo
                         {
                             SQLiteCommand cmd = new SQLiteCommand(sql, conn);
                             SQLiteDataReader rdr_ready = cmd.ExecuteReader();
+                            int index = 0;
+                            int takeOffCount = 0;
+
                             while (rdr_ready.Read())
                             {
                                 if (rdr_ready["CONNECTION_ORDER"].ToString() != "1") //그리드뷰에서 POC1개의 정보만 보여주기 위해 1개는 걸러냄.
@@ -209,7 +212,6 @@ namespace PipeInfo
                                     string pipeSize = "";
                                     string material_Nm = "";
                                     double pipeDepth = 0;
-
                                     //파이프에 Depth값을 적용(Pipe와 연결된 기자재에 Depth값이 있으면 절대값을 모두 더해서 파이프 길이에서 빼준다)
                                     pipeDepth = Get_PipeDepth_Info_By_PipInstace(instanceId);
                                     if (pipeDepth > 0)
@@ -221,6 +223,7 @@ namespace PipeInfo
                                     Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
                                     material_Nm = rdr_ready["MATERIAL_NM"].ToString();
                                     pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
+                                    
 
                                     //파이프 STD객체중 Pipe인 객체만 걸러낸다. POC 2개이상은 Takeoff
                                     if (connectInt < 2)
@@ -232,6 +235,8 @@ namespace PipeInfo
                                             pipeInsInfo.Add(material_Nm);
                                             pipeInsInfo.Add(length.ToString());
                                             pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음)
+                                            index += 5;
+                                            takeOffCount = 0;
                                         }
                                     }
 
@@ -243,6 +248,14 @@ namespace PipeInfo
                                         pipeInsInfo.Add(material_Nm);
                                         pipeInsInfo.Add("0");
                                         pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
+                                        index += 5;
+                                        takeOffCount += 1;
+                                       
+                                    }
+
+                                    if (takeOffCount == 1) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
+                                    {
+                                        pipeInsInfo[index - 6] = hole;
                                     }
                                 }
                             }
