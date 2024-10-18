@@ -216,7 +216,8 @@ namespace PipeInfo
                                     pipeDepth = Get_PipeDepth_Info_By_PipInstace(instanceId);
                                     if (pipeDepth > 0)
                                     {
-                                        length = length - pipeDepth;
+                                        //ABS풀고 더해주는 방식으로 변경 24.10.18
+                                        length = length + pipeDepth;
                                     }
                                     //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                     string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
@@ -315,6 +316,7 @@ namespace PipeInfo
                 "FROM TB_POCINSTANCES " +
                 "WHERE hex(OWNER_INSTANCE_ID) like '{0}');", instanceId);
 
+
             double depth = 0;
             string connstr = this.connstr;
             try
@@ -336,7 +338,8 @@ namespace PipeInfo
                             
                             while (rdr_ready_2.Read()) 
                             { 
-                            depth += Math.Abs((double)rdr_ready_2["DEPTH"]);
+                                //ABS로 절대값을 가져와 빼주는 것으로 하려고 했으나 Depth의 방향이 있어서 ABS풀고 파이프길이에 빼주는 것에서 더해주는것으로 수정.
+                                depth += (double)rdr_ready_2["DEPTH"];
                             }
                         }
                     }
@@ -346,7 +349,8 @@ namespace PipeInfo
             {
                 MessageBox.Show(e.ToString(),"DDWorks CAD PlugIn");
             }
-           return depth;
+
+            return depth;
         }
 
         /// <summary>
@@ -403,7 +407,9 @@ namespace PipeInfo
                                 //Depth값을 파이프 길이에서 빼준다.
                                 if (depth > 0)
                                 {
-                                    length = length - depth;
+                                    length = length + depth;
+                                    
+
                                 }
 
                                 double pipeDia = (double)rdr_ready["OUTERDIAMETER"];

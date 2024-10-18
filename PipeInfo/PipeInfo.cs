@@ -2503,6 +2503,8 @@ namespace PipeInfo
 
                     Solid3d cylinder_Out = new Solid3d();
                     cylinder_Out.RecordHistory = true;
+                    //Take Off 사이즈 확관 요청(24.10.18) Radius +0.5mm
+                    radius += 0.25;
                     cylinder_Out.CreateFrustum(pipe_Length, radius, radius, radius);
                     objId = acBlkRec.AppendEntity(cylinder_Out);
                     acTrans.AddNewlyCreatedDBObject(cylinder_Out, true);
