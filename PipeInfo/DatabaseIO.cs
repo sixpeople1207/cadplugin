@@ -378,7 +378,7 @@ namespace PipeInfo
                     using (SQLiteConnection conn = new SQLiteConnection(this.connstr))
                     {
                         conn.Open();
-                        string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                        string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PI.XANGLE,PI.YANGLE,PI.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
                                     "From TB_INSTANCEGROUPMEMBERS as GM " +
                                     "INNER JOIN TB_PIPEINSTANCES as PI " +
                                     "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
@@ -441,10 +441,10 @@ namespace PipeInfo
                                     pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
                                     pipesLength.Add(length);
                                     pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                    xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                    xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                    xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                    xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                    //xyzrAngle.Add((double)rdr_ready["XANGLE"]);
+                                    //xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                    //xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
+                                    //xyzrAngle.Add((double)rdr_ready["RADIAN"]);
 
                                 }
 

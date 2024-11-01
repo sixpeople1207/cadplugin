@@ -3,11 +3,11 @@
   "WorkspaceRootPath": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|PipeInfo||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}|PipeInfo\\PipeInfo.csproj|c:\\users\\dinno\\source\\repos\\cadplugin (2)\\pipeinfo\\pipeinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}|PipeInfo\\PipeInfo.csproj|solutionrelative:pipeinfo\\pipeinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{00000000-0000-0000-0000-000000000000}|\u003CSolution\u003E|PipeInfo||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
     },
     {
       "AbsoluteMoniker": "D:0:0:{E2A1E086-909A-4F51-9A3F-F47DC4FBC5AB}|PipeInfo\\PipeInfo.csproj|C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\pipeinfo\\databaseio.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -47,8 +47,8 @@
       "VerticalTabListWidth": 256,
       "DocumentGroups": [
         {
-          "DockedWidth": 722,
-          "SelectedChildIndex": 4,
+          "DockedWidth": 922,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -57,6 +57,32 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "systemWatch.cs",
+              "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\systemWatch.cs",
+              "RelativeDocumentMoniker": "PipeInfo\\systemWatch.cs",
+              "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\systemWatch.cs",
+              "RelativeToolTip": "PipeInfo\\systemWatch.cs",
+              "ViewState": "AgIAAEIAAAAAAAAAAIBZwEcAAABJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-06-17T02:01:42.971Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "PipeInfo.cs",
+              "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.cs",
+              "RelativeDocumentMoniker": "PipeInfo\\PipeInfo.cs",
+              "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.cs",
+              "RelativeToolTip": "PipeInfo\\PipeInfo.cs",
+              "ViewState": "AgIAAKcHAAAAAAAAAAD4v8UHAABKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-05-12T23:36:07.478Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -71,39 +97,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "systemWatch.cs",
-              "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\systemWatch.cs",
-              "RelativeDocumentMoniker": "PipeInfo\\systemWatch.cs",
-              "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\systemWatch.cs",
-              "RelativeToolTip": "PipeInfo\\systemWatch.cs",
-              "ViewState": "AgIAAB0AAAAAAAAAAIAwwEcAAABJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:01:42.971Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "PipeInfo.cs",
-              "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.cs",
-              "RelativeDocumentMoniker": "PipeInfo\\PipeInfo.cs",
-              "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.cs*",
-              "RelativeToolTip": "PipeInfo\\PipeInfo.cs*",
-              "ViewState": "AgIAAKUJAAAAAAAAAAAjwMoJAAA3AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-05-12T23:36:07.478Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 2,
               "Title": "DatabaseIO.cs",
               "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\DatabaseIO.cs",
               "RelativeDocumentMoniker": "PipeInfo\\DatabaseIO.cs",
               "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\DatabaseIO.cs",
               "RelativeToolTip": "PipeInfo\\DatabaseIO.cs",
-              "ViewState": "AgIAAMUAAAAAAAAAAAArwFoBAAANAAAAAAAAAA==",
+              "ViewState": "AgIAAGIBAAAAAAAAAAArwGoBAABXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-06-17T02:01:42.939Z",
               "EditorCaption": ""
@@ -116,10 +116,9 @@
               "RelativeDocumentMoniker": "PipeInfo\\WinForm_STEP.cs",
               "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\WinForm_STEP.cs",
               "RelativeToolTip": "PipeInfo\\WinForm_STEP.cs",
-              "ViewState": "AgIAAKkAAAAAAAAAAAArwKwAAABJAAAAAAAAAA==",
+              "ViewState": "AgIAAMcAAAAAAAAAAAASwOQAAAAYAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:01:42.985Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-06-17T02:01:42.985Z"
             },
             {
               "$type": "Document",
@@ -130,8 +129,7 @@
               "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\WinForm_STEP.cs [\uB514\uC790\uC778]",
               "RelativeToolTip": "PipeInfo\\WinForm_STEP.cs [\uB514\uC790\uC778]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:24:31.081Z",
-              "EditorCaption": " [\uB514\uC790\uC778]"
+              "WhenOpened": "2024-06-17T02:24:31.081Z"
             },
             {
               "$type": "Document",
@@ -155,18 +153,17 @@
               "RelativeToolTip": "PipeInfo\\WinForm_STEP.Designer.cs",
               "ViewState": "AgIAAJMAAAAAAAAAAAAowKgAAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:24:33.798Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-06-17T02:24:33.798Z"
             }
           ]
         },
         {
-          "DockedWidth": 538,
+          "DockedWidth": 338,
           "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "PipeInfo",
               "DocumentMoniker": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.csproj",
               "RelativeDocumentMoniker": "PipeInfo\\PipeInfo.csproj",
