@@ -1964,6 +1964,7 @@ namespace PipeInfo
                                 //테이크 오프는 파이프의 진행방향을 따라가야하니 진행방향만 마이너스 해주면 된다.
                                 //여기서 baseVector Y축이 0이니 Y축과 90인 방향을??? LEngth와 가장 근접한 축..! 
                                 double takeoff_Level = getTakeOffLevel(pipeInfo_Pos_li,i);
+                                Point3d po = getTakeOffXYZ(pipeInfo_Pos_li, takeoff_Level);
                                 Vector3d takeOffDir = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
                                 //double angle =Math.Tan(fromV.GetAngleTo(toV) * (180/ Math.PI));
                                 //var dd = fromV.GetAngleTo(toV,new Vector3d(0,0,1)) * (180 / Math.PI);
@@ -2123,10 +2124,11 @@ namespace PipeInfo
             double takeoff_Level = 0;
             // 파이프들의 Vector
             Vector3d basePipe_Vec = (pipeInfo_Pos_li[0] - pipeInfo_Pos_li[1]).GetNormal();
-            Vector3d takeOff_Vec = (pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i]).GetNormal();
             var pipeLength = pipeInfo_Pos_li[0].DistanceTo(pipeInfo_Pos_li[1]);
             // 1. TakeOff POC Vecotr와 Base Pipe Vector의 Angle.
             var angggg = pipeInfo_Pos_li[0].GetVectorTo(pipeInfo_Pos_li[i]).GetAngleTo(basePipe_Vec);
+            var angle = basePipe_Vec.GetAngleTo(new Vector3d(0,0,1));
+
             // 2. TakeOff POC 위치와 Base Pipe POC 거리.
             var dis = Math.Round(Math.Abs(pipeInfo_Pos_li[0].DistanceTo(pipeInfo_Pos_li[i])), 1);
             // 3. 삼각형의 B면을 구하는 공식(밑면) 
@@ -2134,9 +2136,51 @@ namespace PipeInfo
             var dds = (dis) * co;
             // 4. 실제 파이프의 길이빼기 TakeOff의 높이를 구함.
             takeoff_Level = pipeLength - Math.Abs(dds);
+
+            Point3d s = new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
+            Point3d e = new Point3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
+
+            LineSegment3d line = new LineSegment3d(s, e);
+            Point3d cur = line.EvaluatePoint(dis / line.Length);
+            Vector3d takeOff_Vec = (cur - pipeInfo_Pos_li[i]).GetNormal();
+            var angh = takeOff_Vec.GetAngleTo(basePipe_Vec) * (180 / Math.PI);
+
+            //5. 
+            var cod = Math.Cos(angle);
+            var ddsdd = (dds) * cod;
             return takeoff_Level;
         }
 
+        //두 점을 알고 
+        public Point3d getTakeOffXYZ(List<Point3d> pipeInfo_Pos_li, double dis)
+        {
+            Point3d xyz = new Point3d();
+            Point3d s = new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
+            Point3d e = new Point3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
+
+
+            LineSegment3d line = new LineSegment3d(s,e);
+            Point3d cur = line.EvaluatePoint(dis/line.Length);
+
+            double x = 0;
+            double y = 0;
+            double z = 0;
+
+            //기울기 T
+            double tx = (dis - s.X) / (e.X - s.X);
+            double ty = (dis - s.Y) / (e.Y - s.Y);
+            double tz = (dis - s.Z) / (e.Z - s.Z);
+
+            //X,Y,Z좌표
+            x = s.X + tx * (e.X - s.X);
+            y = s.Y + ty * (e.Y - s.Y);
+            z = s.Z + tz * (e.Z - s.Z);
+
+            xyz = new Point3d(x, y, z);
+
+
+            return xyz;
+        }
         //Takeoff를 가지고 있는 BasePipe의 진행방향
         public string getBasePipeDir(Vector3d v)
         {
