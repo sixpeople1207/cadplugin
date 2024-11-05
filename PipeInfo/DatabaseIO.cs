@@ -378,7 +378,9 @@ namespace PipeInfo
                     using (SQLiteConnection conn = new SQLiteConnection(this.connstr))
                     {
                         conn.Open();
-                        string sql = string.Format("SELECT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PI.XANGLE,PI.YANGLE,PI.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+
+                        //24.11.05 중복된 항목 제거함. 예전에 중복된 항목 했다가 문제있었는데 좀 더 테스트 필요. 
+                        string sql = string.Format("SELECT DISTINCT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PI.XANGLE,PI.YANGLE,PI.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
                                     "From TB_INSTANCEGROUPMEMBERS as GM " +
                                     "INNER JOIN TB_PIPEINSTANCES as PI " +
                                     "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
@@ -393,6 +395,8 @@ namespace PipeInfo
                                     "ON PS.PIPESTD_ID = PD.PIPESTD_ID " +
                                     "WHERE hex(PI.INSTANCE_ID) like '{2}' " +
                                     "ORDER by PS.OUTERDIAMETER DESC;", groupName, pipeInsType_Pipe, instanceID);
+                        int i = 0;
+                        List<Int64> connectIntLi = new List<Int64>();
                         if (sql != "")
                         {
                             SQLiteCommand cmd = new SQLiteCommand(sql, conn);
@@ -402,20 +406,19 @@ namespace PipeInfo
                             {
                                 //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                 string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
-                                Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
+                                Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];                                
+
                                 double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
                                 //Depth값을 파이프 길이에서 빼준다.
                                 if (depth > 0)
                                 {
                                     length = length + depth;
-                                    
-
                                 }
 
                                 double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
                                 double pipeSizeLimit = 260;
                                 //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
-                                if (connectInt < 2)
+                                if (connectInt < 2 )
                                 {
                                     if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSizeLimit)
                                     {
@@ -448,7 +451,7 @@ namespace PipeInfo
 
                                 }
 
-
+                                i += 1;
                             }
                         }
                     }

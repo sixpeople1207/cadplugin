@@ -68,7 +68,8 @@
               "RelativeToolTip": "PipeInfo\\systemWatch.cs",
               "ViewState": "AgIAAEIAAAAAAAAAAIBZwEcAAABJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:01:42.971Z"
+              "WhenOpened": "2024-06-17T02:01:42.971Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -78,7 +79,7 @@
               "RelativeDocumentMoniker": "PipeInfo\\PipeInfo.cs",
               "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\PipeInfo.cs",
               "RelativeToolTip": "PipeInfo\\PipeInfo.cs",
-              "ViewState": "AgIAAEMIAAAAAAAAAAAswGIIAAA0AAAAAAAAAA==",
+              "ViewState": "AgIAALUHAAAAAAAAAAAAAN0HAABnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2024-05-12T23:36:07.478Z",
               "EditorCaption": ""
@@ -102,9 +103,10 @@
               "RelativeDocumentMoniker": "PipeInfo\\DatabaseIO.cs",
               "ToolTip": "C:\\Users\\Dinno\\source\\repos\\cadplugin (2)\\PipeInfo\\DatabaseIO.cs",
               "RelativeToolTip": "PipeInfo\\DatabaseIO.cs",
-              "ViewState": "AgIAAGIBAAAAAAAAAAArwGoBAABXAAAAAAAAAA==",
+              "ViewState": "AgIAAF4BAAAAAAAAAIAwwIsBAABNAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2024-06-17T02:01:42.939Z"
+              "WhenOpened": "2024-06-17T02:01:42.939Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",

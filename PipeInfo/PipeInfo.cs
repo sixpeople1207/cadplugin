@@ -1951,11 +1951,9 @@ namespace PipeInfo
                                 // 베이스가 되는 파이프와 TakeOff위치의 거리를 구해서 진행.
                                 //Vector3d fromV = new Vector3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
                                 //Vector3d toV = new Vector3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
-                                //Vector3d basePipeVec = pipeInfo_Pos_li[0].GetVectorTo(pipeInfo_Pos_li[1]).GetNormal();
                                 // double takeoff_Level = 0;
                                 
                                 //Vector3d baseVector = fromV - toV.GetNormal();
-                                //var vec = getBasePipeDir(basePipeVec);
 
                                 //var angang = fromV.GetNormal().GetAngleTo(toV) * (180 / Math.PI);
 
@@ -1966,13 +1964,16 @@ namespace PipeInfo
                                 double takeoff_Level = getTakeOffLevel(pipeInfo_Pos_li,i);
                                 Point3d po = getTakeOffXYZ(pipeInfo_Pos_li, takeoff_Level);
                                 Vector3d takeOffDir = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
+                                Vector3d basePipeVec = pipeInfo_Pos_li[0].GetVectorTo(pipeInfo_Pos_li[1]).GetNormal();
+                                var basePipe_vec = getBasePipeDir(basePipeVec);
+                                
                                 //double angle =Math.Tan(fromV.GetAngleTo(toV) * (180/ Math.PI));
                                 //var dd = fromV.GetAngleTo(toV,new Vector3d(0,0,1)) * (180 / Math.PI);
-                                
+
 
                                 //Vector3d pipeDir = fromV - toV;
                                 //string dir = getDir(pipeInfo_Length_li[0],pipeInfo_Dia_Li[0], pipeDir, takeOffDir);
-                                
+
                                 Point2d fromPo = new Point2d();
 
                                 //var basePipe_Ang = basePipe_Vec.GetAngleTo(new Vector3d(0, 0, 1)) * (180 / Math.PI);
@@ -1989,31 +1990,43 @@ namespace PipeInfo
                                 //아래 알고릐즘은 vec변수에 담긴걸로 보면 정확한 파이프 진행방향은 알 수 없음. 
                                 //만약 Z값이 있는 파이프이고 진행방향이 XY이면 XY값을 가져와 2D로 만들고
                                 //Z값이 없다면 XY .. 좀 더 생각해봐야겠다. 일단 QuterNion을 가져와야 함. 
-                                if (Math.Round(basePipe_Vec.X) == 1 || Math.Round(basePipe_Vec.X) == -1)
+
+                                if (basePipe_vec != "")
+                                {
+                                    if (Math.Round(basePipe_Vec.X) == 1 || Math.Round(basePipe_Vec.X) == -1)
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].Y, pipeInfo_Pos_li[i].Z);
+                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
                                         //takeoff_Level = pos.X;
-                                }
-                                    else if(Math.Round(basePipe_Vec.Y) == 1 || Math.Round(basePipe_Vec.Y) == -1)
+                                    }
+                                    else if (Math.Round(basePipe_Vec.Y) == 1 || Math.Round(basePipe_Vec.Y) == -1)
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Z);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Z);
+                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+
                                         //takeoff_Level = pos.Y;
-                                }
-                                    else if(Math.Round(basePipe_Vec.Z) == 1 || Math.Round(basePipe_Vec.Z) == -1)
+                                    }
+                                    else if (Math.Round(basePipe_Vec.Z) == 1 || Math.Round(basePipe_Vec.Z) == -1)
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Y);
+                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+
                                         //takeoff_Level = pos.Z;
                                     }
                                     else
                                     {
                                         MessageBox.Show("base파이프의 진행방향을 알 수 없습니다.", "DDWorks Cad Plug-In");
                                     }
-                                    
+                                }
+                                else
+                                {
+                                    takeoff_An_ToPipe = 0;
+
+                                }
                                      //파이프의 Takeoff 각도를 BasePipe에서 구해줌.
-                                    takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
 
                                     //List<double> pos_Li = new List<double>();
                                     //pos_Li.Add(Math.Abs(pos.X));
