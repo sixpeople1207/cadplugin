@@ -2140,10 +2140,11 @@ namespace PipeInfo
             Point3d s = new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
             Point3d e = new Point3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
 
+            //라인을 정해진 길이만큼 나눈다.
             LineSegment3d line = new LineSegment3d(s, e);
             Point3d cur = line.EvaluatePoint(dis / line.Length);
             Vector3d takeOff_Vec = (cur - pipeInfo_Pos_li[i]).GetNormal();
-            var angh = takeOff_Vec.GetAngleTo(basePipe_Vec) * (180 / Math.PI);
+            var angh = takeOff_Vec.GetAngleTo(new Vector3d(0,0,1)) * (180 / Math.PI);
 
             //5. 
             var cod = Math.Cos(angle);
@@ -2674,8 +2675,8 @@ namespace PipeInfo
 
                     Solid3d cylinder_Out = new Solid3d();
                     cylinder_Out.RecordHistory = true;
-                    //Take Off 사이즈 확관 요청(24.10.18) Radius +0.5mm
-                    radius += 0.25;
+                    //Take Off 사이즈 확관 요청(24.10.18) Radius +0.5mm -> 24.11.05 2mm 변경
+                    radius += 0.1;
                     cylinder_Out.CreateFrustum(pipe_Length, radius, radius, radius);
                     objId = acBlkRec.AppendEntity(cylinder_Out);
                     acTrans.AddNewlyCreatedDBObject(cylinder_Out, true);
