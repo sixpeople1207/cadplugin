@@ -1279,9 +1279,9 @@ namespace PipeInfo
                                             Polyline3d pipe_PolyLine = acTrans.GetObject(id, OpenMode.ForRead) as Polyline3d;
                                             if (pipe_PolyLine != null)
                                             {
-                                                Point3d pipe_Position = new Point3d((double)(pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2,
-                                                   (double)(pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2,
-                                                   (double)(pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2);
+                                                Point3d pipe_Position = new Point3d(Convert.ToDouble((pipe_PolyLine.StartPoint.X + pipe_PolyLine.EndPoint.X) / 2),
+                                                   Convert.ToDouble((pipe_PolyLine.StartPoint.Y + pipe_PolyLine.EndPoint.Y) / 2),
+                                                   Convert.ToDouble((pipe_PolyLine.StartPoint.Z + pipe_PolyLine.EndPoint.Z) / 2));
                                                 // ValvePostion과 Text위치를 검색한다.
                                                 PromptSelectionResult resText = ed.SelectAll(acSelFtrText);
                                                 if (resText.Status == PromptStatus.OK)
@@ -4826,13 +4826,13 @@ namespace PipeInfo
                                         {
                                             instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                             pipeInfor.Add(instanceId);
-                                            pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                            pipeLength.Add((double)rdr_ready["LENGTH1"]);
-                                            pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                            xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                            xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                            pipePos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
+                                            pipeLength.Add(Convert.ToDouble(rdr_ready["LENGTH1"]));
+                                            pipeDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
+                                            xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
+                                            xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
+                                            xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
+                                            xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"]));
                                         }
                                     }
                                 }
@@ -4978,7 +4978,7 @@ namespace PipeInfo
                                         rdr_ready.Read();
 
                                         // Polyline3d의 진행방향으로 뺀 값이 배관의 본래 길이만큼 길다면 길다면 Polyline3d의 Endpolint로 다시 쿼리문을 적용한다.
-                                        double dis = (double)rdr_ready["distance"];
+                                        double dis = Convert.ToDouble(rdr_ready["distance"]);
 
                                         SQLiteCommand cmd_1 = new SQLiteCommand(sql, conn);
                                         SQLiteDataReader rdr = cmd_1.ExecuteReader();
@@ -5480,7 +5480,7 @@ namespace PipeInfo
                                         {
                                             if (spool_info != "" && rdr_1["OWNER_TYPE"].ToString() == ownerType_Pipe || (component_Type.Contains("FLANGE") == false && count_ConnCompoenet == 2))
                                             {
-                                                points.Add(new Point3d((double)rdr_1["POSX"], (double)rdr_1["POSY"], (double)rdr_1["POSZ"]));
+                                                points.Add(new Point3d(Convert.ToDouble(rdr_1["POSX"]), Convert.ToDouble(rdr_1["POSY"]), Convert.ToDouble(rdr_1["POSZ"])));
                                             }
                                         }
                                         //맞대기 처리
@@ -5669,7 +5669,7 @@ namespace PipeInfo
                                     {
                                         while (rdr_1.Read())
                                         {
-                                            points.Add(new Point3d((double)rdr_1["POSX"], (double)rdr_1["POSY"], (double)rdr_1["POSZ"]));
+                                            points.Add(new Point3d(Convert.ToDouble(rdr_1["POSX"]), Convert.ToDouble(rdr_1["POSY"]), Convert.ToDouble(rdr_1["POSZ"])));
                                         }
                                         if (points.Count == 2)
                                         {
@@ -5740,7 +5740,7 @@ namespace PipeInfo
                     SQLiteDataReader rdr = comm.ExecuteReader();
                     while (rdr.Read())
                     {
-                        valve_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
+                        valve_Positions.Add(new Point3d(Convert.ToDouble(rdr["POSX"]), Convert.ToDouble(rdr["POSY"]), Convert.ToDouble(rdr["POSZ"])));
                         valve_Name.Add(rdr["DISPLAY_NM"].ToString());
                     }
                     rdr.Close();
@@ -5768,7 +5768,7 @@ namespace PipeInfo
 
                     while (rdr.Read())
                     {
-                        vavle_Positions.Add(new Point3d((double)rdr["POSX"], (double)rdr["POSY"], (double)rdr["POSZ"]));
+                        vavle_Positions.Add(new Point3d(Convert.ToDouble(rdr["POSX"]), Convert.ToDouble(rdr["POSY"]), Convert.ToDouble(rdr["POSZ"])));
                     }
                     rdr.Close();
                     conn.Dispose();
@@ -5807,7 +5807,7 @@ namespace PipeInfo
                         SQLiteDataReader rdr_ins = comm_Conn.ExecuteReader();
                         while (rdr_ins.Read())
                         {
-                            Point3d point = new Point3d((double)rdr_ins["POSX"], (double)rdr_ins["POSY"], (double)rdr_ins["POSZ"]);
+                            Point3d point = new Point3d(Convert.ToDouble(rdr_ins["POSX"]), Convert.ToDouble(rdr_ins["POSY"]), Convert.ToDouble(rdr_ins["POSZ"]));
                             pipePoints.Add(point);
                         }
                     }

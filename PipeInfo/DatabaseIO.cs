@@ -107,9 +107,9 @@ namespace PipeInfo
                                 {
                                     instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                     pipeInfor.Add(instanceId);
-                                    pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                    pipeLength.Add((double)rdr_ready["LENGTH1"]);
-                                    pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                    pipePos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
+                                    pipeLength.Add(Convert.ToDouble(rdr_ready["LENGTH1"]));
+                                    pipeDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
                                 }
                             }
                     }
@@ -200,14 +200,17 @@ namespace PipeInfo
                             SQLiteDataReader rdr_ready = cmd.ExecuteReader();
                             int index = 0;
                             int takeOffCount = 0;
-
+                            bool isPipeLimit= false; //size리미트 걸린 OwnerId는 Takeoff 건너뛰기 위함.
+                            
                             while (rdr_ready.Read())
                             {
                                 if (rdr_ready["CONNECTION_ORDER"].ToString() != "1") //그리드뷰에서 POC1개의 정보만 보여주기 위해 1개는 걸러냄.
                                 {
                                     string instanceId = BitConverter.ToString((byte[])rdr_ready["OWNER_INSTANCE_ID"]).Replace("-", "");
-                                    double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
-                                    double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
+                                    
+                                    double length = Math.Round(Convert.ToDouble(rdr_ready["LENGTH1"]), 1);
+                                    double pipeDia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
+                                
                                     string hole = "Hole"; 
                                     string pipeSize = "";
                                     string material_Nm = "";
@@ -238,26 +241,39 @@ namespace PipeInfo
                                             pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음)
                                             index += 5;
                                             takeOffCount = 0;
+                                            isPipeLimit = false;
+                                        }
+
+                                    }
+
+
+                                    if (pipeDia > pipeSize_Limit)
+                                    {
+                                        isPipeLimit = true; //Order 배관이 리미트에 걸리면 밑에 Take-Off도 모두 걸러준다.
+                                    }
+
+                                    if (isPipeLimit != true)
+                                    {
+                                        //사이즈 리밋 걸린 파이프의 hole정보도 다 빼기 
+                                        //한 파이프에 POC Order가 2개 이상인 Take-off 객체만 걸러낸다. 
+                                        if (connectInt > 1)
+                                        {
+                                            pipeInsInfo.Add(instanceId);
+                                            pipeInsInfo.Add(pipeSize);
+                                            pipeInsInfo.Add(material_Nm);
+                                            pipeInsInfo.Add("0");
+                                            pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
+                                            index += 5;
+                                            takeOffCount += 1;
+
+                                        }
+                                        if (takeOffCount == 1) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
+                                        {
+                                           // pipeInsInfo[index - 6] = hole;
                                         }
                                     }
 
-                                    //한 파이프에 POC Order가 2개 이상인 Take-off 객체만 걸러낸다. 
-                                    if(connectInt > 1)
-                                    {
-                                        pipeInsInfo.Add(instanceId);
-                                        pipeInsInfo.Add(pipeSize);
-                                        pipeInsInfo.Add(material_Nm);
-                                        pipeInsInfo.Add("0");
-                                        pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
-                                        index += 5;
-                                        takeOffCount += 1;
-                                       
-                                    }
 
-                                    if (takeOffCount == 1) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
-                                    {
-                                        pipeInsInfo[index - 6] = hole;
-                                    }
                                 }
                             }
                         }
@@ -339,7 +355,7 @@ namespace PipeInfo
                             while (rdr_ready_2.Read()) 
                             { 
                                 //ABS로 절대값을 가져와 빼주는 것으로 하려고 했으나 Depth의 방향이 있어서 ABS풀고 파이프길이에 빼주는 것에서 더해주는것으로 수정.
-                                depth += (double)rdr_ready_2["DEPTH"];
+                                depth += Convert.ToDouble(rdr_ready_2["DEPTH"]);
                             }
                         }
                     }
@@ -408,14 +424,14 @@ namespace PipeInfo
                                 string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                 Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];                                
 
-                                double length = Math.Round((double)rdr_ready["LENGTH1"], 1);
+                                double length = Math.Round(Convert.ToDouble(rdr_ready["LENGTH1"]), 1);
                                 //Depth값을 파이프 길이에서 빼준다.
                                 if (depth > 0)
                                 {
                                     length = length + depth;
                                 }
 
-                                double pipeDia = (double)rdr_ready["OUTERDIAMETER"];
+                                double pipeDia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
                                 double pipeSizeLimit = 260;
                                 //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
                                 if (connectInt < 2 )
@@ -424,13 +440,13 @@ namespace PipeInfo
                                     {
                                         instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                         pipesInfor.Add(instanceId);
-                                        pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                        pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
                                         pipesLength.Add(length);
-                                        pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                        xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                        pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"]));
                                     }
                                     else
                                     {
@@ -441,9 +457,9 @@ namespace PipeInfo
                                 {
                                     instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                     pipesInfor.Add(instanceId);
-                                    pipesPos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
+                                    pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
                                     pipesLength.Add(length);
-                                    pipesDia.Add((double)rdr_ready["OUTERDIAMETER"]);
+                                    pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
                                     //xyzrAngle.Add((double)rdr_ready["XANGLE"]);
                                     //xyzrAngle.Add((double)rdr_ready["YANGLE"]);
                                     //xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
@@ -511,13 +527,13 @@ namespace PipeInfo
                                     {
                                         instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                         pipeInfor.Add(instanceId);
-                                        pipePos.Add(new Point3d((double)rdr_ready["POSX"], (double)rdr_ready["POSY"], (double)rdr_ready["POSZ"]));
-                                        pipeLength.Add((double)rdr_ready["LENGTH1"]);
-                                        pipeDia.Add((double)rdr_ready["OUTERDIAMETER"]);
-                                        xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["YANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                        xyzrAngle.Add((double)rdr_ready["RADIAN"]);
+                                        pipePos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
+                                        pipeLength.Add(Convert.ToDouble(rdr_ready["LENGTH1"]));
+                                        pipeDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"]));
                                     }
                                 }
                             }
@@ -838,7 +854,7 @@ namespace PipeInfo
             string sql = String.Format("SELECT (OUTERDIAMETER-INNERDIAMETER),THICKNESS FROM TB_POCINSTANCES as PI " +
                 "INNER JOIN TB_PIPESIZE as PS ON PI.PIPESIZE_ID = PS.PIPESIZE_ID " +
                 "INNER JOIN TB_RULE_THICKNESS as TH ON PI.PIPESIZE_ID = TH.PIPESIZE_ID AND PI.MATERIAL_ID = TH.MATERIAL_ID " +
-                "WHERE PI.OWNER_INSTANCE_ID=x'{0}';",pipeInstanceID);
+                "WHERE PI.OWNER_INSTANCE_ID=x'{0}' ORDER BY OUTERDIAMETER DESC;", pipeInstanceID);
 
             using (SQLiteConnection conn = new SQLiteConnection(connstr))
             {
@@ -851,7 +867,7 @@ namespace PipeInfo
                     if (rdr.HasRows)
                     {
                         rdr.Read();
-                        thk = (double)rdr["THICKNESS"];
+                        thk = Convert.ToDouble(rdr["THICKNESS"]);
                     }
                 }
                 catch(Exception e)
@@ -881,7 +897,7 @@ namespace PipeInfo
                 if (rdr.HasRows)
                 {
                     rdr.Read();
-                    thk = (double)rdr["OUTERDIAMETER"] - (double)rdr["INNERDIAMETER"];
+                    thk = Convert.ToDouble(rdr["OUTERDIAMETER"]) - Convert.ToDouble(rdr["INNERDIAMETER"]);
                 }
             }
             return thk;

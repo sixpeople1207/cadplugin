@@ -149,7 +149,8 @@ namespace PipeInfo
      
         private void dataGridView_GroupList_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            dataGridView_GroupList.SelectionMode = DataGridViewSelectionMode.CellSelect;
+            var select = DataGridViewSelectionMode.CellSelect;
+            dataGridView_GroupList.SelectionMode = select;
             if (dataGridView_GroupList.RowCount.ToString() != "0")
             {
                 // STEP파일을 내보내기 전(Pipe를 그리기전) 3D 객체들을 모두 지우고 시작
