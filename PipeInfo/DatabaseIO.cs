@@ -194,6 +194,7 @@ namespace PipeInfo
                                 "INNER JOIN TB_MATERIALS as MG " +
                                 "ON PO.MATERIAL_ID = MG.MATERIAL_ID;",groupName, pipeInsType_Pipe);
                         conn.Open();
+
                         if (sql != "")
                         {
                             SQLiteCommand cmd = new SQLiteCommand(sql, conn);
@@ -215,8 +216,10 @@ namespace PipeInfo
                                     string pipeSize = "";
                                     string material_Nm = "";
                                     double pipeDepth = 0;
+                                    
                                     //파이프에 Depth값을 적용(Pipe와 연결된 기자재에 Depth값이 있으면 절대값을 모두 더해서 파이프 길이에서 빼준다)
                                     pipeDepth = Get_PipeDepth_Info_By_PipInstace(instanceId);
+
                                     if (pipeDepth > 0)
                                     {
                                         //ABS풀고 더해주는 방식으로 변경 24.10.18
@@ -228,7 +231,6 @@ namespace PipeInfo
                                     material_Nm = rdr_ready["MATERIAL_NM"].ToString();
                                     pipeSize = rdr_ready["PIPESIZE_NM"].ToString();
                                     
-
                                     //파이프 STD객체중 Pipe인 객체만 걸러낸다. POC 2개이상은 Takeoff
                                     if (connectInt < 2)
                                     {
@@ -238,7 +240,7 @@ namespace PipeInfo
                                             pipeInsInfo.Add(pipeSize);
                                             pipeInsInfo.Add(material_Nm);
                                             pipeInsInfo.Add(length.ToString());
-                                            pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음)
+                                            pipeInsInfo.Add("-"); //추후 삭제(Hole인지 여부는 필요없음) => 다시 필요하다고 함.
                                             index += 5;
                                             takeOffCount = 0;
                                             isPipeLimit = false;
@@ -255,7 +257,7 @@ namespace PipeInfo
                                     if (isPipeLimit != true)
                                     {
                                         //사이즈 리밋 걸린 파이프의 hole정보도 다 빼기 
-                                        //한 파이프에 POC Order가 2개 이상인 Take-off 객체만 걸러낸다. 
+                                        //한 파이프에 POC Order가 2개v 이상인 Take-off 객체만 걸러낸다. 
                                         if (connectInt > 1)
                                         {
                                             pipeInsInfo.Add(instanceId);
@@ -265,15 +267,14 @@ namespace PipeInfo
                                             pipeInsInfo.Add(hole); //추후 삭제(Hole인지 여부는 필요없음)
                                             index += 5;
                                             takeOffCount += 1;
-
                                         }
+
+                                        // Take off 메인 파이프에 Hole인지 여부를 표시함. 
                                         if (takeOffCount == 1) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
                                         {
-                                           // pipeInsInfo[index - 6] = hole;
+                                           pipeInsInfo[index - 6] = hole;
                                         }
                                     }
-
-
                                 }
                             }
                         }
