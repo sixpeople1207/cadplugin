@@ -3032,7 +3032,6 @@ namespace PipeInfo
                 Database db = acDoc.Database;
                 Autodesk.AutoCAD.Colors.Color color = acDoc.Database.Cecolor;
 
-
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;

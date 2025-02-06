@@ -209,7 +209,7 @@ namespace PipeInfo
                                 {
                                     string instanceId = BitConverter.ToString((byte[])rdr_ready["OWNER_INSTANCE_ID"]).Replace("-", "");
                                     
-                                    double length = Math.Round(Convert.ToDouble(rdr_ready["LENGTH1"]), 1);
+                                    double length = Convert.ToDouble(rdr_ready["LENGTH1"]);
                                     double pipeDia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
                                 
                                     string hole = "Hole"; 
@@ -220,7 +220,7 @@ namespace PipeInfo
                                     //파이프에 Depth값을 적용(Pipe와 연결된 기자재에 Depth값이 있으면 절대값을 모두 더해서 파이프 길이에서 빼준다)
                                     pipeDepth = Get_PipeDepth_Info_By_PipInstace(instanceId);
 
-                                    if (pipeDepth > 0)
+                                    if (pipeDepth != 0)
                                     {
                                         //ABS풀고 더해주는 방식으로 변경 24.10.18
                                         length = length + pipeDepth;
@@ -425,9 +425,9 @@ namespace PipeInfo
                                 string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
                                 Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];                                
 
-                                double length = Math.Round(Convert.ToDouble(rdr_ready["LENGTH1"]), 1);
+                                double length = Convert.ToDouble(rdr_ready["LENGTH1"]);
                                 //Depth값을 파이프 길이에서 빼준다.
-                                if (depth > 0)
+                                if (depth != 0)
                                 {
                                     length = length + depth;
                                 }
