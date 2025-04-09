@@ -2062,9 +2062,11 @@ namespace PipeInfo
                                 //STEP 파일을 그릴때는 무조건 Z축으로 Take-off 위치가 이동하도록 진행.
                                 //파이프의 위치는 0을 중심으로 길이를 반반나누어서 진행.
                                 takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
-                                takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(takeOff_length / 2, 0, Math.Round((-pipeInfo_Length_li[0] / 2) + takeoff_Level)) - Point3d.Origin));
-                                normal = Vector3d.ZAxis;
 
+                                var dd= (-pipeInfo_Length_li[0] / 2) + takeoff_Level;
+                                takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(takeOff_length / 2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
+                                normal = Vector3d.ZAxis;
+                                var bound = base_Cylinder.Bounds;
                                 //Database에 있는 Take-Off 값을 곱해주는 것으로 DDW와 같은 값을 얻는다. 만약 실제로 화면에 POC방향까지 표시하려면 Quaternion에 ToEular를 사용해서 X축에서 시작해서 회전값을 반영해줘야한다.
                                 //기본 파이프와 POC의 피뢰침 시작은 X축을 바라보고 있는것으로 시작
                                 //takeoff_Cylinder.TransformBy(Matrix3d.Rotation(r* takeoff_Andgle, normal, new Point3d(0, 0, 0))); //r과 곱하는 축 선택해줘야함.
@@ -2131,7 +2133,13 @@ namespace PipeInfo
             return (spoolNum_Li, pipeHandle_Li, spoolLength_Li, isHole);
 
         }
-
+        //숫자 5단위로 절삭 또는 반올림. 136-> 135 49->50
+        private double dimensionRoundFive(double len)
+        {
+            double roundFive = 0;
+            roundFive = Math.Round(len / 5, 0) * 5;
+            return roundFive;
+        }
         public double getTakeOffLevel(List<Point3d> pipeInfo_Pos_li,int i)
         {
             double takeoff_Level = 0;
@@ -2140,16 +2148,32 @@ namespace PipeInfo
             var pipeLength = pipeInfo_Pos_li[0].DistanceTo(pipeInfo_Pos_li[1]);
             // 1. TakeOff POC Vecotr와 Base Pipe Vector의 Angle.
             var angggg = pipeInfo_Pos_li[0].GetVectorTo(pipeInfo_Pos_li[i]).GetAngleTo(basePipe_Vec);
-            var angle = basePipe_Vec.GetAngleTo(new Vector3d(0,0,1));
+            var angle = basePipe_Vec.GetAngleTo(new Vector3d(0, 0, 1));
+            double dis = 0;
+            double co = 0;
+            double dds = 0;
+            //if (basePipe_Vec.X == 1 || basePipe_Vec.Y == 1 || basePipe_Vec.Z == 1)
+            //{
+            //    // 2. TakeOff POC 위치와 Base Pipe POC 거리.
+            //    var startVec = pipeInfo_Pos_li[0].GetAsVector();
+            //    var endVec = pipeInfo_Pos_li[i].GetAsVector();
+            //    var sub = startVec.Subtract(endVec);
 
+            //    //dis = Math.Round(Math.Abs(pipeInfo_Pos_li[0]-new Vector3d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Y, pipeInfo_Pos_li[i].Z)), 1);
+            //    dds = dis;
+            //}
+            //else
+            //{
+
+            //}
             // 2. TakeOff POC 위치와 Base Pipe POC 거리.
-            var dis = Math.Round(Math.Abs(pipeInfo_Pos_li[0].DistanceTo(pipeInfo_Pos_li[i])), 1);
+            dis = Math.Round(Math.Abs(pipeInfo_Pos_li[0].DistanceTo(pipeInfo_Pos_li[i])), 1);
             // 3. 삼각형의 B면을 구하는 공식(밑면) 
-            var co = Math.Cos(angggg);
-            var dds = (dis) * co;
+            co = Math.Cos(angggg);
+            dds = (dis) * co;
             // 4. 실제 파이프의 길이빼기 TakeOff의 높이를 구함.
             takeoff_Level = pipeLength - Math.Abs(dds);
-
+            //takeoff_Level = dimensionRoundFive(takeoff_Level);
             Point3d s = new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
             Point3d e = new Point3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
 
