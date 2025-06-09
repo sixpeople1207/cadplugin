@@ -1915,7 +1915,7 @@ namespace PipeInfo
                                     base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
 
                                 //Take off각도 계산
-                                //int count = 0;
+                               // int count = 0;
                                 ////Take Off 속성정보는 x,y,z,r 4개가 1POC정보. 
                                 //count = i * 4;
                                 //double x = xyzr_Angle_Li[count];
@@ -1952,12 +1952,12 @@ namespace PipeInfo
                                 //Vector3d fromV = new Vector3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
                                 //Vector3d toV = new Vector3d(pipeInfo_Pos_li[1].X, pipeInfo_Pos_li[1].Y, pipeInfo_Pos_li[1].Z);
                                 // double takeoff_Level = 0;
-                                
+
                                 //Vector3d baseVector = fromV - toV.GetNormal();
 
                                 //var angang = fromV.GetNormal().GetAngleTo(toV) * (180 / Math.PI);
 
-                               
+
 
                                 //테이크 오프는 파이프의 진행방향을 따라가야하니 진행방향만 마이너스 해주면 된다.
                                 //여기서 baseVector Y축이 0이니 Y축과 90인 방향을??? LEngth와 가장 근접한 축..! 
@@ -1997,14 +1997,17 @@ namespace PipeInfo
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].Y, pipeInfo_Pos_li[i].Z);
-                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+                                        //Take Off 각도 적용 25.6.9 From에서 ToPo기준으로 바꾸고, DDW 회전 좌표계와 반대라서 -1적용
+                                        takeoff_An_ToPipe = toPo.GetVectorTo(fromPo).Angle * -1;
+                                        //takeoff_An_ToPipe = xyzr_Angle_Li[i];
                                         //takeoff_Level = pos.X;
                                     }
                                     else if (Math.Round(basePipe_Vec.Y) == 1 || Math.Round(basePipe_Vec.Y) == -1)
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Z);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Z);
-                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+                                        takeoff_An_ToPipe = toPo.GetVectorTo(fromPo).Angle*-1;
+                                        //takeoff_An_ToPipe = xyzr_Angle_Li[i];
 
                                         //takeoff_Level = pos.Y;
                                     }
@@ -2012,7 +2015,8 @@ namespace PipeInfo
                                     {
                                         fromPo = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y);
                                         toPo = new Point2d(pipeInfo_Pos_li[i].X, pipeInfo_Pos_li[i].Y);
-                                        takeoff_An_ToPipe = fromPo.GetVectorTo(toPo).Angle;
+                                        takeoff_An_ToPipe = toPo.GetVectorTo(fromPo).Angle * -1;
+                                        //takeoff_An_ToPipe = xyzr_Angle_Li[i];
 
                                         //takeoff_Level = pos.Z;
                                     }

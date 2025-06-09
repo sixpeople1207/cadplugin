@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>130</AssemblyName>
+    <AssemblyName>134</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -107,17 +107,17 @@
   <ItemGroup>
     <Reference Include="accoremgd, Version=24.0.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\accoremgd.dll</HintPath>
+      <HintPath>bin\x64\Debug\accoremgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="AcCui, Version=24.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\AcCui.dll</HintPath>
+      <HintPath>bin\x64\Debug\AcCui.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acdbmgd, Version=24.0.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\acdbmgd.dll</HintPath>
+      <HintPath>bin\x64\Debug\acdbmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="acdbmgdbrep">
@@ -126,16 +126,16 @@
     </Reference>
     <Reference Include="AcDx, Version=24.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\AcDx.dll</HintPath>
+      <HintPath>bin\x64\Debug\AcDx.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="acmgd, Version=24.0.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\acmgd.dll</HintPath>
+      <HintPath>bin\x64\Debug\acmgd.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="AdWindows">
-      <HintPath>..\..\..\..\..\..\Program Files\Autodesk\AutoCAD 2021\AdWindows.dll</HintPath>
+      <HintPath>bin\x64\Debug\AdWindows.dll</HintPath>
     </Reference>
     <Reference Include="Dinno.Do3d.Client.IO">
       <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Client.IO.dll</HintPath>
@@ -156,7 +156,7 @@
       <HintPath>D:\Git\bak\ddworks.pub\dinno.hu3d.release\DINNO.HU3D.UI.WPF.dll</HintPath>
     </Reference>
     <Reference Include="DINNO.HU3D.ViewModel">
-      <HintPath>D:\Git\bak\ddworks.app\Dinno.Hu3d.ViewModel\NetFramework\bin\Debug\DINNO.HU3D.ViewModel.dll</HintPath>
+      <HintPath>bin\x64\Debug\DINNO.HU3D.ViewModel.dll</HintPath>
     </Reference>
     <Reference Include="DINNO.HU3D.Workspace, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>

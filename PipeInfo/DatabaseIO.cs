@@ -397,7 +397,7 @@ namespace PipeInfo
                         conn.Open();
 
                         //24.11.05 중복된 항목 제거함. 예전에 중복된 항목 했다가 문제있었는데 좀 더 테스트 필요. 
-                        string sql = string.Format("SELECT DISTINCT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PI.XANGLE,PI.YANGLE,PI.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
+                        string sql = string.Format("SELECT DISTINCT PO.POSX, PO.POSY, PO.POSZ, PI.LENGTH1, PS.OUTERDIAMETER, PI.INSTANCE_ID, PO.XANGLE,PO.YANGLE,PO.ZANGLE,PO.RADIAN,PD.PIPESTD_NM,PO.CONNECTION_ORDER " +
                                     "From TB_INSTANCEGROUPMEMBERS as GM " +
                                     "INNER JOIN TB_PIPEINSTANCES as PI " +
                                     "ON PI.INSTANCE_ID = GM.INSTANCE_ID " +
@@ -435,7 +435,7 @@ namespace PipeInfo
                                 double pipeDia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
                                 double pipeSizeLimit = 260;
                                 //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
-                                if (connectInt < 2 )
+                                if (connectInt < 2 ) //본 파이프 정보
                                 {
                                     if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSizeLimit)
                                     {
@@ -444,27 +444,29 @@ namespace PipeInfo
                                         pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
                                         pipesLength.Add(length);
                                         pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"]));
+                                        //xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
+                                        //xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
+                                        //xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
+                                        xyzrAngle.Add(0);
                                     }
                                     else
                                     {
                                         break;
                                     }
                                 }
-                                else if (connectInt > 1)
+                                else if (connectInt > 1) // Take Off 정보
                                 {
                                     instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                     pipesInfor.Add(instanceId);
                                     pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
                                     pipesLength.Add(length);
                                     pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
-                                    //xyzrAngle.Add((double)rdr_ready["XANGLE"]);
-                                    //xyzrAngle.Add((double)rdr_ready["YANGLE"]);
+                                    //  파이프 기본 축인 Y축을 기준으로 돌리는 각도만 사용하기로함. x축은 POC 방향
+                                    if (Convert.ToDouble(rdr_ready["YANGLE"]) != 0)
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"])*-1); //CAD는 90도가 시계 반대방향, DDW는 시계방향
+                                    else
+                                        xyzrAngle.Add(0);
                                     //xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
-                                    //xyzrAngle.Add((double)rdr_ready["RADIAN"]);
 
                                 }
 
