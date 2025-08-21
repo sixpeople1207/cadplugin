@@ -5,6 +5,7 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
+using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
 using Dinno.Do3d.IO.Util;
@@ -21,6 +22,7 @@ using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Entity.Infrastructure;
 using System.Data.SQLite;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -1767,6 +1769,67 @@ namespace PipeInfo
             winForm_STEP.Show();
         }
 
+
+        /*
+         * Asan Project 타공 도면 검토 기능
+         */
+        [CommandMethod("TT")]
+        public void tagong_Break()
+        {
+            Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
+            Document acDoc = Application.DocumentManager.MdiActiveDocument;
+            Database db = acDoc.Database;
+
+            PromptSelectionResult pre = ed.GetSelection();
+            if (pre.Status == PromptStatus.OK)
+            {///////////////////////////////////// 
+                SelectionSet ss = pre.Value;
+                ObjectId[] pipe_ids = ss.GetObjectIds();
+                //-------------------추가----------------------------------
+                using (Transaction acTrans = db.TransactionManager.StartTransaction())
+                { 
+                    ed.SetImpliedSelection(pipe_ids);
+                    BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                    BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
+
+                    List<Line> lines = new List<Line>();
+                    List<Circle> circles = new List<Circle>();
+                    List<DBText> texts = new List<DBText>();
+                    List<MText> mTexts = new List<MText>();
+
+                    foreach (ObjectId blk in acBlkRec)
+                    {
+                        DBObject acObj = acTrans.GetObject(blk, OpenMode.ForRead);
+                        if (acObj is Line acLine)
+                        {
+                            lines.Add(acLine);
+                        }
+                    }
+                    int tol = 1;
+                    var selectLine = acTrans.GetObject(pipe_ids[0], OpenMode.ForRead);
+                    if(selectLine is Line sLine)
+                    {
+                       foreach(var li in lines)
+                        {
+                            Point3dCollection intersectionPoints = new Point3dCollection();
+                            sLine.IntersectWith(li,Intersect.OnBothOperands, intersectionPoints, IntPtr.Zero,IntPtr.Zero);
+
+                            if(intersectionPoints.Count > 0)
+                            {
+                                foreach(Point3d pt in intersectionPoints)
+                                {
+                                     ed.WriteMessage("찾은 객체 : " + pt.ToString());
+                                     break;
+                                }
+                            }
+                        }
+                    }
+                    acTrans.Commit();
+                }
+            }
+            
+        }
+
         /*
          * 기능 : DDWorks DB에서 파이프 정보를 가져와 STEP파일로 Export하는 기능 
          */
@@ -2379,7 +2442,6 @@ namespace PipeInfo
         //객체의 순서를 정렬
         public class Order
         {
-
             public List<Polyline3d> orderObjectByGroupVector(List<Polyline3d> pLine_li, string groupVector)
             {
                 if (groupVector == "X")
@@ -2813,6 +2875,11 @@ namespace PipeInfo
             Excel.Worksheet ws = null;
             public ExcelObject()
             {
+                InitExcel();
+            }
+
+            private void InitExcel()
+            {
                 excelApp = new Excel.Application();
                 excelApp.Visible = false;
                 wb = excelApp.Workbooks.Add();
@@ -2821,11 +2888,8 @@ namespace PipeInfo
             public ExcelObject(List<string> header)
             {
                 //list를 받아서 넣는것 하나 만들고 아예 헤더가 없는것도 하나 해야할 것 같다 23.10.25
+                InitExcel();
 
-                excelApp = new Excel.Application();
-                excelApp.Visible = false;
-                wb = excelApp.Workbooks.Add();
-                ws = wb.Worksheets.get_Item(1) as Excel.Worksheet;
                 // 데이타 넣기
                 int r = 1;
                 foreach (var h in header)
@@ -2836,14 +2900,30 @@ namespace PipeInfo
             }
             public void excel_InsertData(int row, int column, string data, bool isRow_Insert)
             {
-                //표제도곽의 정보가 복사될 빈 공간을 만들어 준다. 도곽정보는 첫 번째 행에만 들어있고 
-                //excel_CopyTo_StartEnd로 빈 공간에 쓰기를 한다.
-                if (isRow_Insert)
-                {
-                    ws.Rows[row + 2].Insert(XlDirection.xlDown);
-                }
-                //기본적으로 도곽의 헤더값이 첫 행에 들어가니 2번째 행부터 값 시작.
-                ws.Cells[row + 2, column] = data;
+                //[25.6.25] 엑셀 Export시 에러발생 While문 Try문 넣음.
+                    //표제도곽의 정보가 복사될 빈 공간을 만들어 준다. 도곽정보는 첫 번째 행에만 들어있고 
+                    try
+                    {
+                        //excel_CopyTo_StartEnd로 빈 공간에 쓰기를 한다.
+                        if (isRow_Insert)
+                        {
+                            ws.Rows[row + 2].Insert(XlDirection.xlDown);
+                        }
+                        //기본적으로 도곽의 헤더값이 첫 행에 들어가니 2번째 행부터 값 시작.
+                        ws.Cells[row + 2, column] = data;
+                    }
+                    catch (System.Runtime.InteropServices.COMException ex)
+                    {
+                        if ((uint)ex.ErrorCode == 0x800AC472)
+                        {
+                            System.Threading.Thread.Sleep(100); // Excel이 바쁠 때 잠시 대기
+                        }
+                        else
+                        {
+                            throw; // 다른 COM 예외는 그대로 던짐
+                        }
+                    }
+                
             }
             // 기능 엑셀의 첫 지점과 끝지점을 주면 첫 번째 줄을 끝줄까지 모두 복사한다.
             public void excel_CopyTo_StartEnd(int start, int end)

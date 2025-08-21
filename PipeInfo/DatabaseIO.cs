@@ -463,7 +463,7 @@ namespace PipeInfo
                                     pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
                                     //  파이프 기본 축인 Y축을 기준으로 돌리는 각도만 사용하기로함. x축은 POC 방향
                                     if (Convert.ToDouble(rdr_ready["YANGLE"]) != 0)
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"])*-1); //CAD는 90도가 시계 반대방향, DDW는 시계방향
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"])*-1); //CAD는 90도가 시계 반대방향, DDW는 시계방향 25.6.20
                                     else
                                         xyzrAngle.Add(0);
                                     //xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
