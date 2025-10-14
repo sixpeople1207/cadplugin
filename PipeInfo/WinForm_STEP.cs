@@ -245,7 +245,7 @@ namespace PipeInfo
                         MessageBox.Show("경고:경로에 빈칸이 존재합니다. 다른곳에 저장해주세요.", "STEP File Export");
                     }
                 }
-            }
+            　　　　}
         }
 
         // STEP파일이 생성이 되고나서 사용해제가 되고 나면 스풀길이 적용.

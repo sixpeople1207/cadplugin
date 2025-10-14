@@ -270,7 +270,7 @@ namespace PipeInfo
                                         }
 
                                         // Take off 메인 파이프에 Hole인지 여부를 표시함. 
-                                        if (takeOffCount == 1) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
+                                        if (takeOffCount == 1 && pipeInsInfo.Count > 6) //TakeOff갯수에 상관없이 첫번째 TakeOff일때 한번만 진입. TakeOff번호는 순서대로 들어갔다가 지우면 중간에 번호빠짐. count로 진행.
                                         {
                                            pipeInsInfo[index - 6] = hole;
                                         }
@@ -377,14 +377,14 @@ namespace PipeInfo
         /// <param name="groupName"></param>
         /// <param name="instanceID"></param>
         /// <returns></returns>
-        public (List<string>, List<Point3d>, List<double>, List<double>, List<double>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
+        public (List<string>, List<Point3d>, List<double>, List<double>, List<double>, Dictionary<Point3d, List<double>>) Get_PipeInformation_By_GroupName(string groupName, string instanceID)
         {
             List<string> pipesInfor = new List<string>();
             List<Point3d> pipesPos = new List<Point3d>();
             List<double> pipesLength = new List<double>();
             List<double> pipesDia = new List<double>();
             List<double> xyzrAngle = new List<double>();
-
+            Dictionary<Point3d, List<double>> takeOffLi = new Dictionary<Point3d, List<double>>();
             //파이프의 Depth값을 가져와 파이프 길이에서 빼준다. 
             double depth = Get_PipeDepth_Info_By_PipInstace(instanceID);
 
@@ -423,7 +423,7 @@ namespace PipeInfo
                             {
                                 //Pipe그룹인지 검사 => Take Off를 뚫을 수 없어서 제외
                                 string isPipe = rdr_ready["PIPESTD_NM"].ToString().ToUpper();
-                                Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];                                
+                                Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
 
                                 double length = Convert.ToDouble(rdr_ready["LENGTH1"]);
                                 //Depth값을 파이프 길이에서 빼준다.
@@ -435,15 +435,19 @@ namespace PipeInfo
                                 double pipeDia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
                                 double pipeSizeLimit = 260;
                                 //파이프 STD객체중 Pipe인 객체와 Take off객체만 가져온다.  Take off는 CONNECTION_ORDER가 1이상. 250A 이상은 사이즈 리미트
-                                if (connectInt < 2 ) //본 파이프 정보
+                                if (connectInt < 2) //본 파이프 정보
                                 {
                                     if ((isPipe.Contains("PIPE") || isPipe.Contains("NW")) && length > 0 && pipeDia < pipeSizeLimit)
                                     {
+
+                                        var pos = new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"]));
+                                        var dia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
+
                                         instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                         pipesInfor.Add(instanceId);
-                                        pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
                                         pipesLength.Add(length);
-                                        pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
+                                        pipesDia.Add(dia);
+                                        pipesPos.Add(pos);
                                         //xyzrAngle.Add(Convert.ToDouble(rdr_ready["XANGLE"]));
                                         //xyzrAngle.Add(Convert.ToDouble(rdr_ready["YANGLE"]));
                                         //xyzrAngle.Add(Convert.ToDouble(rdr_ready["ZANGLE"]));
@@ -456,14 +460,25 @@ namespace PipeInfo
                                 }
                                 else if (connectInt > 1) // Take Off 정보
                                 {
+                                    var pos = new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"]));
+                                    var dia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
+
+
+                                    if (!takeOffLi.ContainsKey(pos))
+                                    {
+                                        takeOffLi[pos] = new List<double>();
+                                    }
+                                    takeOffLi[pos].Add(dia);
+                                    takeOffLi[pos].Add(length);
+
                                     instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                     pipesInfor.Add(instanceId);
-                                    pipesPos.Add(new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"])));
+                                    pipesPos.Add(pos);
                                     pipesLength.Add(length);
-                                    pipesDia.Add(Convert.ToDouble(rdr_ready["OUTERDIAMETER"]));
+                                    pipesDia.Add(dia);
                                     //  파이프 기본 축인 Y축을 기준으로 돌리는 각도만 사용하기로함. x축은 POC 방향
                                     if (Convert.ToDouble(rdr_ready["YANGLE"]) != 0)
-                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"])*-1); //CAD는 90도가 시계 반대방향, DDW는 시계방향 25.6.20
+                                        xyzrAngle.Add(Convert.ToDouble(rdr_ready["RADIAN"]) * -1); //CAD는 90도가 시계 반대방향, DDW는 시계방향 25.6.20
                                     else
                                         xyzrAngle.Add(0);
                                     //xyzrAngle.Add((double)rdr_ready["ZANGLE"]);
@@ -475,13 +490,14 @@ namespace PipeInfo
                         }
                     }
                 }
+
             }
             catch (Exception e)
             {
                 MessageBox.Show(e.ToString(), "DDWorks Cad Plug-In");
             }
             // pipeInfor : 인스턴스 아이디 , 포지션, 길이, 다이어미터
-            return (pipesInfor, pipesPos, pipesLength, pipesDia, xyzrAngle);
+            return (pipesInfor, pipesPos, pipesLength, pipesDia, xyzrAngle, takeOffLi);
 
         }
 
