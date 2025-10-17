@@ -2126,48 +2126,6 @@ namespace PipeInfo
                                 //}
 
 
-                                // 양방향으로 기울어진 배관은 먼저 X축으로 정렬한다. 
-                                // 그리고 Z축으로 90도 회전
-
-                                //기울어진 배관을 수직으로 만드는 아이디어 25.10.15
-                                //배관의 진행방향
-                                Vector3d currentDir = baseline.StartPoint.GetVectorTo(baseline.EndPoint).GetNormal();
-
-                                //Dir가 0.98 이상이면 1이나 -1로 보정
-                                double threshold = 0.98;
-
-                                // 방향 벡터 보정
-                                double cx = Math.Abs(currentDir.X) >= threshold ? Math.Sign(currentDir.X) * 1.0 : currentDir.X;
-                                double cy = Math.Abs(currentDir.Y) >= threshold ? Math.Sign(currentDir.Y) * 1.0 : currentDir.Y;
-                                double cz = Math.Abs(currentDir.Z) >= threshold ? Math.Sign(currentDir.Z) * 1.0 : currentDir.Z;
-                                currentDir = new Vector3d(cx, cy, cz);
-
-                                Vector3d targetDirX = Vector3d.XAxis;
-                                Vector3d targetDirZ = Vector3d.ZAxis;
-
-                                // 4. 두 벡터가 같은 방향이면 회전 필요 없음
-                                if (!currentDir.IsEqualTo(targetDirX, Tolerance.Global))
-                                {
-                                    // 5. 회전 축은 두 벡터의 외적 (수직 방향)
-                                    Vector3d axis = currentDir.CrossProduct(targetDirX).GetNormal();
-
-                                    // 6. 회전 각도 계산
-                                    double angleX = currentDir.GetAngleTo(targetDirX);
-
-                                    // 7. 회전 행렬 생성 (baseline의 시작점을 기준으로 회전)
-                                    Matrix3d rotationMatrix = Matrix3d.Rotation(angleX, axis, baseline.StartPoint);
-
-                                    // 8. 파이프에 회전 적용
-                                    base_Cylinder.TransformBy(rotationMatrix);
-
-                                }
-                                //회전된 배관의 중심점선을 다시 그린다.
-                                Line newCurDir = new Line(base_Cylinder.GeometricExtents.MinPoint, base_Cylinder.GeometricExtents.MaxPoint);
-                                double pipeLength = Math.Abs(newCurDir.StartPoint.X - newCurDir.EndPoint.X);
-                                //배관을 90도 회전.
-                                base_Cylinder.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.YAxis, newCurDir.StartPoint));
-                                //현재 파이프 를 100,200,0을 기준으로 배치이동
-                                base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(-100* takePipeCount , 0, pipeLength) - newCurDir.StartPoint));
 
                                 //double angleZ = currentDir.GetAngleTo(targetDirZ);
                                 //base_Cylinder.TransformBy(Matrix3d.Rotation(angleZ, Vector3d.YAxis, baseline.StartPoint));
@@ -2195,6 +2153,50 @@ namespace PipeInfo
                                 takePipeCount += 1;
                             }
                             }
+
+
+                        // 양방향으로 기울어진 배관은 먼저 X축으로 정렬한다. 
+                        // 그리고 Z축으로 90도 회전
+
+                        //기울어진 배관을 수직으로 만드는 아이디어 25.10.15
+                        //배관의 진행방향
+                        Vector3d currentDir = baseline.StartPoint.GetVectorTo(baseline.EndPoint).GetNormal();
+
+                        //Dir가 0.98 이상이면 1이나 -1로 보정
+                        double threshold = 0.98;
+
+                        // 방향 벡터 보정
+                        double cx = Math.Abs(currentDir.X) >= threshold ? Math.Sign(currentDir.X) * 1.0 : currentDir.X;
+                        double cy = Math.Abs(currentDir.Y) >= threshold ? Math.Sign(currentDir.Y) * 1.0 : currentDir.Y;
+                        double cz = Math.Abs(currentDir.Z) >= threshold ? Math.Sign(currentDir.Z) * 1.0 : currentDir.Z;
+                        currentDir = new Vector3d(cx, cy, cz);
+
+                        Vector3d targetDirX = Vector3d.XAxis;
+                        Vector3d targetDirZ = Vector3d.ZAxis;
+
+                        // 4. 두 벡터가 같은 방향이면 회전 필요 없음
+                        if (!currentDir.IsEqualTo(targetDirX, Tolerance.Global))
+                        {
+                            // 5. 회전 축은 두 벡터의 외적 (수직 방향)
+                            Vector3d axis = currentDir.CrossProduct(targetDirX).GetNormal();
+
+                            // 6. 회전 각도 계산
+                            double angleX = currentDir.GetAngleTo(targetDirX);
+
+                            // 7. 회전 행렬 생성 (baseline의 시작점을 기준으로 회전)
+                            Matrix3d rotationMatrix = Matrix3d.Rotation(angleX, axis, baseline.StartPoint);
+
+                            // 8. 파이프에 회전 적용
+                            base_Cylinder.TransformBy(rotationMatrix);
+
+                        }
+                        //회전된 배관의 중심점선을 다시 그린다.
+                        Line newCurDir = new Line(base_Cylinder.GeometricExtents.MinPoint, base_Cylinder.GeometricExtents.MaxPoint);
+                        double pipeLength = Math.Abs(newCurDir.StartPoint.X - newCurDir.EndPoint.X);
+                        //배관을 90도 회전.
+                        base_Cylinder.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.YAxis, newCurDir.StartPoint));
+                        //현재 파이프 를 100,200,0을 기준으로 배치이동
+                        base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(-100 * takePipeCount, 0, pipeLength) - newCurDir.StartPoint));
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
                         acTrans.Commit();
