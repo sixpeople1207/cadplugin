@@ -2007,6 +2007,9 @@ namespace PipeInfo
                                 {
                                     oldPipe.Erase();
                                     stepfileSave_Ids.Remove(cylinder_ids[0]);
+                                    pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
+                                    stepfileSave_Ids.Add(base_Cylinder.Id);
+                                    pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
                                 }
 
                                 //acTrans Commit된 객체를 다시 불러와 편집
@@ -2195,8 +2198,8 @@ namespace PipeInfo
                         double pipeLength = Math.Abs(newCurDir.StartPoint.X - newCurDir.EndPoint.X);
                         //배관을 90도 회전.
                         base_Cylinder.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.YAxis, newCurDir.StartPoint));
-                        //현재 파이프 를 100,200,0을 기준으로 배치이동
-                        base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(-100 * takePipeCount, 0, pipeLength) - newCurDir.StartPoint));
+                        //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
+                        base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(0, 0, 0) - newCurDir.StartPoint));
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
                         acTrans.Commit();

@@ -62,7 +62,8 @@ namespace PipeInfo
             _handle_Li = handle_Li;
             _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.
         }
-        
+
+        //파일 감시와 동시에 MANIFOLD_SOLID_BREP에 스풀이름 넣기
         public bool stepFileWriteSpoolNumber()
         {
             bool isWrite = false;
@@ -85,7 +86,7 @@ namespace PipeInfo
 
                     using (var reader = new StreamReader(_full_path, Encoding.UTF8))
                     {
-                        while (!reader.EndOfStream)
+                         while (!reader.EndOfStream)
                         {
                             var line = reader.ReadLine();
                             if (line.Contains("MANIFOLD_SOLID_BREP"))

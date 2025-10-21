@@ -236,7 +236,7 @@ namespace PipeInfo
 
                         //파일 감시 
                         fiw.initWatcher(stepFileSave_path);
-                        // STEP파일 사용확인. STEP파일 생성 후 수정.
+                        // STEP파일 사용확인. STEP파일 생성 후 수정.(STEP파일에 MANIFOLD_SOLID_BREP에 스풀이름 수정)
                         _thread = new Thread(check_StepFile);
                         _thread.Start();
                     }
@@ -257,9 +257,9 @@ namespace PipeInfo
                 file_used = fiw.CheckFileLocked(stepFileSave_path);
                 if (file_used == false)
                 {
-                    MessageBox.Show("STEP파일이 생성 되었습니다.", "STEP File Export");
                     //STEP 파일 수정 : 길이정보및 스풀이름 적어주기.
                     fiw.stepFileWriteSpoolNumber();
+                    MessageBox.Show("STEP파일이 생성 되었습니다.", "STEP File Export");
                     break;
                 }
                 Thread.Sleep(100);
