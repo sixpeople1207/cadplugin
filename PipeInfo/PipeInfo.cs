@@ -5,51 +5,35 @@ using Autodesk.AutoCAD.DatabaseServices;
 using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
-using Autodesk.AutoCAD.Internal;
 using Autodesk.AutoCAD.Runtime;
 using Autodesk.Windows;
-using Dinno.Do3d.IO.Util;
-using DINNO.DO3D.IO.Instances;
-using DINNO.DO3D.IO.PLYReader;
-using DINNO.DO3D.MEP;
-using DINNO.DO3D.MEP.InputHandler;
-using DINNO.DO3D.MEP.Instances;
-using DINNO.DO3D.SceneGraph.Graphics.Math;
-using DINNO.DO3D.SceneGraph.PointCloud.E57;
-using DINNO.HU3D.UI.WPF.History;
-using DINNO.HU3D.UI.WPF.Piping;
-using DINNO.HU3D.Workspace;
 using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Entity.Infrastructure;
 using System.Data.SQLite;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 
 using acadApp = Autodesk.AutoCAD.ApplicationServices.Application;
 using Application = Autodesk.AutoCAD.ApplicationServices.Application;
 using Database = Autodesk.AutoCAD.DatabaseServices.Database;
-using DinnoUtils = DINNO.DO3D.Database.Common.Utils;
-using DVecter3D = DINNO.DO3D.SceneGraph.Graphics.Math.Vector3d;
+//using DinnoUtils = DINNO.DO3D.Database.Common.Utils;
+//using DVecter3D = DINNO.DO3D.SceneGraph.Graphics.Math.Vector3d;
 using Excel = Microsoft.Office.Interop.Excel;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
-using Plane = Autodesk.AutoCAD.Geometry.Plane;
-using Quaternion = DINNO.DO3D.SceneGraph.Graphics.Math.Quaterniond;
+//using Plane = Autodesk.AutoCAD.Geometry.Plane;
+//using Quaternion = DINNO.DO3D.SceneGraph.Graphics.Math.Quaterniond;
 using RibbonButton = Autodesk.Windows.RibbonButton;
 using RibbonPanelSource = Autodesk.Windows.RibbonPanelSource;
 using Utils = Autodesk.AutoCAD.Internal.Utils;
@@ -73,100 +57,100 @@ namespace PipeInfo
         public string db_path = "";
         public double pipeSize_Limit = 260;
 
-        [CommandMethod("DDW")]
-        public void ddworks_Connection()
-        {
-            //DDWorks 최상위 객체 생성
-            AppEnvironment env = new AppEnvironment();
-            env.Load();
+        //[CommandMethod("DDW")]
+        //public void ddworks_Connection()
+        //{
+        //    //DDWorks 최상위 객체 생성
+        //    AppEnvironment env = new AppEnvironment();
+        //    env.Load();
 
-            //DB PipeInstanceId String
-            //            string idstr = "4c501a796b09984095a14b203192aa2f";
-            string idstr = "a18d1d743ef8804d8bf5dc364e69676b";
+        //    //DB PipeInstanceId String
+        //    //            string idstr = "4c501a796b09984095a14b203192aa2f";
+        //    string idstr = "a18d1d743ef8804d8bf5dc364e69676b";
 
-            //Project생성(StandAlone)
-            if (db_path != null)
-            {
-                string path = Path.GetDirectoryName(db_path);
-                string name = String.Empty;
-                DirectoryInfo files = new DirectoryInfo(path);
-                foreach (FileInfo file in files.GetFiles())
-                {
-                    if (file.Extension.ToLower().CompareTo(".dpf") == 0)
-                    {
-                        name = file.FullName;
-                    }
-                }
-                if (name != String.Empty)
-                {
-                    ProjectBase project = DINNO.HU3D.Workspace.StandaloneProject.From(name) as StandaloneProject;
-                    //ApppWorkspace 생성
-                    AppWorkspace workspace = env.OpenWorkspace(project);
-                    //HookupDesigner Data로드
-                    workspace.LoadData(WorkspaceModuleType.HookupDesigner);
-                    //DB InstaceString Data를 DDWorks에서 사용하는 Guid로 변환 Byte 4개 객체가 순서 바뀌어 있음.
-                    Guid id = DinnoUtils.DBStringGuid(idstr);
-                    //Workspace에서 GetInstace(반환값 InstaceBase)
-                    InstanceBase ibb = workspace.InstanceManager.getInstance(id);
-                    //Instace객체의 회전정보를 Radian값으로 참조(Reference)해서 받아옴.
-                    double x = 0.0;
-                    double y = 0.0;
-                    double z = 1.0;
-                    double radian = 1.57079637050629;
-                    //InstaceBase에 기본 저장되어 있는 함수.
-                    ibb.getYawPitchRollObjectAligned(out x, out y, out z);
+        //    //Project생성(StandAlone)
+        //    if (db_path != null)
+        //    {
+        //        string path = Path.GetDirectoryName(db_path);
+        //        string name = String.Empty;
+        //        DirectoryInfo files = new DirectoryInfo(path);
+        //        foreach (FileInfo file in files.GetFiles())
+        //        {
+        //            if (file.Extension.ToLower().CompareTo(".dpf") == 0)
+        //            {
+        //                name = file.FullName;
+        //            }
+        //        }
+        //        if (name != String.Empty)
+        //        {
+        //            ProjectBase project = DINNO.HU3D.Workspace.StandaloneProject.From(name) as StandaloneProject;
+        //            //ApppWorkspace 생성
+        //            AppWorkspace workspace = env.OpenWorkspace(project);
+        //            //HookupDesigner Data로드
+        //            workspace.LoadData(WorkspaceModuleType.HookupDesigner);
+        //            //DB InstaceString Data를 DDWorks에서 사용하는 Guid로 변환 Byte 4개 객체가 순서 바뀌어 있음.
+        //            Guid id = DinnoUtils.DBStringGuid(idstr);
+        //            //Workspace에서 GetInstace(반환값 InstaceBase)
+        //            InstanceBase ibb = workspace.InstanceManager.getInstance(id);
+        //            //Instace객체의 회전정보를 Radian값으로 참조(Reference)해서 받아옴.
+        //            double x = 0.0;
+        //            double y = 0.0;
+        //            double z = 1.0;
+        //            double radian = 1.57079637050629;
+        //            //InstaceBase에 기본 저장되어 있는 함수.
+        //            ibb.getYawPitchRollObjectAligned(out x, out y, out z);
                     
-                    Quaternion q = Quaternion.getRotate(radian, x, y, z);
+        //            Quaternion q = Quaternion.getRotate(radian, x, y, z);
                     
-                    double x_ = 0.0;
-                    double y_ = 0.0;
-                    double z_ = 0.0;
+        //            double x_ = 0.0;
+        //            double y_ = 0.0;
+        //            double z_ = 0.0;
 
-                    _getPipeYawPitchRollObjectAligned(q, out x_, out y_, out z_);
+        //            _getPipeYawPitchRollObjectAligned(q, out x_, out y_, out z_);
                     
-                    //이 값을 Degree로 변환해서 사용가능.
-                    MessageBox.Show(x_.ToString() + "/" + y_.ToString() + "/" + z_.ToString(), "DDWorks Cad Plug-In");
-                }
-                else
-                {
-                    MessageBox.Show("경고:폴더 내에 DDWorks 프로젝트 파일(dpf)가 없음", "DDWorks Cad Plug-In");
-                }
-            }
-        }
+        //            //이 값을 Degree로 변환해서 사용가능.
+        //            MessageBox.Show(x_.ToString() + "/" + y_.ToString() + "/" + z_.ToString(), "DDWorks Cad Plug-In");
+        //        }
+        //        else
+        //        {
+        //            MessageBox.Show("경고:폴더 내에 DDWorks 프로젝트 파일(dpf)가 없음", "DDWorks Cad Plug-In");
+        //        }
+        //    }
+        //}
 
-        public void _getPipeYawPitchRollObjectAligned(Quaterniond q, out double hdeg, out double vdeg, out double udeg)
-        {
-            hdeg = 0.0;
-            vdeg = 0.0;
-            udeg = 0.0;
-            DVecter3D normalized = (DVecter3D.YAXIS * q).getNormalized();
-            DVecter3D normalized2 = (DVecter3D.ZAXIS * q).getNormalized();
-            DVecter3D normalized3 = (DVecter3D.XAXIS * q).getNormalized();
-            if (!MEPSceneUtil.checkVerticalDirection(normalized3))
-            {
-                DVecter3D normalized4 = new DVecter3D(normalized3.x, normalized3.y, 0.0).getNormalized();
-                hdeg = MathUtil.calcDegree(DVecter3D.ZAXIS, DVecter3D.XAXIS, normalized4);
-                vdeg = MathUtil.calcDegree(normalized3, normalized4);
-                if (normalized3.z < 0.0)
-                {
-                    vdeg = 0.0 - vdeg;
-                }
+        //public void _getPipeYawPitchRollObjectAligned(Quaterniond q, out double hdeg, out double vdeg, out double udeg)
+        //{
+        //    hdeg = 0.0;
+        //    vdeg = 0.0;
+        //    udeg = 0.0;
+        //    DVecter3D normalized = (DVecter3D.YAXIS * q).getNormalized();
+        //    DVecter3D normalized2 = (DVecter3D.ZAXIS * q).getNormalized();
+        //    DVecter3D normalized3 = (DVecter3D.XAXIS * q).getNormalized();
+        //    if (!MEPSceneUtil.checkVerticalDirection(normalized3))
+        //    {
+        //        DVecter3D normalized4 = new DVecter3D(normalized3.x, normalized3.y, 0.0).getNormalized();
+        //        hdeg = MathUtil.calcDegree(DVecter3D.ZAXIS, DVecter3D.XAXIS, normalized4);
+        //        vdeg = MathUtil.calcDegree(normalized3, normalized4);
+        //        if (normalized3.z < 0.0)
+        //        {
+        //            vdeg = 0.0 - vdeg;
+        //        }
 
-                DVecter3D normalized5 = (DVecter3D.ZAXIS ^ normalized3).getNormalized();
-                DVecter3D normalized6 = (normalized3 ^ normalized5).getNormalized();
-                udeg = MathUtil.calcDegree(normalized3, normalized6, normalized2);
-            }
-            else
-            {
-                hdeg = 0.0;
-                vdeg = ((normalized3.z >= 0.0) ? 90 : (-90));
-                udeg = MathUtil.calcDegree(normalized3, (normalized3.z >= 0.0) ? DVecter3D.XAXIS_NEGATIVE : DVecter3D.XAXIS, normalized2);
-            }
-            //getYawPitchRollObjectAligned 마지막 부분 추가
-            hdeg = MathUtil.toRadian(hdeg);
-            vdeg = MathUtil.toRadian(vdeg);
-            udeg = MathUtil.toRadian(udeg);
-        }
+        //        DVecter3D normalized5 = (DVecter3D.ZAXIS ^ normalized3).getNormalized();
+        //        DVecter3D normalized6 = (normalized3 ^ normalized5).getNormalized();
+        //        udeg = MathUtil.calcDegree(normalized3, normalized6, normalized2);
+        //    }
+        //    else
+        //    {
+        //        hdeg = 0.0;
+        //        vdeg = ((normalized3.z >= 0.0) ? 90 : (-90));
+        //        udeg = MathUtil.calcDegree(normalized3, (normalized3.z >= 0.0) ? DVecter3D.XAXIS_NEGATIVE : DVecter3D.XAXIS, normalized2);
+        //    }
+        //    //getYawPitchRollObjectAligned 마지막 부분 추가
+        //    hdeg = MathUtil.toRadian(hdeg);
+        //    vdeg = MathUtil.toRadian(vdeg);
+        //    udeg = MathUtil.toRadian(udeg);
+        //}
         public void DataGet(string data)
         {
             db_path = data;
@@ -2006,10 +1990,8 @@ namespace PipeInfo
                                 if (oldPipe != null)
                                 {
                                     oldPipe.Erase();
-                                    stepfileSave_Ids.Remove(cylinder_ids[0]);
-                                    pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
-                                    stepfileSave_Ids.Add(base_Cylinder.Id);
-                                    pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
+                                
+
                                 }
 
                                 //acTrans Commit된 객체를 다시 불러와 편집
@@ -2200,6 +2182,11 @@ namespace PipeInfo
                         base_Cylinder.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.YAxis, newCurDir.StartPoint));
                         //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
                         base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(0, 0, 0) - newCurDir.StartPoint));
+
+                        stepfileSave_Ids.Remove(cylinder_ids[0]);
+                        stepfileSave_Ids.Add(base_Cylinder.Id);
+                        pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
+                        pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
                         acTrans.Commit();

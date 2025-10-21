@@ -1,6 +1,6 @@
 ﻿using Autodesk.AutoCAD.DatabaseServices;
-using DINNO.DO3D.MEP.InputHandler;
-using DINNO.DO3D.SceneGraph.Graphics.Scene.Object;
+//using DINNO.DO3D.MEP.InputHandler;
+//using DINNO.DO3D.SceneGraph.Graphics.Scene.Object;
 using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Navigation;
-using static DINNO.HU3D.WPF.HookUpDesigner.FormBatchImport;
+//using static DINNO.HU3D.WPF.HookUpDesigner.FormBatchImport;
 using static PipeInfo.FileWatcher;
 using static PipeInfo.PipeInfo;
 
@@ -227,6 +227,7 @@ namespace PipeInfo
                     }
                     if (is_SaveFile == true && is_PathInBlank == false)
                     {
+                        //스풀,핸들,랭스리스트는 항상 Count가 같아야함.
                         (_spool_Li, _handle_Li, _spoolLength_Li, isHole) = pipeInfo.export_Pipes_StepFiles(groupName, stepFileSave_path);
                         fiw.ReceiveSpoolList(_spool_Li, _handle_Li, _spoolLength_Li);
                         if (isHole == true)
@@ -258,8 +259,8 @@ namespace PipeInfo
                 if (file_used == false)
                 {
                     //STEP 파일 수정 : 길이정보및 스풀이름 적어주기.
-                    fiw.stepFileWriteSpoolNumber();
                     MessageBox.Show("STEP파일이 생성 되었습니다.", "STEP File Export");
+                    fiw.stepFileWriteSpoolNumber();
                     break;
                 }
                 Thread.Sleep(100);

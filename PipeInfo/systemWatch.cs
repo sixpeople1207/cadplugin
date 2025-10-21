@@ -1,5 +1,6 @@
 ﻿using EnvDTE;
 using Microsoft.Office.Interop.Excel;
+using Microsoft.SqlServer.Server;
 using System;
 using System.CodeDom;
 using System.Collections;
@@ -58,15 +59,24 @@ namespace PipeInfo
         }
         public void ReceiveSpoolList(List<string> spool_Li, List<string> handle_Li, List<double> spoolLength_Li)
         {
-            _spool_Li = spool_Li;
-            _handle_Li = handle_Li;
-            _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.
+            if ((spool_Li.Count / handle_Li.Count / spoolLength_Li.Count)==0)
+            {
+                _spool_Li = spool_Li;
+                _handle_Li = handle_Li;
+                _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.
+            }
+            else
+            {
+                MessageBox.Show("경고 : 스풀,핸들,길이 값 리스트가 잘못되었습니다.","DDWorks CAD Plug-IN Error");
+            }
         }
 
         //파일 감시와 동시에 MANIFOLD_SOLID_BREP에 스풀이름 넣기
         public bool stepFileWriteSpoolNumber()
         {
             bool isWrite = false;
+            string debug = string.Empty;
+
             try
             {
                 //만들어진 파일경로를 감시해서 가져온다.
@@ -83,7 +93,6 @@ namespace PipeInfo
                 // 나중에 스풀넘버 좌우에 ''를 적어줘야한다. 
                 string[] new_LineSp = new string[3];
                 string new_Line = string.Empty;
-
                     using (var reader = new StreamReader(_full_path, Encoding.UTF8))
                     {
                          while (!reader.EndOfStream)
@@ -101,13 +110,16 @@ namespace PipeInfo
                                     // 24.8 컷팅기 스풀번호 인식리미트 > 도면번호+스풀번호:길이
                                     new_Line = new_LineSp[0] + "\'" + _spool_Li[j] + ":"+ Math.Round(_spoolLenth_Li[j],0) + "\'" + new_LineSp[2];
                                     st.Add(new_Line);
-                                    }   
+                                    debug = new_Line;
+                                }   
                                 }
                             }
                             else
                             {
                                 // 바뀌지 않은 부분은 그대로 적어준다.
                                 st.Add(line);
+                            debug = line;
+                                
                             }
                         }
                     }
@@ -118,7 +130,7 @@ namespace PipeInfo
             }
             catch (Exception ex)
             {
-                MessageBox.Show("경고:파일이 사용중입니다.", ex.ToString());
+                MessageBox.Show(String.Format("경고:{0}",ex.ToString()), "DDWorks CAD Plug-IN Error");
             }
             return isWrite;
         }

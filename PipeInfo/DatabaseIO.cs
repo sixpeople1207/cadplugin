@@ -14,10 +14,10 @@ using Autodesk.Internal.Windows;
 using static PipeInfo.PipeInfo;
 using System.Windows.Forms;
 using MessageBox = System.Windows.Forms.MessageBox;
-using DINNO.HU3D.ViewModel.STD;
+//using DINNO.HU3D.ViewModel.STD;
 using System.Security.Cryptography;
 using System.Windows.Shapes;
-using DINNO.HU3D.Workspace.ProductionDrawing;
+//using DINNO.HU3D.Workspace.ProductionDrawing;
 
 namespace PipeInfo
 {

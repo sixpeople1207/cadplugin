@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PipeInfo</RootNamespace>
     <AssemblyName>PipeInfo_96</AssemblyName>
-    <AssemblyName>99eedsdwㅇㄴ</AssemblyName>
+    <AssemblyName>0101</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -136,31 +136,6 @@
     </Reference>
     <Reference Include="AdWindows">
       <HintPath>bin\x64\Debug\AdWindows.dll</HintPath>
-    </Reference>
-    <Reference Include="Dinno.Do3d.Client.IO">
-      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Client.IO.dll</HintPath>
-    </Reference>
-    <Reference Include="Dinno.Do3d.Database">
-      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Database.dll</HintPath>
-    </Reference>
-    <Reference Include="Dinno.Do3d.IO">
-      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.IO.dll</HintPath>
-    </Reference>
-    <Reference Include="Dinno.Do3d.Mep.NetFramework">
-      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.Mep.NetFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="Dinno.Do3d.SceneGraph.NetFramework">
-      <HintPath>D:\Git\bak\ddworks.core\Dinno.Do3d.Mep\NetFramework\bin\x64\Debug\Dinno.Do3d.SceneGraph.NetFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="DINNO.HU3D.UI.WPF">
-      <HintPath>D:\Git\bak\ddworks.pub\dinno.hu3d.release\DINNO.HU3D.UI.WPF.dll</HintPath>
-    </Reference>
-    <Reference Include="DINNO.HU3D.ViewModel">
-      <HintPath>bin\x64\Debug\DINNO.HU3D.ViewModel.dll</HintPath>
-    </Reference>
-    <Reference Include="DINNO.HU3D.Workspace, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\Git\bak\ddworks.app\Dinno.Hu3d.Workspace\NetFramework\bin\x64\Debug\DINNO.HU3D.Workspace.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
