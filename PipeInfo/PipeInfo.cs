@@ -1961,8 +1961,8 @@ namespace PipeInfo
                             Line baseline = new Line(pipeInfo_Pos_li[0], pipeInfo_Pos_li[1]);
                             Line otherLine = new Line(pipeInfo_Pos_li[0], new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z + 1000));
                             Circle baseProfile = new Circle(new Point3d(0, 0, 0), Vector3d.ZAxis, pipeInfo_Dia_Li[0] / 2);
-                            
 
+                        
                             //속이 빈 파이프를 그려준다. pipeThk적용
                             var basePipeId = pipe.create_3DPipeForSweep(baseline, baseProfile, pipeThk);
                             //actrans commit된 객체를 다시 불러와 편집
@@ -2180,8 +2180,10 @@ namespace PipeInfo
                         double pipeLength = Math.Abs(newCurDir.StartPoint.X - newCurDir.EndPoint.X);
                         //배관을 90도 회전.
                         base_Cylinder.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.YAxis, newCurDir.StartPoint));
+
                         //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
-                        base_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(0, 0, 0) - newCurDir.StartPoint));
+                        base_Cylinder.TransformBy(Matrix3d.Displacement(
+                                new Point3d(-pipeInfo_Dia_Li[0] / 2, -pipeInfo_Dia_Li[0] / 2, baseline.Length/2) - newCurDir.StartPoint));
 
                         stepfileSave_Ids.Remove(cylinder_ids[0]);
                         stepfileSave_Ids.Add(base_Cylinder.Id);
