@@ -59,7 +59,9 @@ namespace PipeInfo
         }
         public void ReceiveSpoolList(List<string> spool_Li, List<string> handle_Li, List<double> spoolLength_Li)
         {
-            if ((spool_Li.Count / handle_Li.Count / spoolLength_Li.Count)==0)
+            if (spool_Li.Count == handle_Li.Count && 
+                spool_Li.Count == spoolLength_Li.Count && 
+                handle_Li.Count == spoolLength_Li.Count)
             {
                 _spool_Li = spool_Li;
                 _handle_Li = handle_Li;
