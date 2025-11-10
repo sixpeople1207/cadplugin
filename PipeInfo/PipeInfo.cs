@@ -6,7 +6,9 @@ using Autodesk.AutoCAD.EditorInput;
 using Autodesk.AutoCAD.Geometry;
 using Autodesk.AutoCAD.GraphicsInterface;
 using Autodesk.AutoCAD.Runtime;
+using Autodesk.AutoCAD.BoundaryRepresentation;
 using Autodesk.Windows;
+using AXDBLib;
 using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
@@ -29,6 +31,7 @@ using Database = Autodesk.AutoCAD.DatabaseServices.Database;
 //using DVecter3D = DINNO.DO3D.SceneGraph.Graphics.Math.Vector3d;
 using Excel = Microsoft.Office.Interop.Excel;
 using Exception = Autodesk.AutoCAD.Runtime.Exception;
+using Group = Autodesk.AutoCAD.DatabaseServices.Group;
 using Line = Autodesk.AutoCAD.DatabaseServices.Line;
 using MessageBox = System.Windows.Forms.MessageBox;
 using Orientation = System.Windows.Controls.Orientation;
@@ -38,6 +41,8 @@ using RibbonButton = Autodesk.Windows.RibbonButton;
 using RibbonPanelSource = Autodesk.Windows.RibbonPanelSource;
 using Utils = Autodesk.AutoCAD.Internal.Utils;
 using Vector3d = Autodesk.AutoCAD.Geometry.Vector3d;
+using Face = Autodesk.AutoCAD.BoundaryRepresentation.Face;
+using Surface = Autodesk.AutoCAD.Geometry.Surface;
 //using DINNO.DO3D.CLIENT.IO.Comm.Datas;
 #endregion
 
@@ -1962,9 +1967,10 @@ namespace PipeInfo
                             Line otherLine = new Line(pipeInfo_Pos_li[0], new Point3d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z + 1000));
                             Circle baseProfile = new Circle(new Point3d(0, 0, 0), Vector3d.ZAxis, pipeInfo_Dia_Li[0] / 2);
 
-                        
-                            //속이 빈 파이프를 그려준다. pipeThk적용
-                            var basePipeId = pipe.create_3DPipeForSweep(baseline, baseProfile, pipeThk);
+                       
+
+                        //속이 빈 파이프를 그려준다. pipeThk적용
+                        var basePipeId = pipe.create_3DPipeForSweep(baseline, baseProfile, pipeThk);
                             //actrans commit된 객체를 다시 불러와 편집
                             base_Cylinder = acTrans.GetObject(basePipeId, OpenMode.ForWrite) as Solid3d;
 
@@ -1978,21 +1984,11 @@ namespace PipeInfo
                                 Vector3d closetVector = pipeInfo_Pos_li[i].GetVectorTo(closetPo).GetNormal();
                                 //연결된 방향으로 선을 더 연장(Boolean을 하기 위함)
                                 var startPo = pipeInfo_Pos_li[i] - closetVector * extendLineDis;
-
                                 //Takeoff 3D Pipe 만들기
                                 Line takeLine = new Line(startPo, closetPo);
                                 Circle profile = new Circle(new Point3d(0, 0, 0), Vector3d.ZAxis, pipeInfo_Dia_Li[i] / 2);
                                 //takeOffpiped.CreateSweptSolid(profile, takeLine, swOptBuilder.ToSweepOptions());
                                 var takeOff3DId = pipe.create_3DPipeForSweep(takeLine, profile);
-
-                                //기존 배관은 삭제하고 TAKEOFF용으로 다시 그림.
-                                DBObject oldPipe = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as DBObject;
-                                if (oldPipe != null)
-                                {
-                                    oldPipe.Erase();
-                                
-
-                                }
 
                                 //acTrans Commit된 객체를 다시 불러와 편집
                                 var tak = acTrans.GetObject(takeOff3DId, OpenMode.ForWrite) as Solid3d;
@@ -2118,32 +2114,54 @@ namespace PipeInfo
                                 //var line90 = new Line(baseline.StartPoint, baseline.EndPoint);
                                 //line90.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.ZAxis, baseline.StartPoint));
 
-                                ////라인의 진행방향을 알아내기 위해 2D좌표로만 Vector구함.
+                                //////라인의 진행방향을 알아내기 위해 2D좌표로만 Vector구함.
                                 //Vector3d s = new Vector3d(line90.StartPoint.X, line90.StartPoint.Y, 0);
                                 //Vector3d e = new Vector3d(line90.EndPoint.X, line90.EndPoint.Y, 0);
                                 //Vector3d dirNor = (e - s).GetNormal();
 
-                                ////기존 배관 진행방향이 정렬하고자 하는 축과 각도를 구함.
+                                //////기존 배관 진행방향이 정렬하고자 하는 축과 각도를 구함.
                                 //var andgZ = Vector3d.ZAxis.GetAngleTo(currentDir);
                                 //var andgX = Vector3d.XAxis.GetAngleTo(currentDir);
 
-                                //base_Cylinder.TransformBy(Matrix3d.Rotation(andgZ, Vector3d.YAxis, baseline.StartPoint));
-                                //base_Cylinder.TransformBy(Matrix3d.Rotation(andgX, Vector3d.ZAxis, baseline.StartPoint));
+                                ////base_Cylinder.TransformBy(Matrix3d.Rotation(andgZ, Vector3d.YAxis, baseline.StartPoint));
+                                ////base_Cylinder.TransformBy(Matrix3d.Rotation(andgX, Vector3d.ZAxis, baseline.StartPoint));
 
-                                //회전 기준방향을 통해서 Axis를 정한다.
+                                ////회전 기준방향을 통해서 Axis를 정한다.
                                 //if (dirNor.X > dirNor.Y)
                                 //    base_Cylinder.TransformBy(Matrix3d.Rotation(andg, Vector3d.XAxis, baseline.StartPoint));
                                 //else if (dirNor.X < dirNor.Y)
                                 //    base_Cylinder.TransformBy(Matrix3d.Rotation(andg, Vector3d.YAxis, baseline.StartPoint));
-                                takePipeCount += 1;
+                                //takePipeCount += 1;
+
+
                             }
                             }
 
+                        //추가 25.11.10 컷팅기로 넘어갔을때 SWEEP으로 그린배관은 회전값이 기존 배관(CreateFrustum)과 회전값이 다름. 정확히 XY축에 정렬이 되어있지 않음. 
+                        //기존 배관은 삭제하고 TAKEOFF용으로 다시 그림.
+                        var oldPipe = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
+                        ////삭제
+                        if (oldPipe != null)
+                        {
+                            oldPipe.Erase();
+                        }
 
-                        // 양방향으로 기울어진 배관은 먼저 X축으로 정렬한다. 
-                        // 그리고 Z축으로 90도 회전
+             
+                      
+                        ////그래서 아래같이 기존 BASE배관을 불러와서 회전값과 위치를 교정 한 후 기존배관 삭제함.
+                        //Matrix3d align =
+                        //Matrix3d.AlignCoordinateSystem(
+                        //     base_Cylinder.GeometricExtents.MinPoint, Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis,
+                        //     oldPipe.GeometricExtents.MinPoint, Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis);
 
-                        //기울어진 배관을 수직으로 만드는 아이디어 25.10.15
+                        //base_Cylinder.TransformBy(align);
+
+
+                        //추가 25.10.15기울어진 배관을 수직으로 만드는 아이디어 
+                        // 양방향으로 기울어진 배관은 먼저 X축을 정렬하고 무조건 Z축으로 90도 회전하면 직각이 됨.
+                        // 1. X축으로 정렬한다. 
+                        // 2. Z축으로 90도 회전
+
                         //배관의 진행방향
                         Vector3d currentDir = baseline.StartPoint.GetVectorTo(baseline.EndPoint).GetNormal();
 
@@ -2184,13 +2202,47 @@ namespace PipeInfo
                         //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
                         base_Cylinder.TransformBy(Matrix3d.Displacement(
                                 new Point3d(-pipeInfo_Dia_Li[0] / 2, -pipeInfo_Dia_Li[0] / 2, baseline.Length/2) - newCurDir.StartPoint));
-
                         stepfileSave_Ids.Remove(cylinder_ids[0]);
                         stepfileSave_Ids.Add(base_Cylinder.Id);
                         pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
                         pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
+
+                        //25.11.10 Solid의 BRep 구멍의 좌표를 찾기위해 생성 가능성이 있음.(acdmgdbrep.dll필요)
+                        using (Brep brep = new Brep(base_Cylinder))
+                        {
+                            int faceIndex = 0;
+                            foreach (Face face in brep.Faces)
+                            {
+                                int innerLoopCount = 0;
+
+                                foreach (var loop in face.Loops)
+                                {
+                                    if (loop.LoopType == LoopType.LoopInterior)
+                                        innerLoopCount++;
+                                    foreach (Edge edge in loop.Edges)
+                                    {
+                                        Curve3d curve = edge.Curve;
+                                        Point3d start = curve.StartPoint;
+                                        Point3d end = curve.EndPoint;
+                                        ed.WriteMessage($"\n   Edge from {start} to {end}");
+                                    }
+                                }
+
+                                if (innerLoopCount > 0)
+                                {
+                                    ed.WriteMessage($"\nFace {faceIndex} → Inner Loops: {innerLoopCount}");
+                                    // 필요시 해당 Face의 기하정보 추출 가능
+                                    Surface surf = face.Surface;
+                                    ed.WriteMessage($"\n   Surface type: {surf.GetType()}");
+                                }
+
+                                faceIndex++;
+                            }
+                        }
+
+
                         acTrans.Commit();
                         }
 
@@ -2439,7 +2491,6 @@ namespace PipeInfo
         // [CommandMethod("ST")]
         public void pipes_AutoMove_Array(List<ObjectId> objectIds_Li)
         {
-
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
             Document acDoc = Application.DocumentManager.MdiActiveDocument;
             Database db = acDoc.Database;
@@ -2458,7 +2509,6 @@ namespace PipeInfo
                         Solid3d cy = acTrans.GetObject(objectIds_Li[i], OpenMode.ForWrite) as Solid3d;
                         Matrix3d matrix = Matrix3d.Displacement(new Vector3d(400 * i, 0, 0));
                         cy.TransformBy(matrix);
-                       
                     }
                 }
             acTrans.Commit();
