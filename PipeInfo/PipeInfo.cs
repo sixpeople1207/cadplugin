@@ -43,6 +43,11 @@ using Utils = Autodesk.AutoCAD.Internal.Utils;
 using Vector3d = Autodesk.AutoCAD.Geometry.Vector3d;
 using Face = Autodesk.AutoCAD.BoundaryRepresentation.Face;
 using Surface = Autodesk.AutoCAD.Geometry.Surface;
+using System.Windows.Markup.Localizer;
+using static PipeInfo.PipeInfo;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
+using Path = System.IO.Path;
 //using DINNO.DO3D.CLIENT.IO.Comm.Datas;
 #endregion
 
@@ -2141,10 +2146,10 @@ namespace PipeInfo
                         //기존 배관은 삭제하고 TAKEOFF용으로 다시 그림.
                         var oldPipe = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
                         ////삭제
-                        if (oldPipe != null)
-                        {
-                            oldPipe.Erase();
-                        }
+                        //if (oldPipe != null)
+                        //{
+                        //    oldPipe.Erase();
+                        //}
 
              
                       
@@ -2209,40 +2214,34 @@ namespace PipeInfo
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
 
-                        //25.11.10 Solid의 BRep 구멍의 좌표를 찾기위해 생성 가능성이 있음.(acdmgdbrep.dll필요)
-                        using (Brep brep = new Brep(base_Cylinder))
+                        var takeOffCenters = Get3DPipeTakeoffCenter(base_Cylinder);
+                        if(takeOffCenters.Count > 0)
                         {
-                            int faceIndex = 0;
-                            foreach (Face face in brep.Faces)
+                            foreach (var pt in takeOffCenters)
                             {
-                                int innerLoopCount = 0;
-
-                                foreach (var loop in face.Loops)
-                                {
-                                    if (loop.LoopType == LoopType.LoopInterior)
-                                        innerLoopCount++;
-                                    foreach (Edge edge in loop.Edges)
-                                    {
-                                        Curve3d curve = edge.Curve;
-                                        Point3d start = curve.StartPoint;
-                                        Point3d end = curve.EndPoint;
-                                        ed.WriteMessage($"\n   Edge from {start} to {end}");
-                                    }
-                                }
-
-                                if (innerLoopCount > 0)
-                                {
-                                    ed.WriteMessage($"\nFace {faceIndex} → Inner Loops: {innerLoopCount}");
-                                    // 필요시 해당 Face의 기하정보 추출 가능
-                                    Surface surf = face.Surface;
-                                    ed.WriteMessage($"\n   Surface type: {surf.GetType()}");
-                                }
-
-                                faceIndex++;
+                                ed.WriteMessage("\nBRep 구멍 좌표 : " + pt.ToString());
                             }
                         }
+                        foreach(var point in takeOffCenters)
+                        {
+                            Line li = new Line();
+                            Vector3d dir = new Point3d(0,0, point.Z) - point; // 
+                            dir = dir.GetNormal(); // 단위 벡터로 만듦
 
+                            // 새로운 시작점과 끝점 계산
+                            Point3d newStart = point - dir * 10;
+                            Point3d newEnd = point + dir * 10;
+                            li = new Line(newStart, newEnd);
 
+                            Circle cir = new Circle();
+                            cir.Radius = 20; //Takeoff 리스트에서 파이프 시작점에서 첫 번째 부터 차이와 현재 Takeoff 높이와 비교.고로 파이프 시작점에서 Takeoff 높이 리스트 하나 더 만들고 
+                            var takeoffPipeId= pipe.create_3DPipeForSweep(li, cir); //파이프 두께보다 약간 더 크게
+                            //acTrans Commit된 객체를 다시 불러와 편집
+                            var tak = acTrans.GetObject(takeoffPipeId, OpenMode.ForWrite) as Solid3d;
+                            oldPipe.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
+                            acBlkRec.AppendEntity(li);
+                            acTrans.AddNewlyCreatedDBObject(li, true);
+                        }
                         acTrans.Commit();
                         }
 
@@ -2293,6 +2292,77 @@ namespace PipeInfo
             // 스풀정보 반환, 3D파이프 핸들 반환
             return (spoolNum_Li, pipeHandle_Li, spoolLength_Li, isHole);
 
+        }
+
+        //25.11.11 컷팅기에서 STEP파일이 안읽혀 질때 SWEEP으로 그린 배관을 3D파이프로 다시 그리기 위해 Takeoff위치를 계산하는 함수.
+        public List<Point3d> Get3DPipeTakeoffCenter(Solid3d pipe)
+        {
+            List<Point3d> takeOffCenters = new List<Point3d>();
+            //25.11.10 Solid의 BRep 구멍의 좌표를 찾기위해 생성 가능성이 있음.(acdmgdbrep.dll필요)
+            using (Brep brep = new Brep(pipe))
+            {
+                int faceIndex = 0;
+                foreach (Face face in brep.Faces)
+                {
+                    int innerLoopCount = 0;
+                    foreach (var loop in face.Loops)
+                    {
+                        if (loop.LoopType == LoopType.LoopInterior)
+                        {
+                            innerLoopCount++;
+                        foreach (Edge edge in loop.Edges)
+                        {
+                            Curve3d curve = edge.Curve;
+                            var min = edge.Curve.BoundBlock.GetMinimumPoint();
+                            var max = edge.Curve.BoundBlock.GetMaximumPoint();
+
+                            // 중심점 계산
+                            Point3d centerPt = new Point3d(
+                                (min.X + max.X) / 2.0,
+                                (min.Y + max.Y) / 2.0,
+                                (min.Z + max.Z) / 2.0
+                            );
+                            takeOffCenters.Add(centerPt);
+                        }
+                        }
+                    }
+                    if (innerLoopCount > 0)
+                    {
+                        // 필요시 해당 Face의 기하정보 추출 가능
+                        Surface surf = face.Surface;
+                    }
+                    faceIndex++;
+                }
+            }
+
+            //3D Edge정보에는 속이 빈 메인배관의 위아래 포인트와 
+            //Takeoff가 파이프 두께로 잘려있기때문에 루프가 위 아래 한쌍을 가지고 있기 때문에 같은 객체 삭제함.
+            //파이프는 최종적으로 90도로 수직되어 있으므로 Z축으로 정렬.
+            takeOffCenters = takeOffCenters.OrderBy(p => p.Z).ToList();
+
+            if (takeOffCenters.Count > 2)
+            {
+                takeOffCenters.RemoveAt(0); // 최소 Z 제거
+                takeOffCenters.RemoveAt(takeOffCenters.Count - 1); // 최대 Z 제거
+            }
+            double xyTolerance = 5.0;  // 배관 두께 기준
+            double zTolerance = 0.5; // 높이 비교 오차
+
+            var result = new List<Point3d>();
+            //높이가 같고  X,Y차이가 배관 두께보다 작으면 하나 지움(같은 중심이라 판단)
+            foreach (var p in takeOffCenters)
+            {
+                bool isDuplicate = result.Any(existing =>
+                    Math.Abs(existing.Z - p.Z) < zTolerance &&
+                    Math.Abs(existing.X - p.X) <= xyTolerance &&
+                    Math.Abs(existing.Y - p.Y) <= xyTolerance
+                );
+
+                if (!isDuplicate)
+                    result.Add(p);
+            }
+
+            return result;
         }
 
         //숫자 5단위로 절삭 또는 반올림. 136-> 135 49->50
