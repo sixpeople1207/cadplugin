@@ -2150,9 +2150,9 @@ namespace PipeInfo
                         //{
                         //    oldPipe.Erase();
                         //}
+                        
 
-             
-                      
+
                         ////그래서 아래같이 기존 BASE배관을 불러와서 회전값과 위치를 교정 한 후 기존배관 삭제함.
                         //Matrix3d align =
                         //Matrix3d.AlignCoordinateSystem(
@@ -2207,41 +2207,72 @@ namespace PipeInfo
                         //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
                         base_Cylinder.TransformBy(Matrix3d.Displacement(
                                 new Point3d(-pipeInfo_Dia_Li[0] / 2, -pipeInfo_Dia_Li[0] / 2, baseline.Length/2) - newCurDir.StartPoint));
-                        stepfileSave_Ids.Remove(cylinder_ids[0]);
-                        stepfileSave_Ids.Add(base_Cylinder.Id);
+                        //stepfileSave_Ids.Remove(cylinder_ids[0]);
+                        //stepfileSave_Ids.Add(base_Cylinder.Id);
                         pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
                         pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
 
-                        var takeOffCenters = Get3DPipeTakeoffCenter(base_Cylinder);
-                        if(takeOffCenters.Count > 0)
+                        //0. takeoff 중심가져오기. Takeoff의 Diamemter를 Min, Max로 대략적으로 구해준다.
+                        var takeOffCenters = GetTakeOffCenterAndDia(base_Cylinder);
+                      
+                        if (takeOffCenters.Count > 0)
                         {
                             foreach (var pt in takeOffCenters)
                             {
-                                ed.WriteMessage("\nBRep 구멍 좌표 : " + pt.ToString());
+                               // ed.WriteMessage("\nBRep 구멍 좌표 : " + pt.ToString());
                             }
                         }
-                        foreach(var point in takeOffCenters)
+
+                        //1. Take-Off배관 그리기 : 중심점에서 앞뒤로 배관을 뚫어야 하기떄문에 Take-Off중심점과 같은 높이의 0점과 Direct를 구함. 
+                        //2. Dia크기 구하기 : pipeInfo_Dia_Li에서 MinMax로 구한 대략적인 원크기를 빼서 가장 작은값을 가져옴. 
+                        //3. 3D파이프 Boolean하기. 
+                        foreach (var point in takeOffCenters)
                         {
-                            Line li = new Line();
-                            Vector3d dir = new Point3d(0,0, point.Z) - point; // 
+                            //1번
+                            Line takeOffCenLine = new Line();
+                            var takeOffLevel = point.Key.Z;
+                            Vector3d dir = new Point3d(0,0, takeOffLevel) - point.Key; // 
                             dir = dir.GetNormal(); // 단위 벡터로 만듦
 
                             // 새로운 시작점과 끝점 계산
-                            Point3d newStart = point - dir * 10;
-                            Point3d newEnd = point + dir * 10;
-                            li = new Line(newStart, newEnd);
+                            Point3d newStart = point.Key - dir * 10;
+                            Point3d newEnd = point.Key + dir * 10;
+                            var lineDir = (newStart - newEnd).GetNormal();
+                            takeOffCenLine = new Line(newStart, newEnd);
 
+                            //2번
                             Circle cir = new Circle();
-                            cir.Radius = 20; //Takeoff 리스트에서 파이프 시작점에서 첫 번째 부터 차이와 현재 Takeoff 높이와 비교.고로 파이프 시작점에서 Takeoff 높이 리스트 하나 더 만들고 
-                            var takeoffPipeId= pipe.create_3DPipeForSweep(li, cir); //파이프 두께보다 약간 더 크게
-                            //acTrans Commit된 객체를 다시 불러와 편집
-                            var tak = acTrans.GetObject(takeoffPipeId, OpenMode.ForWrite) as Solid3d;
-                            oldPipe.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
-                            acBlkRec.AppendEntity(li);
-                            acTrans.AddNewlyCreatedDBObject(li, true);
+                            //cir.Radius = point.Value/2; //Takeoff 리스트에서 파이프 시작점에서 첫 번째 부터 차이와 현재 Takeoff 높이와 비교.고로 파이프 시작점에서 Takeoff 높이 리스트 하나 더 만들고 
+                            var diaList = pipeInfo_Dia_Li.Select(x => Math.Abs(x - point.Value)).ToList();
+                            
+                            if(diaList.Count > 0)
+                            {
+                                cir.Radius = pipeInfo_Dia_Li[diaList.IndexOf(diaList.Min())]/2;
+                                var takeoffPipeId= pipe.create_3DPipeForSweep(takeOffCenLine, cir); //파이프 두께보다 약간 더 크게
+                                //3번
+                                //acTrans Commit된 객체를 다시 불러와 편집
+                                var tak = acTrans.GetObject(takeoffPipeId, OpenMode.ForWrite) as Solid3d;
+                                oldPipe.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
+                                //라인 객체 - 배포를 위해 숨김. 추후 각도변경을 위해 필요
+                                //acBlkRec.AppendEntity(takeOffCenLine);
+                                //acTrans.AddNewlyCreatedDBObject(takeOffCenLine, true);
+                            }
+
+                            //4번 Y축과의 각도 구하기
+                            Vector3d simVector = new Vector3d(0, 1, 0);
+                            Vector3d normal = new Vector3d(0, 0, 1);    // XY평면 법선
+                            double angleRad = simVector.GetAngleTo(lineDir);
+                            double sign = Math.Sign(simVector.CrossProduct(lineDir).DotProduct(normal));
+                            double signedAngleDeg = angleRad * sign * 180.0 / Math.PI;
+                            //ed.WriteMessage($"\n부호 있는 각도: {signedAngleDeg:F2}도");
+
                         }
+
+
+                        if (base_Cylinder != null)
+                            base_Cylinder.Erase();
                         acTrans.Commit();
                         }
 
@@ -2295,9 +2326,11 @@ namespace PipeInfo
         }
 
         //25.11.11 컷팅기에서 STEP파일이 안읽혀 질때 SWEEP으로 그린 배관을 3D파이프로 다시 그리기 위해 Takeoff위치를 계산하는 함수.
-        public List<Point3d> Get3DPipeTakeoffCenter(Solid3d pipe)
+        public Dictionary<Point3d,double> GetTakeOffCenterAndDia(Solid3d pipe)
         {
             List<Point3d> takeOffCenters = new List<Point3d>();
+            List<double> takeOffDia = new List<double>();
+            Dictionary<Point3d, double> takeOffDic = new Dictionary<Point3d, double>();
             //25.11.10 Solid의 BRep 구멍의 좌표를 찾기위해 생성 가능성이 있음.(acdmgdbrep.dll필요)
             using (Brep brep = new Brep(pipe))
             {
@@ -2322,8 +2355,13 @@ namespace PipeInfo
                                 (min.Y + max.Y) / 2.0,
                                 (min.Z + max.Z) / 2.0
                             );
-                            takeOffCenters.Add(centerPt);
-                        }
+                            Point2d min2d = new Point2d(min.X, min.Y);
+                                Point2d max2d = new Point2d(max.X, max.Y);
+                                var dia = min2d.GetDistanceTo(max2d);
+                                takeOffCenters.Add(centerPt);
+                            takeOffDia.Add(dia);//반지름
+                                takeOffDic.Add(centerPt, dia);
+                            }
                         }
                     }
                     if (innerLoopCount > 0)
@@ -2338,28 +2376,30 @@ namespace PipeInfo
             //3D Edge정보에는 속이 빈 메인배관의 위아래 포인트와 
             //Takeoff가 파이프 두께로 잘려있기때문에 루프가 위 아래 한쌍을 가지고 있기 때문에 같은 객체 삭제함.
             //파이프는 최종적으로 90도로 수직되어 있으므로 Z축으로 정렬.
+            takeOffDic = takeOffDic
+                .OrderBy(p => p.Key.Z)
+                .ToDictionary(p => p.Key, p => p.Value);
             takeOffCenters = takeOffCenters.OrderBy(p => p.Z).ToList();
-
-            if (takeOffCenters.Count > 2)
+            if (takeOffDic.Count > 2)
             {
-                takeOffCenters.RemoveAt(0); // 최소 Z 제거
-                takeOffCenters.RemoveAt(takeOffCenters.Count - 1); // 최대 Z 제거
+                takeOffDic.Remove(takeOffCenters[0]);// 최소 Z 제거
+                takeOffDic.Remove(takeOffCenters[takeOffCenters.Count - 1]); // 최대 Z 제거
             }
             double xyTolerance = 5.0;  // 배관 두께 기준
             double zTolerance = 0.5; // 높이 비교 오차
 
-            var result = new List<Point3d>();
+            var result = new Dictionary<Point3d, double>();
             //높이가 같고  X,Y차이가 배관 두께보다 작으면 하나 지움(같은 중심이라 판단)
-            foreach (var p in takeOffCenters)
+            foreach (var p in takeOffDic)
             {
-                bool isDuplicate = result.Any(existing =>
-                    Math.Abs(existing.Z - p.Z) < zTolerance &&
-                    Math.Abs(existing.X - p.X) <= xyTolerance &&
-                    Math.Abs(existing.Y - p.Y) <= xyTolerance
+                bool isDuplicate = result.Keys.Any(existing =>
+                    Math.Abs(existing.Z - p.Key.Z) < zTolerance &&
+                    Math.Abs(existing.X - p.Key.X) <= xyTolerance &&
+                    Math.Abs(existing.Y - p.Key.Y) <= xyTolerance
                 );
 
                 if (!isDuplicate)
-                    result.Add(p);
+                    result.Add(p.Key,p.Value);
             }
 
             return result;
