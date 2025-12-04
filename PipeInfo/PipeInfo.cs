@@ -48,6 +48,7 @@ using static PipeInfo.PipeInfo;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using Path = System.IO.Path;
+using System.Reflection;
 //using DINNO.DO3D.CLIENT.IO.Comm.Datas;
 #endregion
 
@@ -1398,7 +1399,9 @@ namespace PipeInfo
             Autodesk.Windows.RibbonControl ribbonControl = Autodesk.Windows.ComponentManager.Ribbon;
             //RibbonControl >> RibbonTab >> RibbonPanel >> 
             RibbonTab tab = new RibbonTab();
-            tab.Title = "DDWORKS";
+            Version ver = Assembly.GetExecutingAssembly().GetName().Version;
+
+            tab.Title = $"DDWORKS v{ver}";
             tab.Id = "Tab_ID";
 
             RibbonPanelSource panelSpool_Sor = new RibbonPanelSource();
@@ -1771,7 +1774,7 @@ namespace PipeInfo
         /*
          * Asan Project 타공 도면 검토 기능
          */
-        [CommandMethod("TT")]
+        [CommandMethod("TPP")]
         public void tagong_Break()
         {
             Editor ed = Application.DocumentManager.MdiActiveDocument.Editor;
@@ -1999,146 +2002,6 @@ namespace PipeInfo
                                 var tak = acTrans.GetObject(takeOff3DId, OpenMode.ForWrite) as Solid3d;
                                 //BasePipe에서 TakeOff Pipe를 빼줌.
                                 base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
-
-                                //acTrans.AddNewlyCreatedDBObject(piped, true);
-                                //acTrans.AddNewlyCreatedDBObject(basepiped, true);
-                                //===================================================================================
-
-                                //기존 방법대로 그리기. 25.10.14 방향에 맞는 base파이프 정렬, Takeoff 정렬 후 방향 에러 없어짐.
-                                //테이크 오프는 파이프의 진행방향을 따라가야하니 진행방향만 마이너스 해주면 된다.
-                                //여기서 baseVector Y축이 0이니 Y축과 90인 방향을??? LEngth와 가장 근접한 축..! 
-                                //    double takeoff_Level = getTakeOffLevel(pipeInfo_Pos_li, i);
-                                //    Point2d toPo = new Point2d();
-                                //    //Takeoff의 기울기에 따른 Po
-                                //    Point3d po = getTakeOffXYZ(pipeInfo_Pos_li, takeoff_Level);
-                                //    Vector3d takeOffDir = pipeInfo_Pos_li[0] - pipeInfo_Pos_li[i];
-
-                                //    Vector3d basePipeVec = pipeInfo_Pos_li[0].GetVectorTo(pipeInfo_Pos_li[1]).GetNormal();
-                                //    var basePipe_vec = getBasePipeDir(basePipeVec);
-                                //    Vector3d basePipe_Vec = (pipeInfo_Pos_li[0] - pipeInfo_Pos_li[1]).GetNormal();
-                                //    double takeoff_An_ToPipe = 0.0;
-                                //    var fromYZ = new Point2d(pipeInfo_Pos_li[0].Y, pipeInfo_Pos_li[0].Z);
-                                //    var fromXZ = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Z);
-                                //    var fromXY = new Point2d(pipeInfo_Pos_li[0].X, pipeInfo_Pos_li[0].Y);
-                                //    var pipePos = pipeInfo_Pos_li.GetRange(0, 2);
-
-                                //    if (basePipe_vec != "")
-                                //    {
-                                //        if (Math.Round(basePipe_Vec.X) == 1 || Math.Round(basePipe_Vec.X) == -1)
-                                //        {
-                                //            takeOffLi = takeOffLi.OrderBy(x => x.Key.X).ToDictionary(x => x.Key, x => x.Value);
-                                //            pipePos = pipePos.OrderBy(x => x.X).ToList();
-                                //            var pos = takeOffLi.ElementAt(i - 2).Key;
-                                //            takeoff_Level = Math.Abs(pipePos[0].X - pos.X);
-                                //            toPo = new Point2d(pos.Y, pos.Z);
-                                //            //Takeoff 각도 계산
-                                //            takeoff_An_ToPipe = fromYZ.GetVectorTo(toPo).Angle;
-                                //        }
-                                //        else if (Math.Round(basePipe_Vec.Y) == 1 || Math.Round(basePipe_Vec.Y) == -1)
-                                //        {
-                                //            takeOffLi = takeOffLi.OrderBy(x => x.Key.Y).ToDictionary(x => x.Key, x => x.Value);
-                                //            pipePos = pipePos.OrderBy(x => x.Y).ToList();
-                                //            var pos = takeOffLi.ElementAt(i - 2).Key;
-                                //            takeoff_Level = Math.Abs(pipePos[0].Y - pos.Y);
-                                //            toPo = new Point2d(pos.X, pos.Z);
-                                //            //Takeoff 각도 계산
-                                //            takeoff_An_ToPipe = fromXZ.GetVectorTo(toPo).Angle*-1;
-                                //        　}
-                                //        else if (Math.Round(basePipe_Vec.Z) == 1 || Math.Round(basePipe_Vec.Z) == -1)
-                                //        {
-                                //            takeOffLi = takeOffLi.OrderBy(x => x.Key.Z).ToDictionary(x => x.Key, x => x.Value);
-                                //            pipePos = pipePos.OrderBy(x => x.Z).ToList();
-                                //            var pos = takeOffLi.ElementAt(i - 2).Key;
-                                //            takeoff_Level = Math.Abs(pipeInfo_Pos_li[0].Z - pos.Z);
-                                //            toPo = new Point2d(pos.X, pos.Y);
-                                //            //Takeoff 각도 계산
-                                //            takeoff_An_ToPipe = fromXY.GetVectorTo(toPo).Angle;
-                                //        }
-                                //        else
-                                //        {
-                                //            MessageBox.Show("base파이프의 진행방향을 알 수 없습니다.", "DDWorks Cad Plug-In");
-                                //        }
-
-
-                                //    }
-                                //    else
-                                //    {
-                                //        takeoff_An_ToPipe = 0;
-                                //    }
-
-
-
-
-                                //    double radius = 0.0;
-                                //    radius = takeOffLi.ElementAt(i-2).Value[0]/2;
-
-                                //    //Take off 배관 생성
-                                //    cylinderObj_ID = pipe.create_3DCylinder(takeOff_length, radius);
-
-                                //    //take off만 반영 3D파이프의 핸들링을 위한 객체가져오기
-                                //    takeoff_Cylinder = acTrans.GetObject(cylinderObj_ID, OpenMode.ForWrite) as Solid3d;
-                                //    //base_Cylinder = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
-
-
-                                //    Vector3d normal = Vector3d.YAxis;
-                                //    var centroid = takeoff_Cylinder.MassProperties.Centroid;
-                                //    var zeroCenter = new Point3d(0, 0, 0);
-                                //    var plane = new Plane(centroid, normal);
-
-                                //    //STEP 파일을 그릴때는 무조건 Z축으로 Take-off 위치가 이동하도록 진행.
-                                //    //파이프의 위치는 0을 중심으로 길이를 반반나누어서 진행.
-                                //    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(centroid.GetAsVector()) * Matrix3d.WorldToPlane(plane) * Matrix3d.Rotation(Math.PI / 180 * 90, normal, centroid));
-
-                                //    //위치
-                                //    var dd = (-pipeInfo_Length_li[0] / 2) + takeoff_Level;
-                                //    takeoff_Cylinder.TransformBy(Matrix3d.Displacement(new Point3d(takeOff_length / 2, 0, (-pipeInfo_Length_li[0] / 2) + takeoff_Level) - Point3d.Origin));
-
-                                //    //회전
-                                //    normal = Vector3d.ZAxis;
-                                //    var bound = base_Cylinder.Bounds;
-                                //    //Database에 있는 Take-Off 값을 곱해주는 것으로 DDW와 같은 값을 얻는다. 만약 실제로 화면에 POC방향까지 표시하려면 Quaternion에 ToEular를 사용해서 X축에서 시작해서 회전값을 반영해줘야한다.
-                                //    //기본 파이프와 POC의 피뢰침 시작은 X축을 바라보고 있는것으로 시작
-                                //    //takeoff_Cylinder.TransformBy(Matrix3d.Rotation(r* takeoff_Andgle, normal, new Point3d(0, 0, 0))); //r과 곱하는 축 선택해줘야함.
-                                //    takeoff_Cylinder.TransformBy(Matrix3d.Rotation(takeoff_An_ToPipe, normal, new Point3d(0, 0, 0)));
-                                //    base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, takeoff_Cylinder);
-                                //}
-                                //    //파이프 STEP파일 저장을 위해 리스트에 ObjectId저장.
-                                //}
-
-                                //if (saveObj_ID.OldId != 0)
-                                //{
-                                //    saveObj_ID = base_Cylinder.ObjectId;
-                                //    //stepfileSave_Ids.Add(saveObj_ID); <- 파이프 id를 중복 저장하고 있음.. 삭제
-                                //}
-
-
-
-                                //double angleZ = currentDir.GetAngleTo(targetDirZ);
-                                //base_Cylinder.TransformBy(Matrix3d.Rotation(angleZ, Vector3d.YAxis, baseline.StartPoint));
-                                ////그 라인을 Z축을 중심으로 90도 회전하면 회전 기준점이 만들어진다.
-                                //var line90 = new Line(baseline.StartPoint, baseline.EndPoint);
-                                //line90.TransformBy(Matrix3d.Rotation(Math.PI / 2, Vector3d.ZAxis, baseline.StartPoint));
-
-                                //////라인의 진행방향을 알아내기 위해 2D좌표로만 Vector구함.
-                                //Vector3d s = new Vector3d(line90.StartPoint.X, line90.StartPoint.Y, 0);
-                                //Vector3d e = new Vector3d(line90.EndPoint.X, line90.EndPoint.Y, 0);
-                                //Vector3d dirNor = (e - s).GetNormal();
-
-                                //////기존 배관 진행방향이 정렬하고자 하는 축과 각도를 구함.
-                                //var andgZ = Vector3d.ZAxis.GetAngleTo(currentDir);
-                                //var andgX = Vector3d.XAxis.GetAngleTo(currentDir);
-
-                                ////base_Cylinder.TransformBy(Matrix3d.Rotation(andgZ, Vector3d.YAxis, baseline.StartPoint));
-                                ////base_Cylinder.TransformBy(Matrix3d.Rotation(andgX, Vector3d.ZAxis, baseline.StartPoint));
-
-                                ////회전 기준방향을 통해서 Axis를 정한다.
-                                //if (dirNor.X > dirNor.Y)
-                                //    base_Cylinder.TransformBy(Matrix3d.Rotation(andg, Vector3d.XAxis, baseline.StartPoint));
-                                //else if (dirNor.X < dirNor.Y)
-                                //    base_Cylinder.TransformBy(Matrix3d.Rotation(andg, Vector3d.YAxis, baseline.StartPoint));
-                                //takePipeCount += 1;
-
-
                             }
                             }
 
@@ -2209,8 +2072,8 @@ namespace PipeInfo
                                 new Point3d(-pipeInfo_Dia_Li[0] / 2, -pipeInfo_Dia_Li[0] / 2, baseline.Length/2) - newCurDir.StartPoint));
                         //stepfileSave_Ids.Remove(cylinder_ids[0]);
                         //stepfileSave_Ids.Add(base_Cylinder.Id);
-                        pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
-                        pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
+                        //pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
+                        //pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
                         //acBlkRec.AppendEntity(line90);
                         //acTrans.AddNewlyCreatedDBObject(line90, true);
 
@@ -2269,16 +2132,19 @@ namespace PipeInfo
                             //ed.WriteMessage($"\n부호 있는 각도: {signedAngleDeg:F2}도");
 
                         }
-
-
                         if (base_Cylinder != null)
                             base_Cylinder.Erase();
+                        
                         acTrans.Commit();
                         }
 
                     }
                 
             }
+
+            //크기가 0개인 솔리드 객체 삭제. 
+            //BOOLEAN오퍼레이션 후에 크기가 0인 솔리드가 생성될 수 있음.
+            DeleteZeroVolumeSolids(db);
 
             //STEP파일 저장
             //acDoc.SendStringToExecute(String.Format("STEPOUT D:\\{0}.STEP\n", "Sample"), true, false, false);
@@ -2325,7 +2191,56 @@ namespace PipeInfo
 
         }
 
+
+        public static void DeleteZeroVolumeSolids(Database db)
+        {
+            using (Transaction tr = db.TransactionManager.StartTransaction())
+            {
+                BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
+                BlockTableRecord ms =
+                    (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForWrite);
+
+                int deletedCnt = 0;
+
+                foreach (ObjectId id in ms)
+                {
+                    if (!id.ObjectClass.DxfName.Equals("3DSOLID"))
+                        continue;
+
+                    Solid3d solid = tr.GetObject(id, OpenMode.ForWrite) as Solid3d;
+                    if (solid == null)
+                        continue;
+
+                    bool shouldDelete = false;
+
+                    try
+                    {
+                        // 1) 볼륨 체크 (정상 Solid는 Volume > 0)
+                        double vol = solid.MassProperties.Volume;
+                        if (vol < 1e-6)
+                            shouldDelete = true;
+                    }
+                    catch
+                    {
+                        // 2) MassProperties 예외 → Body 없음(= 빈 Solid)
+                        shouldDelete = true;
+                    }
+
+                    if (shouldDelete)
+                    {
+                        solid.Erase();
+                        deletedCnt++;
+                    }
+                }
+
+                tr.Commit();
+
+                Application.DocumentManager.MdiActiveDocument.Editor
+                    .WriteMessage($"\n삭제된 빈 3D Solid 개수: {deletedCnt}");
+            }
+        }
         //25.11.11 컷팅기에서 STEP파일이 안읽혀 질때 SWEEP으로 그린 배관을 3D파이프로 다시 그리기 위해 Takeoff위치를 계산하는 함수.
+        //기능 요약 : 3D Solid에서 Edge를 가져오고 그 Edge의 BReP정보에서 LoopType이 Interior인 루프를 찾아 그 루프의 Edge를 통해 구멍의 중심점과 대략적인 Dia를 구함.
         public Dictionary<Point3d,double> GetTakeOffCenterAndDia(Solid3d pipe)
         {
             List<Point3d> takeOffCenters = new List<Point3d>();
@@ -2992,40 +2907,56 @@ namespace PipeInfo
             }
 
             // CREATE 3DCylinder
-            public ObjectId create_3DPipeForSweep(Line line, Circle cicle, double pipe_thk=0)
+            public ObjectId create_3DPipeForSweep(Line line, Circle circle, double pipe_thk=0)
             {
                 ObjectId objId = new ObjectId();
+                // 1) 입력값 검증
+                if (line.Length < 1e-6)
+                    return ObjectId.Null;
+
+                if (circle.Radius <= 0)
+                    return ObjectId.Null;
+                // inner circle 방어
+                double innerR = circle.Radius - pipe_thk;
+                if (pipe_thk > 0 && innerR <= 0)
+                    return ObjectId.Null;
 
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
                     BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
                     BlockTableRecord acBlkRec = acTrans.GetObject(acBlk[BlockTableRecord.ModelSpace], OpenMode.ForWrite) as BlockTableRecord;
 
-                    Circle innerCircle = new Circle(Point3d.Origin, Vector3d.ZAxis, cicle.Radius-pipe_thk);
-                    Solid3d cylinder_Outer = new Solid3d();
-                    cylinder_Outer.RecordHistory = true;
-                    Solid3d cylinder_Inner = new Solid3d();
-                    cylinder_Outer.RecordHistory = true;
+                        Circle innerCircle = new Circle(Point3d.Origin, Vector3d.ZAxis, circle.Radius - pipe_thk);
+                        Solid3d cylinder_Outer = new Solid3d();
+                        cylinder_Outer.RecordHistory = true;
+                        Solid3d cylinder_Inner = new Solid3d();
+                        cylinder_Outer.RecordHistory = true;
 
-                    SweepOptionsBuilder swOptBuilder = new SweepOptionsBuilder();
-                    swOptBuilder.Align = SweepOptionsAlignOption.AlignSweepEntityToPath;
-                    cylinder_Outer.CreateSweptSolid(cicle, line, swOptBuilder.ToSweepOptions());
-
-                    //도면에 삽입
-                    objId = acBlkRec.AppendEntity(cylinder_Outer);
-                    acTrans.AddNewlyCreatedDBObject(cylinder_Outer, true);
-
-
-                    if (pipe_thk != 0)
+                        SweepOptionsBuilder swOptBuilder = new SweepOptionsBuilder();
+                        swOptBuilder.Align = SweepOptionsAlignOption.AlignSweepEntityToPath;
+                    try
                     {
-                        cylinder_Inner.CreateSweptSolid(innerCircle, line, swOptBuilder.ToSweepOptions());
-                        acBlkRec.AppendEntity(cylinder_Inner);
-                        acTrans.AddNewlyCreatedDBObject(cylinder_Inner, true);
-                        cylinder_Outer.BooleanOperation(BooleanOperationType.BoolSubtract, cylinder_Inner);
-                    }
+                        cylinder_Outer.CreateSweptSolid(circle, line, swOptBuilder.ToSweepOptions());
 
-              
-                    acTrans.Commit();
+                        //도면에 삽입
+                        objId = acBlkRec.AppendEntity(cylinder_Outer);
+                        acTrans.AddNewlyCreatedDBObject(cylinder_Outer, true);
+
+
+                        if (pipe_thk != 0)
+                        {
+                            cylinder_Inner.CreateSweptSolid(innerCircle, line, swOptBuilder.ToSweepOptions());
+                            acBlkRec.AppendEntity(cylinder_Inner);
+                            acTrans.AddNewlyCreatedDBObject(cylinder_Inner, true);
+                            cylinder_Outer.BooleanOperation(BooleanOperationType.BoolSubtract, cylinder_Inner);
+                        }
+                        acTrans.Commit();
+                    }
+                    catch
+                    {
+                        acTrans.Abort();
+                        return ObjectId.Null;
+                    }
 
                 }
                 return objId;

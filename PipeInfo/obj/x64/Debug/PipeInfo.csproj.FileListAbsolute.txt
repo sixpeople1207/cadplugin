@@ -640,8 +640,8 @@ D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\PipeInfo.WinForm_STEP.resources
 D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.GenerateResource.cache
 D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.CoreCompileInputs.cache
 D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\PipeInfo.csproj.Up2Date
-D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\AAASSd.dll.config
-D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\AAASSd.dll
-D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\AAASSd.pdb
-D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\AAASSd.dll
-D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\AAASSd.pdb
+D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\CADPLUGIN_1204.dll.config
+D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\CADPLUGIN_1204.dll
+D:\Git\cadplugin(2)\PipeInfo\bin\x64\Debug\CADPLUGIN_1204.pdb
+D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\CADPLUGIN_1204.dll
+D:\Git\cadplugin(2)\PipeInfo\obj\x64\Debug\CADPLUGIN_1204.pdb
