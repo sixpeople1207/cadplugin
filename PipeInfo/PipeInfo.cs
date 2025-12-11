@@ -1936,18 +1936,6 @@ namespace PipeInfo
                             }
                     }
 
-                //if (pipeInfo_Pos_li.Count > 2)
-                //{
-                //    List<string> takeoff_Size_Li = dbIO.Get_TakeOff_Size_By_InstanceId(pipeIns);
-
-                //    if (takeoff_Size_Li.Count == pipeInfo_Dia_Li.Count - 2 && takeoff_Size_Li[0] != "0") //찾은 테크오프 사이즈와 PIPE에 
-                //    {
-                //        for (int i = 0; i < takeoff_Size_Li.Count; i++)
-                //        {
-                //            pipeInfo_Dia_Li[i + 2] = double.Parse(takeoff_Size_Li[i]);
-                //        }
-                //    }
-                //}
 
                 /* Take Off 처리 객체 3D 뽕따기
                 - Take Off Cylinder는 한개의 POC만 가지고 있다.(여러개 가지고 있을때 Take Off 처리)
@@ -2008,22 +1996,6 @@ namespace PipeInfo
                         //추가 25.11.10 컷팅기로 넘어갔을때 SWEEP으로 그린배관은 회전값이 기존 배관(CreateFrustum)과 회전값이 다름. 정확히 XY축에 정렬이 되어있지 않음. 
                         //기존 배관은 삭제하고 TAKEOFF용으로 다시 그림.
                         var oldPipe = acTrans.GetObject(cylinder_ids[0], OpenMode.ForWrite) as Solid3d;
-                        ////삭제
-                        //if (oldPipe != null)
-                        //{
-                        //    oldPipe.Erase();
-                        //}
-                        
-
-
-                        ////그래서 아래같이 기존 BASE배관을 불러와서 회전값과 위치를 교정 한 후 기존배관 삭제함.
-                        //Matrix3d align =
-                        //Matrix3d.AlignCoordinateSystem(
-                        //     base_Cylinder.GeometricExtents.MinPoint, Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis,
-                        //     oldPipe.GeometricExtents.MinPoint, Vector3d.XAxis, Vector3d.YAxis, Vector3d.ZAxis);
-
-                        //base_Cylinder.TransformBy(align);
-
 
                         //추가 25.10.15기울어진 배관을 수직으로 만드는 아이디어 
                         // 양방향으로 기울어진 배관은 먼저 X축을 정렬하고 무조건 Z축으로 90도 회전하면 직각이 됨.
@@ -2050,16 +2022,12 @@ namespace PipeInfo
                         {
                             // 5. 회전 축은 두 벡터의 외적 (수직 방향)
                             Vector3d axis = currentDir.CrossProduct(targetDirX).GetNormal();
-
                             // 6. 회전 각도 계산
                             double angleX = currentDir.GetAngleTo(targetDirX);
-
                             // 7. 회전 행렬 생성 (baseline의 시작점을 기준으로 회전)
                             Matrix3d rotationMatrix = Matrix3d.Rotation(angleX, axis, baseline.StartPoint);
-
                             // 8. 파이프에 회전 적용
                             base_Cylinder.TransformBy(rotationMatrix);
-
                         }
                         //회전된 배관의 중심점선을 다시 그린다.
                         Line newCurDir = new Line(base_Cylinder.GeometricExtents.MinPoint, base_Cylinder.GeometricExtents.MaxPoint);
@@ -2070,13 +2038,8 @@ namespace PipeInfo
                         //현재 파이프 를 100,200,0을 기준으로 배치이동(다른 함수에서 자동으로 처리)
                         base_Cylinder.TransformBy(Matrix3d.Displacement(
                                 new Point3d(-pipeInfo_Dia_Li[0] / 2, -pipeInfo_Dia_Li[0] / 2, baseline.Length/2) - newCurDir.StartPoint));
-                        //stepfileSave_Ids.Remove(cylinder_ids[0]);
-                        //stepfileSave_Ids.Add(base_Cylinder.Id);
-                        //pipeHandle_Li.Remove(cylinder_ids[0].Handle.ToString());
-                        //pipeHandle_Li.Add(base_Cylinder.Id.Handle.ToString());
-                        //acBlkRec.AppendEntity(line90);
-                        //acTrans.AddNewlyCreatedDBObject(line90, true);
 
+                        //배관 다시 그리기
                         //0. takeoff 중심가져오기. Takeoff의 Diamemter를 Min, Max로 대략적으로 구해준다.
                         var takeOffCenters = GetTakeOffCenterAndDia(base_Cylinder);
                       
@@ -2091,6 +2054,8 @@ namespace PipeInfo
                         //1. Take-Off배관 그리기 : 중심점에서 앞뒤로 배관을 뚫어야 하기떄문에 Take-Off중심점과 같은 높이의 0점과 Direct를 구함. 
                         //2. Dia크기 구하기 : pipeInfo_Dia_Li에서 MinMax로 구한 대략적인 원크기를 빼서 가장 작은값을 가져옴. 
                         //3. 3D파이프 Boolean하기. 
+                        int count = 0;
+                        double signedAngleDeg = 0;
                         foreach (var point in takeOffCenters)
                         {
                             //1번
@@ -2117,20 +2082,23 @@ namespace PipeInfo
                                 //3번
                                 //acTrans Commit된 객체를 다시 불러와 편집
                                 var tak = acTrans.GetObject(takeoffPipeId, OpenMode.ForWrite) as Solid3d;
+                                if (count == 0)//첫 번째 Hole만 각도를 구함.
+                                {
+                                    //4번 Y축과의 각도 구하기(나중에 90도로 해달랄까봐 미리 해놓음)=>역시 한달후에..
+                                    Vector3d simVector = new Vector3d(1, 0, 0); //-X축으로부터 Takeoff시작
+                                    Vector3d normal = new Vector3d(0, 0, 1);    // XY평면 법선
+                                    double angleRad = simVector.GetAngleTo(lineDir);
+                                    double sign = Math.Sign(simVector.CrossProduct(lineDir).DotProduct(normal));
+                                    signedAngleDeg = angleRad * sign * 180.0 / Math.PI; //X 축으로부터의 벗어난 각도를 구하고 그만큼 움직여줌(첫 번째 Hole을 기준으로 모두 회전)
+                                }
+                                tak.TransformBy(Matrix3d.Rotation(-signedAngleDeg * Math.PI/180, Vector3d.ZAxis, new Point3d(0,0,0)));
+                                //ed.WriteMessage($"\n부호 있는 각도: {signedAngleDeg:F2}도");
                                 oldPipe.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
+                                count += 1;
                                 //라인 객체 - 배포를 위해 숨김. 추후 각도변경을 위해 필요
                                 //acBlkRec.AppendEntity(takeOffCenLine);
                                 //acTrans.AddNewlyCreatedDBObject(takeOffCenLine, true);
                             }
-
-                            //4번 Y축과의 각도 구하기
-                            Vector3d simVector = new Vector3d(0, 1, 0);
-                            Vector3d normal = new Vector3d(0, 0, 1);    // XY평면 법선
-                            double angleRad = simVector.GetAngleTo(lineDir);
-                            double sign = Math.Sign(simVector.CrossProduct(lineDir).DotProduct(normal));
-                            double signedAngleDeg = angleRad * sign * 180.0 / Math.PI;
-                            //ed.WriteMessage($"\n부호 있는 각도: {signedAngleDeg:F2}도");
-
                         }
                         if (base_Cylinder != null)
                             base_Cylinder.Erase();
