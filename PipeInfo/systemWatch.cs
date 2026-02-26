@@ -63,6 +63,24 @@ namespace PipeInfo
                 spool_Li.Count == spoolLength_Li.Count && 
                 handle_Li.Count == spoolLength_Li.Count)
             {
+                //26.2.26 추가 10mm이하 배관 삭제
+                List<int> removeIndex = new List<int>();
+
+                for(int i=0; i<spoolLength_Li.Count; i++)
+                {
+                    if(spoolLength_Li[i] < 11)
+                    {
+                        removeIndex.Add(i);
+                    }
+                }
+
+                foreach(var inx in removeIndex)
+                {
+                    spool_Li.RemoveAt(inx);
+                    handle_Li.RemoveAt(inx);
+                    spoolLength_Li.RemoveAt(inx);
+                }
+
                 _spool_Li = spool_Li;
                 _handle_Li = handle_Li;
                 _spoolLenth_Li = spoolLength_Li; //스풀 정보에 길이값 표시를 대비.

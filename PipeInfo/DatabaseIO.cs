@@ -426,6 +426,9 @@ namespace PipeInfo
                                 Int64 connectInt = (Int64)rdr_ready["CONNECTION_ORDER"];
 
                                 double length = Convert.ToDouble(rdr_ready["LENGTH1"]);
+
+                                if (length < 11)
+                                    continue;
                                 //Depth값을 파이프 길이에서 빼준다.
                                 if (depth != 0)
                                 {
@@ -442,7 +445,7 @@ namespace PipeInfo
 
                                         var pos = new Point3d(Convert.ToDouble(rdr_ready["POSX"]), Convert.ToDouble(rdr_ready["POSY"]), Convert.ToDouble(rdr_ready["POSZ"]));
                                         var dia = Convert.ToDouble(rdr_ready["OUTERDIAMETER"]);
-
+                                    
                                         instanceId = BitConverter.ToString((byte[])rdr_ready["INSTANCE_ID"]).Replace("-", "");
                                         pipesInfor.Add(instanceId);
                                         pipesLength.Add(length);

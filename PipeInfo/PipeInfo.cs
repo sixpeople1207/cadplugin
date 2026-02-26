@@ -1887,8 +1887,6 @@ namespace PipeInfo
                 
                 //실제 파이프 갯수만 가져온다. POC 정보를 제외한 실제 파이프 갯수. 
                 pipeList = ddwDB.Get_PipeList_By_GroupName(groupName);
-
-             
                     // MessageBox.Show(spoolNum.ToString());
                     // POC 정보를 이용하여 3D Pipe를 생성한다. 반환값은 CAD ObjectId를 리스트로 반환한다.
 
@@ -1918,7 +1916,6 @@ namespace PipeInfo
                                     pipeThk = 2; //파이프 사이즈 중 일반두께 2.0
                                 }
                             } 
-                            
                             // 파이프 생성
                             cylinder_ids = pipe.create_3DCylinder_Thickness(pipeInfo_Length_li[0], pipeInfo_Dia_Li[0] / 2, pipeThk);
                             if (cylinder_ids.Count > 1)
@@ -1991,7 +1988,7 @@ namespace PipeInfo
                                 //BasePipe에서 TakeOff Pipe를 빼줌.
                                 base_Cylinder.BooleanOperation(BooleanOperationType.BoolSubtract, tak);
                             }
-                            }
+                        }
 
                         //추가 25.11.10 컷팅기로 넘어갔을때 SWEEP으로 그린배관은 회전값이 기존 배관(CreateFrustum)과 회전값이 다름. 정확히 XY축에 정렬이 되어있지 않음. 
                         //기존 배관은 삭제하고 TAKEOFF용으로 다시 그림.
@@ -2084,8 +2081,8 @@ namespace PipeInfo
                                 var tak = acTrans.GetObject(takeoffPipeId, OpenMode.ForWrite) as Solid3d;
                                 if (count == 0)//첫 번째 Hole만 각도를 구함.
                                 {
-                                    //4번 Y축과의 각도 구하기(나중에 90도로 해달랄까봐 미리 해놓음)=>역시 한달후에..
-                                    Vector3d simVector = new Vector3d(1, 0, 0); //-X축으로부터 Takeoff시작
+                                    //4번 Y축과의 각도 구하기(나중에 90도로 해달랄까봐 미리 해놓음)=>역시 한달후에..25.12.11
+                                    Vector3d simVector = new Vector3d(-1, 0, 0); //-X축으로부터 Takeoff시작
                                     Vector3d normal = new Vector3d(0, 0, 1);    // XY평면 법선
                                     double angleRad = simVector.GetAngleTo(lineDir);
                                     double sign = Math.Sign(simVector.CrossProduct(lineDir).DotProduct(normal));
@@ -2947,7 +2944,7 @@ namespace PipeInfo
                 //Pipe 본체 모델링 
                 using (Transaction acTrans = db.TransactionManager.StartTransaction())
                 {
-                    if (pipe_length > 10) //최소 파이프 길이 10mm
+                    if (pipe_length > 3) //최소 파이프 길이 10mm
                     {
                         acDoc.LockDocument();
                         BlockTable acBlk = acTrans.GetObject(db.BlockTableId, OpenMode.ForWrite) as BlockTable;
@@ -2968,7 +2965,7 @@ namespace PipeInfo
                         }
                         else
                         {
-                            MessageBox.Show("파이프의 두께가 10mm이하입니다.","DDWorks CAD Plug-In");
+                            MessageBox.Show("파이프의 두께가 3mm이하입니다.","DDWorks CAD Plug-In");
                         }
                         //double radius_takeoff = 5;
                         //Solid3d takeoff_cylinder = new Solid3d();
@@ -2986,7 +2983,7 @@ namespace PipeInfo
                     }
                     else
                     {
-                        MessageBox.Show("파이프의 길이가 0mm이하 입니다.\n", "DDWorks CAD Plug-In");
+                        MessageBox.Show("파이프의 길이가 3mm이하 입니다.\n", "DDWorks CAD Plug-In");
                     }
                 }
                 return objID_list;
